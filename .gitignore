@@ -1,0 +1,16 @@
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs / temp
+*.log
+node_modules/
+
+# Local server artifacts
+*.php_errors.log
