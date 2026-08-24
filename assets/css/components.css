@@ -1,0 +1,1186 @@
+/* ==========================================================================
+   Tech4TIME — components.css
+   Reusable UI pieces: icons, buttons, nav links, the theme toggle, cards,
+   badges, tags, tabs and form controls. BEM naming throughout.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Icons
+   Icons are <symbol>s from the self-hosted sprite, referenced with <use>.
+   They inherit currentColor, so they tint with whatever text colour applies.
+
+   NOTE ON THE SPRITE
+   Chromium and WebKit do not resolve <use href="external.svg#id"> across
+   documents, so the symbols a page needs are inlined into that page (hidden
+   at the top of <body>) rather than linked from assets/icons/sprite.svg.
+   assets/icons/sprite.svg is the full master set that those subsets come from.
+   -------------------------------------------------------------------------- */
+
+.icon-sprite {
+  display: none;
+}
+
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}
+
+.icon--sm {
+  font-size: 0.875em;
+}
+.icon--lg {
+  font-size: 1.5em;
+}
+.icon--xl {
+  font-size: 2em;
+}
+
+/* Silver-filled icon tile, used for service and feature cards. */
+.icon-tile {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.25rem;
+  color: var(--accent-text);
+  background-color: var(--bg-base);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+/* --------------------------------------------------------------------------
+   2. Buttons
+   -------------------------------------------------------------------------- */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  /* 2.75rem keeps the tap target at the 44px accessibility minimum. */
+  min-height: 2.75rem;
+  padding: var(--space-2xs) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  /* nowrap here used to be unconditional, which made a long label wider than
+     the screen. Because .btn clips its own overflow — it has to, for the
+     shine sweep in animations.css — and the CTA band clips again, the far end
+     of the label was simply cut off with nothing to show it had been. A
+     label that fits still sits on one line; only one that cannot fit wraps,
+     and balance keeps the result from going ragged. */
+  max-width: 100%;
+  text-wrap: balance;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out),
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Primary — the metallic fill. Uses the start->mid range so the dark ink
+   stays above 7:1 across the whole button in both modes. */
+.btn--primary {
+  color: var(--on-accent);
+  background-image: var(--silver-gradient-fill);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--primary:hover:not(:disabled) {
+  color: var(--on-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* Secondary — outlined, for the lower-emphasis action in a pair. */
+.btn--secondary {
+  color: var(--text-primary);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent-text);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Ghost — bare, for tertiary actions and icon buttons in dense rows. */
+.btn--ghost {
+  color: var(--text-secondary);
+  background-color: transparent;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--lg {
+  min-height: 3.25rem;
+  padding-inline: var(--space-lg);
+  font-size: var(--text-base);
+}
+
+/* Square icon-only button (theme toggle, back-to-top, modal close). */
+.btn--icon {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+.btn--icon:hover:not(:disabled) {
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+/* --------------------------------------------------------------------------
+   3. Navigation links
+   -------------------------------------------------------------------------- */
+
+.nav-link {
+  position: relative;
+  display: block;
+  padding: var(--space-2xs) var(--space-3xs);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+/* Silver underline marking the current page. */
+.nav-link[aria-current="page"] {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-3xs);
+  inset-block-end: 0;
+  height: 2px;
+  background-image: var(--silver-gradient-fill);
+  border-radius: var(--radius-full);
+}
+
+/* There is no mobile variant of .nav-link, and no hamburger. Below 64em the
+   header nav is not shown at all — the dock in section 10 is the navigation
+   there. Both used to live here, and a hamburger that duplicated a nav
+   already on screen was the bug that came of keeping two. */
+
+/* --------------------------------------------------------------------------
+   4. Theme toggle
+   Both icons are in the DOM; CSS shows whichever matches the active mode, so
+   the control needs no JavaScript to render correctly on first paint.
+   -------------------------------------------------------------------------- */
+
+.theme-toggle__icon--sun {
+  display: none;
+}
+
+.theme-toggle__icon--moon {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle__icon--sun {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .theme-toggle__icon--moon {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .theme-toggle__icon--sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle__icon--moon {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   5. Cards
+   -------------------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition:
+    transform var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+.card--interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--silver-accent-mid);
+  box-shadow: var(--shadow);
+}
+
+.card__title {
+  font-size: var(--text-lg);
+}
+
+.card__text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.card__footer {
+  margin-block-start: auto;
+  padding-block-start: var(--space-xs);
+}
+
+/* Logo tile for the technology / client grids. Currently unused — the two
+   grids that exist use .tech-sphere__face and .client-card — but it is kept
+   as the general form, so it carries the same artwork plate they do rather
+   than the themed surface that made those logos disappear in dark mode. */
+.logo-card {
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  min-height: 6.5rem;
+  background-color: var(--artwork-plate);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+.logo-card img {
+  max-height: 3rem;
+  width: auto;
+  object-fit: contain;
+}
+
+/* --------------------------------------------------------------------------
+   6. Badges, tags and stats
+   -------------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent-text);
+  background-color: var(--bg-surface);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+.tag__icon {
+  color: var(--accent-text);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat__value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+.stat__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   7. Tabs and filters
+   Used by the services dashboards. Panels stay in the DOM and are hidden with
+   the `hidden` attribute, so their content remains crawlable.
+   -------------------------------------------------------------------------- */
+
+.tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+  list-style: none;
+}
+
+.tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  min-height: 2.75rem;
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition:
+    color var(--duration) var(--ease-out),
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out);
+}
+
+.tabs__tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tabs__tab[aria-selected="true"] {
+  color: var(--on-accent);
+  background-image: var(--silver-gradient-fill);
+  border-color: transparent;
+}
+
+.tabs__panel[hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   8. Forms
+   -------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.field__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field__required {
+  color: var(--accent-text);
+}
+
+.field__control {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2xs) var(--space-xs);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+.field__control::placeholder {
+  color: var(--text-muted);
+}
+
+.field__control:hover {
+  border-color: var(--accent-text);
+}
+
+.field__control:focus-visible {
+  border-color: var(--accent-text);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+textarea.field__control {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+/* Invalid state is driven by aria-invalid, so the styling and the accessible
+   state can never drift apart. */
+.field__control[aria-invalid="true"] {
+  border-color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+}
+
+/* Monochrome palette means errors cannot be signalled by colour alone
+   (WCAG 1.4.1), so the message carries an icon and text as well. */
+.field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field__error:empty {
+  display: none;
+}
+
+.field__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Off-screen honeypot: real users never see or tab to it. */
+.field--honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form__status {
+  padding: var(--space-sm);
+  font-size: var(--text-sm);
+  background-color: var(--bg-surface);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.form__status:empty {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Closing CTA band
+   The full-width band most inner pages end on: a heading, optional line of
+   copy, and one button, over a faint silver wash. Shared so the eight-odd
+   pages that close this way stay identical instead of each redefining it.
+   -------------------------------------------------------------------------- */
+
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  padding-block: var(--section-padding);
+  text-align: center;
+  background-color: var(--bg-surface);
+  border-block-start: var(--border-width) solid var(--border-subtle);
+}
+
+/* For pages that alternate surface and base bands and happen to end on a
+   surface one — without this the CTA would merge into the section above it. */
+.cta-band--base {
+  background-color: var(--bg-base);
+}
+
+.cta-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--silver-gradient);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.cta-band--base::before {
+  opacity: 0.09;
+}
+
+.cta-band__inner {
+  position: relative;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+/* Defaults to the wider gap, for the bands whose title is followed straight by
+   the button; the rule below tightens it back up when a line of copy sits in
+   between. Browsers without :has() just get the looser spacing. */
+.cta-band__title {
+  margin-block-end: var(--space-lg);
+  font-size: var(--text-2xl);
+}
+
+.cta-band__title:has(+ .cta-band__text) {
+  margin-block-end: var(--space-sm);
+}
+
+.cta-band__text {
+  margin-block-end: var(--space-lg);
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Checkbox field
+   A consent box reads differently from a text field: the control comes first
+   and the label wraps beside it, rather than sitting above.
+   -------------------------------------------------------------------------- */
+
+.field--check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--space-3xs) var(--space-2xs);
+}
+
+/* 1.5rem is 24px, which is WCAG 2.2 SC 2.5.8 exactly.
+   The consent row is one tap target — the box and its label both toggle it —
+   and at 1.15rem the box was 18px while a label that fits on one line is 23,
+   so the target was 23px tall and a pixel short. Only at the widths where the
+   label does not wrap, which is why reading the stylesheet would never have
+   shown it. Sizing the box to the criterion is also the honest fix: this is
+   the control someone has to hit to give consent. */
+.field__checkbox {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-block-start: 0.15em;
+  accent-color: var(--accent-text);
+}
+
+.field__label--check {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.field--check .field__error {
+  grid-column: 2;
+}
+
+/* Reassurance under a submit button. */
+.form__note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3xs);
+  margin-block-start: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.form__note .icon {
+  flex-shrink: 0;
+  margin-block-start: 0.2em;
+}
+
+/* Errors are announced and coloured, but colour is never the only signal —
+   the field carries aria-invalid and the message says what is wrong. */
+.form__status[data-error="true"] {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   10. The dock — small-screen navigation
+
+   A floating bar at the bottom of the viewport, with a card of sections that
+   rises above it. It replaces the header nav below 64em, so exactly one
+   navigation is on screen at any width and there is no second control
+   duplicating the first.
+
+   Bottom-anchored because that is where a thumb reaches on a phone; the top
+   of a tall screen is the hardest place to put a control someone uses often.
+
+   Nothing here introduces a hue. The reference this follows used a purple
+   call-to-action; the palette has no purple to spend, so the emphasis comes
+   from the metallic fill already used by .btn--primary.
+   -------------------------------------------------------------------------- */
+
+.dock {
+  /* Also the page's bottom padding, so a fixed bar never covers the last of
+     the footer. Both read this one value. */
+  --dock-height: 4rem;
+
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: var(--z-overlay);
+  padding: 0 var(--gutter);
+  /* Clear of the home indicator on phones that have one. */
+  padding-block-end: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  /* The container spans the viewport so the panel can size against it, but it
+     must not swallow taps meant for the page behind it. The bar and panel take
+     their pointer events back. */
+  pointer-events: none;
+}
+
+@media (min-width: 64em) {
+  .dock {
+    display: none;
+  }
+}
+
+/* --- the bar ------------------------------------------------------------- */
+
+.dock__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3xs);
+  height: var(--dock-height);
+  padding-inline: var(--space-2xs);
+  margin-inline: auto;
+  max-width: 30rem;
+  pointer-events: auto;
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+}
+
+.dock__key {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  flex: 1 1 0;
+  /* A touch target, not an icon with a hit area bolted on: 44px is the floor
+     WCAG 2.5.5 asks for and the reason the bar is 4rem tall. */
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: var(--space-3xs) 0;
+  font: inherit;
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color var(--duration) var(--ease-out);
+}
+
+.dock__key:hover,
+.dock__key:focus-visible {
+  color: var(--accent-text);
+}
+
+.dock__key .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.dock__key-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+}
+
+/* The current section, marked the same way the header nav marks it. */
+.dock__key[aria-current="page"] {
+  color: var(--text-primary);
+}
+
+/* --- the emphasised destination ------------------------------------------ */
+
+/* Contact is one of the five keys, not a separate control, so it keeps the
+   same icon-over-label shape as its neighbours. What separates it is the
+   filled disc behind the icon: at a glance it is plainly the one to press,
+   and it reads that way in greyscale, which a colour-only highlight would
+   not. */
+.dock__key--contact .dock__key-disc {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  color: var(--on-accent);
+  background-image: var(--silver-gradient-fill);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration) var(--ease-out);
+}
+
+.dock__key--contact .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dock__key--contact .dock__key-label {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.dock__key--contact:hover .dock__key-disc,
+.dock__key--contact:focus-visible .dock__key-disc {
+  transform: scale(1.08);
+}
+
+/* The disc already lifts it; the hover colour shift the other keys get would
+   only muddy the ink sitting on the silver. */
+.dock__key--contact:hover,
+.dock__key--contact:focus-visible {
+  color: var(--text-primary);
+}
+
+/* --- the menu button's two icons ----------------------------------------- */
+
+.dock__icon--close,
+.dock__key--menu[aria-expanded="true"] .dock__icon--open {
+  display: none;
+}
+
+.dock__key--menu[aria-expanded="true"] .dock__icon--close {
+  display: block;
+}
+
+/* --- the panel ----------------------------------------------------------- */
+
+.dock__panel {
+  position: absolute;
+  inset-inline: var(--gutter);
+  /* Clear of the bar, not tucked behind it. This was
+     calc(100% - var(--space-sm)), which pulled the card down far enough that
+     its last row sat under the bar. 100% is the dock's top edge; the gap is
+     added rather than subtracted. */
+  bottom: calc(100% + var(--space-2xs));
+  max-width: 30rem;
+  max-height: min(70vh, 32rem);
+  padding: var(--space-2xs);
+  margin-inline: auto;
+  /* The panel clips; the list inside it is what scrolls. Scrolling the panel
+     itself would carry the circuit graphic up and out of view with the list,
+     since the graphic is positioned against the panel. */
+  overflow: hidden;
+  pointer-events: auto;
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition:
+    opacity var(--duration) var(--ease-out),
+    transform var(--duration) var(--ease-out),
+    visibility var(--duration);
+}
+
+.dock__panel[data-open="true"] {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dock__nav {
+  position: relative;
+  z-index: 1;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dock__list {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.dock__item {
+  display: grid;
+  gap: 1px;
+  padding: var(--space-2xs) var(--space-xs);
+  text-align: center;
+  text-decoration: none;
+  border-radius: var(--radius);
+  transition: background-color var(--duration) var(--ease-out);
+}
+
+.dock__item:hover,
+.dock__item:focus-visible {
+  background-color: var(--bg-surface);
+}
+
+.dock__item-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dock__item-desc {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--accent-text);
+}
+
+.dock__item[aria-current="page"] .dock__item-title {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+
+/* --- the circuit behind the list ----------------------------------------- */
+
+/* Drawn traces down both edges of the panel, with charges running along them
+   and nodes lighting as the charges pass.
+
+   ON "NEVER REPEATING"
+   A CSS animation is by definition a loop, so the honest way to build one that
+   never looks like it repeats is to run many loops whose lengths share no
+   common factor and let the eye see only the combination. Every duration here
+   is a distinct prime — 7 through 73 seconds across the two columns — so the
+   whole picture only returns to its exact starting arrangement after their
+   product. That number is longer than the age of the universe by a wide
+   margin. Nothing fades out, resets or pauses; it simply keeps going.
+
+   The two columns are mirror images of one set of paths, which is why their
+   primes are disjoint: identical durations either side would turn the whole
+   thing into one visibly symmetrical loop, which is the effect being avoided.
+
+   It costs nothing to run: stroke-dashoffset, opacity and transform on
+   thirty-six small elements, inside a panel that is usually closed.
+
+   Motion is still suppressed under prefers-reduced-motion by the global rule
+   in base.css. Someone who has asked their system for less movement gets the
+   circuit as a still drawing, which is the one case where stopping is right.
+   -------------------------------------------------------------------------- */
+
+.dock__circuit {
+  position: absolute;
+  inset-block: 0;
+  z-index: 0;
+  width: 22%;
+  max-width: 5.5rem;
+  pointer-events: none;
+}
+
+.dock__circuit svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each column fades toward the middle of the card, so the traces are strongest
+   at the edge and gone by the time they reach the section titles. */
+.dock__circuit--left {
+  left: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 25%, transparent 95%);
+  mask-image: linear-gradient(to right, #000 25%, transparent 95%);
+}
+
+/* One set of paths, flipped. The geometry is declared once in the left
+   column's <defs>; SVG ids are document-scoped, so the right column points at
+   the same paths and this turns them around. Its charges and nodes run on
+   their own primes, so the mirrored side never moves in step with its twin —
+   without that the symmetry would read as a single looping graphic. */
+.dock__circuit--right {
+  right: 0;
+  transform: scaleX(-1);
+  -webkit-mask-image: linear-gradient(to right, #000 25%, transparent 95%);
+  mask-image: linear-gradient(to right, #000 25%, transparent 95%);
+}
+
+/* Below the phone band the card is too narrow to give up both edges. */
+@media (max-width: 22em) {
+  .dock__circuit {
+    display: none;
+  }
+}
+
+/* The wiring: dim, always there, never moving. */
+.dock__wires use {
+  stroke: var(--silver-accent-mid);
+  stroke-width: 1.5;
+  opacity: 0.26;
+}
+
+/* The charge travelling a wire.
+
+   stroke-dasharray and stroke-dashoffset are inherited properties, so setting
+   them on the <use> reaches the path it clones. A dasharray of one short run
+   and one very long gap puts exactly one dash on the path at a time, and
+   animating the offset walks it from one end to the other. */
+.dock__charge {
+  stroke: var(--accent-text);
+  stroke-width: 2.5;
+  stroke-dasharray: 26 420;
+  opacity: 0.9;
+  animation-name: dock-charge;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes dock-charge {
+  from {
+    stroke-dashoffset: 446;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.dock__charge--a { animation-duration: 7s; }
+.dock__charge--b { animation-duration: 11s; }
+.dock__charge--c { animation-duration: 13s; }
+.dock__charge--d { animation-duration: 17s; }
+.dock__charge--e { animation-duration: 19s; }
+.dock__charge--f { animation-duration: 23s; }
+.dock__charge--g { animation-duration: 29s; }
+.dock__charge--h { animation-duration: 31s; }
+
+.dock__charge--k { animation-duration: 37s; }
+.dock__charge--l { animation-duration: 41s; }
+.dock__charge--m { animation-duration: 43s; }
+.dock__charge--n { animation-duration: 47s; }
+.dock__charge--o { animation-duration: 53s; }
+.dock__charge--p { animation-duration: 59s; }
+.dock__charge--q { animation-duration: 61s; }
+.dock__charge--r { animation-duration: 67s; }
+
+/* Junctions. They breathe on their own primes, so a node's brightest moment
+   drifts against the charge passing through it instead of matching it. */
+.dock__node {
+  fill: var(--silver-accent-mid);
+  opacity: 0.35;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: dock-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes dock-pulse {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.25);
+  }
+}
+
+.dock__node--a { animation-duration: 7s; }
+.dock__node--b { animation-duration: 11s; }
+.dock__node--c { animation-duration: 13s; }
+.dock__node--d { animation-duration: 17s; }
+.dock__node--e { animation-duration: 19s; }
+.dock__node--f { animation-duration: 23s; }
+.dock__node--g { animation-duration: 29s; }
+.dock__node--h { animation-duration: 31s; }
+.dock__node--i { animation-duration: 37s; }
+.dock__node--j { animation-duration: 41s; }
+
+.dock__node--k { animation-duration: 43s; }
+.dock__node--l { animation-duration: 47s; }
+.dock__node--m { animation-duration: 53s; }
+.dock__node--n { animation-duration: 59s; }
+.dock__node--o { animation-duration: 61s; }
+.dock__node--p { animation-duration: 67s; }
+.dock__node--q { animation-duration: 71s; }
+.dock__node--r { animation-duration: 73s; }
+
+/* --------------------------------------------------------------------------
+   11. Slider
+   The specialities on About and the journey photographs on Company Profile.
+
+   Two states, and the difference between them is the whole progressive
+   enhancement story:
+
+   Without JavaScript there is no [data-ready], the track is the grid the
+   section used to be, every slide is on screen, and the controls are not
+   rendered. Nobody is offered a button that cannot work, and nothing is
+   hidden.
+
+   With it, the track becomes a row as wide as all the slides together and
+   slides along inside a viewport that clips it. The slides are moved, not
+   hidden — they stay in the accessibility tree and in this repo's own colour
+   audit, which is worth more here than the usual advice to hide them, because
+   none of them contains anything focusable to get lost in.
+   -------------------------------------------------------------------------- */
+
+.slider {
+  position: relative;
+}
+
+/* The fallback layout: the same auto-fit grid these sections had. Each page
+   sets its own column width through --slider-columns. */
+.slider__track {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: var(--slider-columns, 1fr);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Clip sideways only. `overflow: hidden` would also cut the top and bottom,
+   and the cards inside lift and cast a shadow on hover — both would be sliced
+   off at the edge of the frame. `clip` is what allows the other axis to stay
+   visible; `hidden` on one axis forces the other to `auto`, which would add a
+   scrollbar rather than let the shadow through. */
+.slider__viewport {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.slider[data-ready="true"] .slider__track {
+  display: flex;
+  gap: 0;
+  translate: calc(var(--slider-index, 0) * -100%) 0;
+  transition: translate var(--duration-slow) var(--ease-out);
+}
+
+/* Every slide exactly one viewport wide, so the index doubles as the offset.
+   min-width: 0 because a flex item will otherwise refuse to shrink below the
+   width of its content, and a long word in a paragraph would push the whole
+   track out of step. */
+.slider[data-ready="true"] .slider__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+/* --- the controls -------------------------------------------------------- */
+
+/* Not rendered until the script has claimed the slider. */
+.slider__controls {
+  display: none;
+}
+
+.slider[data-ready="true"] .slider__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  margin-block-start: var(--space-md);
+  /* Every control here is a 44px tap target, and a slider with six slides
+     needs eight of them. Centred and unwrapped that row is wider than a
+     320px screen, and being centred it hangs off BOTH edges — the right-hand
+     overhang is enough to make the whole page scroll sideways. Wrapping
+     costs a second line on the narrowest phones and nothing anywhere else. */
+  flex-wrap: wrap;
+}
+
+.slider__arrow,
+.slider__pause {
+  display: grid;
+  place-items: center;
+  /* 2.75rem keeps the tap target at the 44px accessibility minimum. */
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition:
+    color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    background-color var(--duration) var(--ease-out);
+}
+
+.slider__arrow:hover,
+.slider__pause:hover,
+.slider__arrow:focus-visible,
+.slider__pause:focus-visible {
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border-color: var(--border-strong);
+}
+
+.slider__dots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+}
+
+/* The dot is small, so the button around it is not: the hit area is a full
+   44px square and the mark inside it is drawn by ::after. */
+.slider__dot {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.slider__dot::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--border-strong);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration) var(--ease-out),
+    scale var(--duration) var(--ease-out);
+}
+
+.slider__dot:hover::after {
+  background-color: var(--accent-text);
+}
+
+/* aria-current is the state the script maintains, so the current dot looks
+   current however it was reached — a click, an arrow key, or the slideshow
+   moving on by itself. */
+.slider__dot[aria-current="true"]::after {
+  background-image: var(--silver-gradient-fill);
+  background-color: transparent;
+  scale: 1.5;
+}
+
+/* --- the pause button's two icons ---------------------------------------- */
+
+.slider__pause .slider__icon--play,
+.slider__pause[data-paused="true"] .slider__icon--pause {
+  display: none;
+}
+
+.slider__pause[data-paused="true"] .slider__icon--play {
+  display: block;
+}

@@ -1,0 +1,648 @@
+/* ==========================================================================
+   Tech4TIME — layout.css
+   Page skeleton: sections, grids, the sticky site header and the site footer.
+   Structural rules only; visual component styling lives in components.css.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Page shell
+   -------------------------------------------------------------------------- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.page__main {
+  flex: 1;
+}
+
+/* --------------------------------------------------------------------------
+   2. Sections
+   -------------------------------------------------------------------------- */
+
+.section {
+  padding-block: var(--section-padding);
+}
+
+.section--tight {
+  padding-block: calc(var(--section-padding) * 0.6);
+}
+
+.section--surface {
+  background-color: var(--bg-surface);
+}
+
+/* Hairline silver rule between bands, echoing the clock hands. */
+.section--ruled {
+  border-block-start: var(--border-width) solid transparent;
+  border-image: var(--silver-gradient-rule) 1;
+}
+
+.section__header {
+  max-width: 48rem;
+  margin-inline: auto;
+  margin-block-end: var(--space-xl);
+  text-align: center;
+}
+
+.section__eyebrow {
+  display: block;
+  margin-block-end: var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.section__title {
+  margin-block-end: var(--space-sm);
+}
+
+.section__lead {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+/* Banner every inner page opens with: the page name in the silver gradient over
+   a tagline. Shared rather than per-page, so all twelve read as one family. */
+.page-hero {
+  padding-block: clamp(3rem, 8vw, 6rem) clamp(2.5rem, 6vw, 4rem);
+  text-align: center;
+  background-color: var(--bg-surface);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.page-hero__inner {
+  max-width: 50rem;
+  margin-inline: auto;
+}
+
+.page-hero__title {
+  margin-block-end: var(--space-2xs);
+  font-size: var(--text-4xl);
+  font-weight: 800;
+  background-image: var(--silver-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-hero__subtitle {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   3. Grid helpers
+   Auto-fit grids so columns reflow fluidly instead of snapping at breakpoints.
+   -------------------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.grid--auto {
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+}
+
+.grid--auto-sm {
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+}
+
+.grid--auto-lg {
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+/* Two-up split that collapses to a single column below the tablet band. */
+.grid--split {
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 64rem) {
+  .grid--split {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. Site header
+   -------------------------------------------------------------------------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+/* The frosted background is on a pseudo-element rather than on .site-header
+   itself, and that is not a stylistic choice.
+
+   backdrop-filter makes an element the containing block for any
+   position: fixed DESCENDANT. The mobile nav drawer is fixed and lives inside
+   the header, so with the blur on .site-header its inset:0 resolved against
+   the header's own box instead of the viewport: the drawer opened 120px tall
+   instead of full height, and all six links fell outside it and could not be
+   hit. Nothing looked broken in the markup, the attribute said data-open=true,
+   and the transition ran. Moving the blur one level down leaves the drawer's
+   containing block as the viewport, where it belongs.
+
+   Negative z-index keeps it behind the header's own content while staying
+   inside the header's stacking context, so it blurs the page scrolling under
+   it and nothing else. */
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: color-mix(in srgb, var(--bg-base) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Browsers without color-mix get the solid base tone. */
+@supports not (background-color: color-mix(in srgb, red 50%, transparent)) {
+  .site-header::before {
+    background-color: var(--bg-base);
+  }
+}
+
+.site-header--scrolled {
+  box-shadow: var(--shadow);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--header-height);
+}
+
+/* The drawer is a positioned sibling with a higher z-index, so it would paint
+   over the logo and — critically — over the hamburger, leaving no way to tap
+   the menu closed again. Lifting the bar's own controls above it keeps the
+   header usable while the drawer is open. */
+.site-header__brand,
+.site-header__actions {
+  position: relative;
+  z-index: calc(var(--z-overlay) + 1);
+}
+
+.site-header__brand {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.site-header__logo {
+  width: auto;
+  height: clamp(1.75rem, 1.4rem + 1.7vw, 2.5rem);
+}
+
+/* Mode-aware artwork. Two variants ship; CSS shows the one that reads against
+   the active surface. This mirrors the theme-toggle icon rules, so it follows
+   both the OS preference and an explicit data-theme choice — which a
+   <picture media="(prefers-color-scheme: …)"> could not do.
+
+   .theme-swap--light / --dark are the general-purpose pair for page content;
+   the header and footer keep their own class names. */
+.theme-swap--dark,
+.site-header__logo-wrap--dark,
+.site-footer__logo-wrap--dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-swap--light,
+  :root:not([data-theme="light"]) .site-header__logo-wrap--light,
+  :root:not([data-theme="light"]) .site-footer__logo-wrap--light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .theme-swap--dark,
+  :root:not([data-theme="light"]) .site-header__logo-wrap--dark,
+  :root:not([data-theme="light"]) .site-footer__logo-wrap--dark {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .theme-swap--light,
+:root[data-theme="dark"] .site-header__logo-wrap--light,
+:root[data-theme="dark"] .site-footer__logo-wrap--light {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-swap--dark,
+:root[data-theme="dark"] .site-header__logo-wrap--dark,
+:root[data-theme="dark"] .site-footer__logo-wrap--dark {
+  display: block;
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+/* Desktop navigation ------------------------------------------------------ */
+
+.site-nav__list {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--space-xs), 1.6vw, var(--space-md));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Below the laptop band the header nav is not shown at all. Navigation there
+   is the dock — a floating bar at the bottom of the viewport with a panel of
+   sections above it, styled in section 10 of components.css.
+
+   The header nav used to become a full-screen drawer here instead. Hiding it
+   outright is what keeps exactly one navigation on screen at any width: the
+   drawer needed a hamburger in the header to open it, and a second control
+   that duplicates a nav already visible is how the hamburger ended up sitting
+   beside the full desktop nav.
+
+   The links stay in the markup rather than being removed, so the header nav
+   is still there for anything reading the document rather than viewing it. */
+@media (max-width: 63.999em) {
+  .site-nav {
+    display: none;
+  }
+}
+
+/* Keep the last of the footer clear of the floating bar. --dock-height is
+   declared on .dock in components.css; the fallback covers the case where
+   that rule has not applied. */
+@media (max-width: 63.999em) {
+  .page {
+    padding-block-end: calc(
+      var(--dock-height, 4rem) + var(--space-lg) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Site footer
+   -------------------------------------------------------------------------- */
+
+.site-footer {
+  background-color: var(--bg-surface);
+  border-block-start: var(--border-width) solid var(--border-subtle);
+  padding-block: var(--space-2xl) var(--space-lg);
+}
+
+.site-footer__main {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  padding-block-end: var(--space-xl);
+}
+
+/* The brand column carries a logo and a paragraph, so it gets more room. */
+.site-footer__brand {
+  max-width: 24rem;
+}
+
+.site-footer__logo {
+  width: auto;
+  height: 2.25rem;
+  margin-block-end: var(--space-sm);
+}
+
+.site-footer__tagline {
+  margin-block-end: var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.site-footer__description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.site-footer__social {
+  display: flex;
+  gap: var(--space-2xs);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-footer__section {
+  min-width: 0;
+}
+
+.site-footer__heading {
+  margin-block-end: var(--space-sm);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.site-footer__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-footer__link {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.site-footer__link:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
+/* Contact column ---------------------------------------------------------- */
+
+.site-footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0;
+  /* <address> is italic by default; the semantics are wanted, the slant is not. */
+  font-style: normal;
+}
+
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.contact-item__icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.3em;
+  color: var(--accent-text);
+}
+
+.contact-item__label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* A second label inside the same item starts a new group (BD then Malaysia),
+   so it needs breathing room above it. */
+.contact-item__label ~ .contact-item__label,
+.contact-item__note + .contact-item__label {
+  margin-block-start: var(--space-2xs);
+}
+
+.contact-item__note {
+  display: block;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.contact-item a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.contact-item a:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
+/* Footer bottom bar ------------------------------------------------------- */
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-block-start: var(--space-lg);
+  border-block-start: var(--border-width) solid var(--border-subtle);
+}
+
+.site-footer__copyright {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 47.999em) {
+  .site-footer__bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   The circuit around the page title
+
+   Four strips, one per edge, each masked so the traces fade before they reach
+   the title. The whole thing is behind the content and takes no pointer
+   events, so it cannot interfere with anything.
+
+   The two edges of each pair share one set of paths and are flipped, so the
+   right-hand edge is the left one mirrored and the bottom is the top turned
+   over. What keeps that from reading as a mirror is the timing: every charge
+   runs on a different prime number of seconds, so no two edges ever line up.
+
+   Motion here is suppressed by the prefers-reduced-motion block in base.css,
+   which leaves the traces as a still drawing.
+   -------------------------------------------------------------------------- */
+
+.page-hero {
+  position: relative;
+  /* The strips are inset to the edges of this box; without this they would
+     resolve against the page. */
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.hero-circuit {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.page-hero__inner {
+  position: relative;
+}
+
+.hero-circuit__edge {
+  position: absolute;
+  display: block;
+}
+
+.hero-circuit__edge--top,
+.hero-circuit__edge--bottom {
+  inset-inline: 0;
+  width: 100%;
+  height: clamp(3.5rem, 9vw, 4.5rem);
+}
+
+.hero-circuit__edge--top {
+  top: 0;
+  mask-image: linear-gradient(to bottom, #000 20%, transparent 95%);
+}
+
+.hero-circuit__edge--bottom {
+  bottom: 0;
+  /* The same drawing turned over, so the traces run out of the bottom edge
+     rather than into it. */
+  transform: scaleY(-1);
+  mask-image: linear-gradient(to bottom, #000 20%, transparent 95%);
+}
+
+.hero-circuit__edge--left,
+.hero-circuit__edge--right {
+  inset-block: 0;
+  height: 100%;
+  width: clamp(3rem, 7vw, 4.5rem);
+}
+
+.hero-circuit__edge--left {
+  left: 0;
+  mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+}
+
+.hero-circuit__edge--right {
+  right: 0;
+  transform: scaleX(-1);
+  mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+}
+
+/* Below this the title has the band to itself: four strips of circuitry around
+   a heading on a phone is a frame with nothing left in the middle. The side
+   edges go first because they are the ones that eat the width. */
+@media (max-width: 40em) {
+  .hero-circuit__edge--left,
+  .hero-circuit__edge--right {
+    display: none;
+  }
+}
+
+@media (max-width: 26em) {
+  .hero-circuit {
+    display: none;
+  }
+}
+
+.hero-circuit__wires use {
+  stroke: var(--silver-accent-mid);
+  stroke-width: 1.5;
+  opacity: 0.24;
+}
+
+/* A short bright dash travelling the length of a trace. The dasharray is one
+   visible segment followed by a gap longer than any path here, so only one
+   charge is ever on a wire at a time. */
+.hero-circuit__charge {
+  stroke: var(--accent-text);
+  stroke-width: 2.5;
+  stroke-dasharray: 30 1400;
+  animation-name: hero-charge;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes hero-charge {
+  from {
+    stroke-dashoffset: 1430;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Primes, and no two the same anywhere in the four edges: equal durations
+   would resynchronise and the repeat would become visible. */
+.hero-circuit__charge--a { animation-duration: 11s; }
+.hero-circuit__charge--b { animation-duration: 13s; }
+.hero-circuit__charge--c { animation-duration: 17s; }
+.hero-circuit__charge--d { animation-duration: 19s; }
+.hero-circuit__charge--e { animation-duration: 23s; }
+.hero-circuit__charge--f { animation-duration: 29s; }
+.hero-circuit__charge--g { animation-duration: 31s; }
+.hero-circuit__charge--h { animation-duration: 37s; }
+.hero-circuit__charge--i { animation-duration: 41s; }
+.hero-circuit__charge--j { animation-duration: 43s; }
+.hero-circuit__charge--k { animation-duration: 47s; }
+.hero-circuit__charge--l { animation-duration: 53s; }
+.hero-circuit__charge--m { animation-duration: 59s; }
+.hero-circuit__charge--n { animation-duration: 61s; }
+.hero-circuit__charge--o { animation-duration: 67s; }
+.hero-circuit__charge--p { animation-duration: 71s; }
+
+.hero-circuit__node {
+  fill: var(--silver-accent-mid);
+  opacity: 0.3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: hero-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes hero-pulse {
+  from {
+    opacity: 0.16;
+    scale: 0.85;
+  }
+  to {
+    opacity: 0.5;
+    scale: 1.15;
+  }
+}
+
+.hero-circuit__node--a { animation-duration: 7s; }
+.hero-circuit__node--b { animation-duration: 11s; }
+.hero-circuit__node--c { animation-duration: 13s; }
+.hero-circuit__node--d { animation-duration: 17s; }
+.hero-circuit__node--e { animation-duration: 19s; }
+.hero-circuit__node--f { animation-duration: 23s; }
+.hero-circuit__node--g { animation-duration: 29s; }
+.hero-circuit__node--h { animation-duration: 31s; }
+.hero-circuit__node--i { animation-duration: 37s; }
+.hero-circuit__node--j { animation-duration: 41s; }
+.hero-circuit__node--k { animation-duration: 43s; }
+.hero-circuit__node--l { animation-duration: 47s; }
+.hero-circuit__node--m { animation-duration: 53s; }
+.hero-circuit__node--n { animation-duration: 59s; }
+.hero-circuit__node--o { animation-duration: 61s; }
+.hero-circuit__node--p { animation-duration: 67s; }
+.hero-circuit__node--q { animation-duration: 71s; }
+.hero-circuit__node--r { animation-duration: 73s; }
+.hero-circuit__node--s { animation-duration: 79s; }
+.hero-circuit__node--t { animation-duration: 83s; }

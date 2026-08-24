@@ -1,0 +1,281 @@
+# ==========================================================================
+# Tech4TIME — Apache configuration for cPanel shared hosting
+#
+# This file carries the security headers, compression and caching rules. It is
+# the authoritative source for headers: several of them (X-Frame-Options,
+# X-Content-Type-Options) are ignored by browsers when set via <meta>, so the
+# equivalents in each page's <head> are defence in depth only.
+#
+# Every directive is wrapped in <IfModule> so a host missing a module degrades
+# rather than returning a 500.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# 1. Security headers
+# --------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # The site is fully self-hosted: no CDN, no third-party fonts, scripts,
+    # analytics or embeds. That lets the policy stay strict with no exceptions.
+    # 'unsafe-inline' is deliberately absent — there are no inline <script> or
+    # <style> blocks anywhere in the site.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+
+    # HSTS — ON. Enabled once the site was live on the host and pages had been
+    # loaded over https://tech4time.bd, which was the one precondition.
+    #
+    # WHAT IT DOES
+    # Without it a browser asks for http://tech4time.bd first and is redirected
+    # to https, and that first request travels in the open. This tells the
+    # browser to remember, for a year, never to ask over plain http again — so
+    # after one visit that unencrypted request stops happening. It matters here
+    # because a sign-in lives at /admin: a password and an authenticator code
+    # go over that connection, and a redirect protects neither on the hop
+    # before it.
+    #
+    # THE ONE COST
+    # A browser keeps obeying it even if https later breaks, and there is no
+    # way to clear it remotely. cPanel AutoSSL renews certificates on its own,
+    # which is what makes that unlikely enough to be worth it.
+    #
+    # NO includeSubDomains, DELIBERATELY — and this now has a date on it.
+    # It would cover subdomains that do not exist yet. AutoSSL issues a
+    # certificate on its next scheduled run after a subdomain is created, not
+    # instantly — and in that window this header would make the new subdomain
+    # unreachable rather than merely insecure. admin.tech4time.bd is exactly
+    # that subdomain, and it is created by the repository split. Leave this off
+    # until AutoSSL has issued for it; turning it on before would lock the
+    # admin out of its own host.
+    #
+    # Do NOT add "preload". That submits the domain to a list compiled into
+    # Chrome and Firefox, takes months to reverse, and only protects the very
+    # first visit a browser ever makes.
+    Header always set Strict-Transport-Security "max-age=31536000"
+
+    # Do not advertise the stack.
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ----------------------------------------------------------------------
+    # 2. Canonical host and scheme
+    # Verified against the live server: HTTPS answers and the certificate
+    # covers tech4time.bd and www.tech4time.bd (cPanel AutoSSL, Let's Encrypt).
+    #
+    # This is not only an SEO tidy-up. /admin is protected by HTTP Basic auth,
+    # which sends the password base64-encoded — that is encoding, not
+    # encryption. Over plain http it is readable by anything on the path. The
+    # redirect is what stops that being possible.
+    # ----------------------------------------------------------------------
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+
+    # ----------------------------------------------------------------------
+    # 3. Clean URLs
+    # /pages/about/index.html resolves at /pages/about/ through DirectoryIndex
+    # already. These rules make that the ONLY address the page answers on, so
+    # the same content is not reachable at three URLs (a duplicate-content
+    # problem the canonical tag would otherwise have to paper over).
+    # ----------------------------------------------------------------------
+
+    # Send /pages/about/index.html -> /pages/about/
+    RewriteCond %{THE_REQUEST} \s/(.*/)?index\.html[\s?] [NC]
+    RewriteRule ^(.*/)?index\.html$ /%1 [R=301,L]
+
+    # Send /pages/about -> /pages/about/  (only where the directory exists)
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteCond %{REQUEST_URI} !/$
+    RewriteRule ^(.*)$ /$1/ [R=301,L]
+</IfModule>
+
+<IfModule mod_dir.c>
+    DirectoryIndex index.html index.php
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 4. Error documents
+# --------------------------------------------------------------------------
+ErrorDocument 404 /404.html
+
+# Never expose directory listings for asset folders.
+Options -Indexes
+
+# --------------------------------------------------------------------------
+# 5. Compression
+# woff2, WebP, PNG and JPEG are already compressed; re-compressing them wastes
+# CPU for no gain, so only text formats are listed.
+# --------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE application/json application/ld+json
+    AddOutputFilterByType DEFLATE application/xml application/rss+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE application/manifest+json
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 6. Caching
+# Assets are cached hard. HTML is revalidated so content edits go live at once.
+# NOTE: asset filenames are not content-hashed (there is no build step), so a
+# changed CSS or JS file needs a cache-busting query string — or a shorter
+# max-age here — to reach returning visitors. See README.md.
+# --------------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault                          "access plus 1 month"
+
+    ExpiresByType text/html                 "access plus 0 seconds"
+    ExpiresByType application/ld+json       "access plus 0 seconds"
+
+    ExpiresByType text/css                  "access plus 1 year"
+    ExpiresByType application/javascript    "access plus 1 year"
+    ExpiresByType font/woff2                "access plus 1 year"
+
+    ExpiresByType image/png                 "access plus 6 months"
+    ExpiresByType image/jpeg                "access plus 6 months"
+    ExpiresByType image/webp                "access plus 6 months"
+    ExpiresByType image/avif                "access plus 6 months"
+    ExpiresByType image/svg+xml             "access plus 6 months"
+    ExpiresByType image/x-icon              "access plus 6 months"
+
+    ExpiresByType application/xml           "access plus 1 day"
+    ExpiresByType text/plain                "access plus 1 day"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2)$">
+        Header set Cache-Control "public, max-age=31536000"
+    </FilesMatch>
+
+    <FilesMatch "\.(png|jpe?g|webp|avif|svg|ico)$">
+        Header set Cache-Control "public, max-age=15552000"
+    </FilesMatch>
+
+    <FilesMatch "\.html$">
+        Header set Cache-Control "public, max-age=0, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 7. MIME types
+# Older Apache builds on shared hosting often lack these, which makes the
+# browser refuse the font or image.
+# --------------------------------------------------------------------------
+<IfModule mod_mime.c>
+    AddType font/woff2                      .woff2
+    AddType image/webp                      .webp
+    AddType image/avif                      .avif
+    AddType image/svg+xml                   .svg
+    AddType application/manifest+json       .webmanifest
+    AddType application/ld+json             .jsonld
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 8. Block access to non-public files
+# The repo ships tooling and docs alongside the site; if the whole tree is ever
+# uploaded, these must not be readable over HTTP.
+#
+# That has happened. The whole repository was unpacked into the document root
+# on the first deploy, and this section did not keep the promise above: the
+# FilesMatch below matches a FILENAME, so /.git/HEAD — file "HEAD", no leading
+# dot, no blocked extension — was never covered by it, and neither was the
+# 63 MB tech4time-website.zip sitting beside index.html with every commit in it.
+# The host answered 403 for .git by a rule of its own. That rule is not ours
+# and will not exist on a server we run, so it is not a defence, only luck.
+# --------------------------------------------------------------------------
+
+# Kept, but it is not the fix — see the rewrite block below, which is what
+# actually covers a directory whose name begins with a dot.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Archives, dumps and logs join the list for the same reason the zip did: the
+# protection should not depend on nobody ever leaving one here.
+<FilesMatch "\.(md|py|sh|json|lock|yml|yaml|zip|tar|gz|tgz|bz2|rar|7z|sql|bak|log|env|ini)$">
+    Require all denied
+</FilesMatch>
+
+# Written by the server into whatever directory the error happened in, and it
+# names paths and line numbers. No extension, so the rule above cannot see it.
+<Files "error_log">
+    Require all denied
+</Files>
+
+# site.webmanifest is JSON but must stay public.
+<Files "site.webmanifest">
+    Require all granted
+</Files>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^tools/ - [F,L]
+
+    # references/ is working material — demos and notes kept beside the site.
+    # It is .html, which nothing above blocks, and it was readable on the host
+    # for as long as the unpacked repository sat there.
+    RewriteRule ^references/ - [F,L]
+
+    # Any path segment beginning with a dot, at any depth: .git/, .svn/, .env,
+    # .claude/, editor droppings. This is the rule that closes the hole
+    # described in section 8 — <FilesMatch "^\."> only ever saw the last
+    # component of the path, so /.git/HEAD was the file "HEAD" to it and passed
+    # straight through. (^|/) makes the dot's position the test instead.
+    #
+    # .well-known is the one exception and must stay reachable: AutoSSL answers
+    # ACME challenges from there, and blocking it breaks certificate renewal
+    # — which fails silently, months later, as an expired certificate.
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteRule "(^|/)\." - [F,L]
+
+    # lib/ holds PHP that pages include; content/ holds the data the editors
+    # write — job posts and the contact page. Both are read from disk by PHP
+    # and must never be fetched over HTTP. The .json rule above already covers
+    # those two files, but a directory rule survives someone adding a third in
+    # another format.
+    RewriteRule ^lib/ - [F,L]
+    RewriteRule ^content/ - [F,L]
+
+    # The private store — password hashes, the master key, sessions, the audit
+    # log — belongs BESIDE the document root, at /home/USER/t4t-private, and
+    # lib/private.php refuses to run if it finds itself anywhere inside this
+    # directory. This rule is for the one case that check cannot help with:
+    # somebody restoring a backup and dropping the folder in here by hand.
+    RewriteRule ^t4t-private/ - [F,L]
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 9. The editors
+# /admin/ has its own accounts now: a password hashed with argon2id, a second
+# factor from an authenticator app, and a lockout. See lib/auth.php.
+#
+# It used to be protected by cPanel Directory Privacy instead, and while both
+# are in place that is belt and braces — but the application is the lock, not
+# Apache. Nothing here grants or denies access; this only keeps the editor out
+# of search results.
+# --------------------------------------------------------------------------
+# `always` is the operative word: without it the header is attached only to
+# 2xx responses, and the login page answers a crawler with 200 while every
+# other admin URL answers with a redirect — none of which should be indexed.
+# noarchive keeps a cached copy out of results as well as the page itself.
+#
+# no-store matters more than it used to. There was nothing behind Basic auth
+# for a browser to cache without a password; there is now a signed-in editor,
+# and a shared machine should not be able to press Back into it.
+<IfModule mod_headers.c>
+    Header always set X-Robots-Tag "noindex, nofollow, noarchive" "expr=%{REQUEST_URI} =~ m#^/admin(/|$)#"
+    Header always set Cache-Control "no-store, max-age=0" "expr=%{REQUEST_URI} =~ m#^/admin(/|$)#"
+</IfModule>
