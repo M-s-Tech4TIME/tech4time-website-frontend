@@ -164,10 +164,14 @@ whenever somebody next saves in the admin.
 | `contact.json` | today's real content | seeded once | **the live server** |
 | every other page | the page itself | deployed every time | the repository |
 
-The planned improvement is seed files — `careers.seed.json` with `jobs: []`, copied into place
-**only if the target is absent** — so a deploy creates a data file when there is none and never
-overwrites one. Losing live edits stops depending on anyone remembering an exclude rule. Not built
-yet.
+**That improvement is built.** `deploy/seed/` holds a `careers.json` with `jobs: []`, and CI copies
+it with `rsync --ignore-existing`: it creates a data file when there is none and overwrites nothing.
+Losing live edits stopped depending on anyone remembering an exclude rule.
+
+It is a **seed, not a migration.** On a host that should have inherited content — the backend
+standing up beside a public site that already has job posts — the content has to be copied across by
+hand *before the first save*, or the first save publishes an empty document over the live page.
+[first-deploy.md](first-deploy.md)
 
 ---
 
