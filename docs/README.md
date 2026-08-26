@@ -1,7 +1,11 @@
-# Tech4TIME — Documentation
+# Tech4TIME — Documentation (frontend)
 
 Everything about this project that is not the code itself: how to set it up, how it is built, where
 to change things, how to deploy it, and what to do when something breaks.
+
+**This is the public site.** The editor and everything it needs are in **`tech4time-backend`**,
+which has its own copy of this documentation covering that half. Entries below that read
+*(in tech4time-backend)* are there rather than here — the document exists, in the other repository.
 
 **New here?** Read [00-orientation/README.md](00-orientation/README.md), then
 [10-development/setup.md](10-development/setup.md). About an hour, and you will be able to work.
@@ -32,9 +36,9 @@ to change things, how to deploy it, and what to do when something breaks.
 | Icons | [10-development/frontend/icons.md](10-development/frontend/icons.md) |
 | The header or footer | [10-development/frontend/shared-markup.md](10-development/frontend/shared-markup.md) |
 | Add a whole new page | [10-development/frontend/adding-a-page.md](10-development/frontend/adding-a-page.md) |
-| Server-side code | [10-development/backend/libraries.md](10-development/backend/libraries.md) |
-| Make a page editable in `/admin` | [10-development/backend/adding-an-editor.md](10-development/backend/adding-an-editor.md) |
-| The sign-in, sessions, passwords | [10-development/backend/authentication.md](10-development/backend/authentication.md) |
+| Server-side code | [10-development/server-side/libraries.md](10-development/server-side/libraries.md) |
+| Make a page editable in `/admin` | *10-development/server-side/adding-an-editor.md* (in tech4time-backend) |
+| The sign-in, sessions, passwords | *10-development/server-side/authentication.md* (in tech4time-backend) |
 | Run the tests | [10-development/testing.md](10-development/testing.md) |
 
 ### I am deploying
@@ -44,7 +48,7 @@ to change things, how to deploy it, and what to do when something breaks.
 | How deployment works here | [20-deployment/README.md](20-deployment/README.md) |
 | Never deployed this before | [20-deployment/first-deploy.md](20-deployment/first-deploy.md) |
 | Setting up the cPanel host | [20-deployment/cpanel-host-setup.md](20-deployment/cpanel-host-setup.md) |
-| Turning on the admin sign-in | [20-deployment/admin-activation.md](20-deployment/admin-activation.md) |
+| Turning on the admin sign-in | *20-deployment/admin-activation.md* (in tech4time-backend) |
 | Pushing an update to a live site | [20-deployment/routine-deploys.md](20-deployment/routine-deploys.md) |
 | Automating the checks and the deploy | [20-deployment/ci-cd.md](20-deployment/ci-cd.md) |
 | Where the private store goes | [20-deployment/environments.md](20-deployment/environments.md) |
@@ -55,15 +59,15 @@ to change things, how to deploy it, and what to do when something breaks.
 |---|---|
 | Running the site day to day | [30-operations/README.md](30-operations/README.md) |
 | **Symptom → cause → fix** | [30-operations/troubleshooting.md](30-operations/troubleshooting.md) |
-| I cannot sign in to the admin | [30-operations/secrets-recovery.md](30-operations/secrets-recovery.md) |
-| The secrets are lost or corrupted | [30-operations/secrets-recovery.md](30-operations/secrets-recovery.md) |
+| I cannot sign in to the admin | *30-operations/secrets-recovery.md* (in tech4time-backend) |
+| The secrets are lost or corrupted | *30-operations/secrets-recovery.md* (in tech4time-backend) |
 | What should be backed up? | [30-operations/backups.md](30-operations/backups.md) |
 
 ### Day to day
 
 | | |
 |---|---|
-| Post a job, change a phone number | [30-operations/content-runbook.md](30-operations/content-runbook.md) |
+| Post a job, change a phone number | *30-operations/content-runbook.md* (in tech4time-backend) |
 | What does this script do? | [40-reference/tools.md](40-reference/tools.md) |
 | What fields does this JSON have? | [40-reference/content-schemas.md](40-reference/content-schemas.md) |
 | What protects what? | [40-reference/security-model.md](40-reference/security-model.md) |
@@ -108,11 +112,12 @@ half that rots silently.
 | Change this | Update this |
 |---|---|
 | Add or remove a file in `tools/` | [40-reference/tools.md](40-reference/tools.md) |
-| Add or remove a `lib/*.php` | [10-development/backend/libraries.md](10-development/backend/libraries.md) |
-| Add a section to `ADMIN_SECTIONS` | [10-development/backend/adding-an-editor.md](10-development/backend/adding-an-editor.md) |
+| Add or remove a `lib/*.php` | [10-development/server-side/libraries.md](10-development/server-side/libraries.md) |
+| Change `lib/contract.php` or `lib/publish.php` | [10-development/server-side/publish-api.md](10-development/server-side/publish-api.md) — **and the same file in the backend** |
+| Change `api/publish.php` | [10-development/server-side/publish-api.md](10-development/server-side/publish-api.md) |
 | Add or remove a page under `pages/` | [00-orientation/repository-map.md](00-orientation/repository-map.md) |
 | Change a field in `content/*.json` | [40-reference/content-schemas.md](40-reference/content-schemas.md) |
-| Change a constant in `lib/auth.php`, `lib/reset.php`, `lib/throttle.php` | [10-development/backend/authentication.md](10-development/backend/authentication.md) and [40-reference/security-model.md](40-reference/security-model.md) |
+| Change a constant in `lib/throttle.php` | [40-reference/security-model.md](40-reference/security-model.md) |
 | Change `.htaccess` | [40-reference/security-model.md](40-reference/security-model.md) |
 | Change the deploy procedure | [20-deployment/](20-deployment/) |
 | Change a CSS or JS convention | [10-development/frontend/](10-development/frontend/) |
@@ -123,10 +128,21 @@ half that rots silently.
 
 ## A note on the two repositories
 
-This project is being split into `tech4time-website-frontend` (the public site) and
-`tech4time-website-backend` (the admin). That has not happened yet — everything is in one repository
-today.
+The project is split. **`tech4time-frontend`** is this one, serving `tech4time.bd`;
+**`tech4time-backend`** serves `admin.tech4time.bd` and owns the content.
 
-Every document here opens with an **Applies to:** line — `frontend`, `backend`, or `both` — so that
-when the split happens the documents can be moved rather than rewritten. See
-[90-decisions/0011-two-repositories.md](90-decisions/0011-two-repositories.md).
+Every document opens with an **Applies to:** line — `frontend`, `backend`, or `both` — which is what
+made the split a move rather than a rewrite. A document marked `both` exists in both repositories
+and describes each half from its own side.
+
+**A path in backticks always means *this* repository.** A file in the other half is written with the
+repository name in front: `tech4time-backend/lib/auth.php`. `tools/check_docs.py` enforces it, so
+the two can never be confused in prose.
+
+The decision records are numbered for the project, not for this repository, so
+[90-decisions/](90-decisions/) has gaps where a record belongs to the other half. Each gap names
+where it went.
+
+See [90-decisions/0011-two-repositories.md](90-decisions/0011-two-repositories.md),
+[0017](90-decisions/0017-two-private-stores.md) and
+[0018](90-decisions/0018-the-backend-serves-from-a-subdirectory.md).

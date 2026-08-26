@@ -59,22 +59,20 @@ UPLOAD = [
     "sitemap.xml",
     "site.webmanifest",
     "contact-handler.php",
+    "api/",               # where the admin host pushes content in
     "pages/",
     "assets/",
-    "lib/",               # server-side rendering and the whole sign-in
-    "admin/",
+    "lib/",               # server-side rendering, the contract, the publish format
 ]
 
 # Refused anywhere inside the above. Each is a thing that would otherwise be
 # carried along by the directory it sits in.
 DENY = [
-    "admin/.htaccess",    # cPanel writes its own there; ours would fight it
     "*.md",               # documentation, and the plan
     "*.py",               # tools that happen to sit beside site files
-    "*.key",              # the master key, if one ever strays into the tree
-    "admins.json",        # password hashes, likewise
-    "setup-token.txt",
-    "*.bak",              # content backups written by the editor
+    "*.key",              # secret.key or publish.key, if one ever strays into the tree
+    "admins.json",        # nothing here writes one; if one appears, it does not ship
+    "*.bak",              # content backups written by store_write()
     "*.tmp",
     ".DS_Store",
     "__pycache__/*",
@@ -90,16 +88,17 @@ REQUIRED = [
     "404.html",
     "assets/css/base.css",
     "lib/private.php",
-    "admin/index.php",
-    "admin/login.php",
-    "admin/setup.php",
+    "lib/contract.php",   # the shape both halves agree on
+    "lib/publish.php",    # and the format they agree it travels in
     "pages/careers/index.php",
     "pages/contact/index.php",
+    "api/publish.php",    # the only route content takes to the live site
 ]
 
 # Never in the set, whatever else changes. Stated separately from "not in
 # UPLOAD" because that is the claim worth failing on out loud.
-FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude"]
+FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude",
+                   "admin", "deploy"]
 
 SEED = ROOT / "deploy" / "seed"
 
@@ -188,7 +187,7 @@ def check(paths: list[str], out_dir: Path) -> int:
         rel = php.relative_to(ROOT).as_posix()
         assert_(f"{rel} is in the upload set", rel in paths)
 
-    for php in sorted((ROOT / "admin").rglob("*.php")):
+    for php in sorted((ROOT / "api").rglob("*.php")):
         rel = php.relative_to(ROOT).as_posix()
         assert_(f"{rel} is in the upload set", rel in paths)
 
@@ -235,7 +234,7 @@ def main() -> None:
 
     total = len(FORBIDDEN_TREES) + len(REQUIRED) + len(DENY) + 2 \
         + len(list((ROOT / "lib").glob("*.php"))) \
-        + len(list((ROOT / "admin").rglob("*.php")))
+        + len(list((ROOT / "api").rglob("*.php")))
     print(f"\n{total - bad}/{total} checks passed")
 
     if bad:

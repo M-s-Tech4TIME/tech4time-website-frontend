@@ -23,8 +23,8 @@ tech4time-website/
 ├── pages/                  the other fifteen pages
 ├── assets/                 css, js, fonts, icons, images — all self-hosted
 ├── lib/                    server-side PHP
-├── content/                the JSON the dynamic pages render from
-├── admin/                  the editor UI
+├── api/publish.php         where the backend's content arrives
+├── content/                the REPLICA the dynamic pages render from
 ├── tools/                  build, audit and test scripts — NEVER DEPLOYED
 ├── docs/                   this documentation
 └── references/             notes kept from the original design work
@@ -75,7 +75,6 @@ assets/
 │   ├── layout.css          page scaffolding
 │   ├── components.css      buttons, cards, forms, the shared furniture
 │   ├── animations.css      keyframes and reveal states
-│   ├── admin.css           the editor UI — loaded only under /admin/
 │   └── pages/              one optional file per page
 ├── js/             13 files — see frontend/javascript.md
 ├── fonts/          Inter, self-hosted, two subsets (latin, latin-ext)
@@ -99,17 +98,22 @@ Never reachable over HTTP: `.htaccess` has `RewriteRule ^lib/ - [F,L]`.
 |---|---|
 | `html.php` | escaping, and the rich-text sanitiser |
 | `store.php` | reading and writing a JSON file atomically, with a lock |
-| `careers.php` | the shape of a job post, and its JobPosting schema |
-| `contact.php` | the shape of the contact page, and its ContactPage schema |
-| `admin.php` | the section registry, the icon rail, the page furniture |
-| `auth.php` | accounts, hashing, sessions, the audit log |
+| `contract.php` | **shared** — the shape of every editable document, and `CONTRACT_VERSION` |
+| `publish.php` | **shared** — how a document is signed, and how a signature is checked |
+| `careers.php` | what this side does with a job post: the JobPosting schema |
+| `contact.php` | what this side does with the contact page: the ContactPage schema |
 | `private.php` | where the secrets are, and the keys derived from them |
-| `totp.php` | RFC 6238, hand-written, checked against its published vectors |
-| `reset.php` | the emailed one-time code |
 | `throttle.php` | counting attempts, so guessing costs something |
-| `mailer.php` | the one place mail leaves this site |
+| `footer-fingerprint.php` | **generated** — what this site's footers currently say |
 
-Detail on each: [libraries.md](../10-development/backend/libraries.md).
+**Shared** means byte-identical with `tech4time-backend`. `tools/check_shared_lib.py` compares all
+three against a committed digest; the real guarantee is `CONTRACT_VERSION`, checked at run time by
+`api/publish.php` against what it was actually sent.
+
+There is no `auth.php`, `admin.php`, `totp.php`, `reset.php` or `mailer.php` here. They went with
+the editor. [0017](../90-decisions/0017-two-private-stores.md)
+
+Detail on each: [libraries.md](../10-development/server-side/libraries.md).
 
 ---
 
@@ -121,61 +125,55 @@ content/
 └── contact.json     offices, phone numbers, the enquiry form's copy
 ```
 
-**On the host, this directory is the real data and the repository's copy is not.** It is written by
-people using `/admin/`, not by developers. A deploy that overwrites it destroys live job posts.
+**This is a replica, and `api/publish.php` is the only thing that writes it.** The system of record
+is the backend's copy of these two files; this one is what it was last sent.
 
-> **Rule:** never upload `content/` to a server that already has one.
-> See [routine-deploys.md](../20-deployment/routine-deploys.md).
+So a deploy that overwrote it would destroy live job posts, and so would editing it by hand — the
+difference being that the hand edit survives until the next save in the admin and then vanishes,
+which is worse, because it looks like it worked.
+
+> **Rule:** never upload `content/` to a server that already has one, and never edit it in place.
+> See [routine-deploys.md](../20-deployment/routine-deploys.md) and
+> [publish-api.md](../10-development/server-side/publish-api.md).
 
 Field-by-field: [content-schemas.md](../40-reference/content-schemas.md).
 
 ---
 
-## `admin/` — the editor
+## `api/` — the one way in
 
 ```
-admin/
-├── index.php               the shell and the router; sections load through here
-├── login.php               password, then six digits from an authenticator app
-├── logout.php              POST only, with a token
-├── forgot.php              asks for a reset code
-├── reset.php               the code, then the app, then the new password
-├── setup.php               creates the first account; refuses ever after
-└── sections/
-    ├── overview.php        what can be edited, and plainly what cannot
-    ├── careers.php         the job post editor      → content/careers.json
-    ├── contact.php         the contact page editor  → content/contact.json
-    └── account.php         password, second factor, recovery codes, the log
+api/
+└── publish.php     POST only. The backend's content arrives here, signed
 ```
 
-The rail draws itself from `ADMIN_SECTIONS` in `lib/admin.php`:
+The only endpoint on this site that writes anything, and the only route content takes to it. It
+verifies the signature, checks the timestamp, refuses a `contract_version` it does not implement,
+refuses anything not **strictly newer** than what it holds, re-sanitises every rich field through
+this side's own `lib/html.php`, and only then writes.
 
-| URL | Section | Edits |
-|---|---|---|
-| `/admin/` | `overview` | nothing — it says what can and cannot be changed |
-| `/admin/?s=careers` | `careers` | `content/careers.json` |
-| `/admin/?s=contact` | `contact` | `content/contact.json` |
-| `/admin/?s=account` | `account` | your own password, second factor and recovery codes |
+A GET answers **405** — which is what `tools/verify_live.py` asserts after every deploy, because a
+404 there means the endpoint did not arrive and the first anyone would know is a save in the admin
+that never appears.
 
-`ADMIN_PAGE_SECTIONS` names the subset that edits a page of the website — `careers` and `contact` —
-so anything counting "the pages you can edit" asks there rather than filtering the registry by hand. Section files refuse to run unless `T4T_ADMIN` is defined, so requesting one by its
-own path gets a 403 however the server is configured — a backstop, not the lock. The lock is the
-sign-in.
+Full description: [publish-api.md](../10-development/server-side/publish-api.md).
 
-> **Rule:** never add an `.htaccess` file to `admin/` in this repository. cPanel writes its own
-> there, and uploading over it removes whatever protection it was applying.
+> **The editor itself is in `tech4time-backend`**, served at `admin.tech4time.bd`, with its own
+> document root, its own private store and its own pipeline. Nothing in this repository can reach an
+> account, and `tools/check_secrets.py` asserts that on every run.
 
 ---
 
 ## `tools/` — never deployed
 
-33 scripts: asset builders, markup propagators, auditors, and the test suite. Blocked over HTTP by
+Asset builders, markup propagators, auditors, and this half of the test suite. Blocked over HTTP by
 `RewriteRule ^tools/ - [F,L]` as a backstop, but the real rule is that they are not uploaded at all.
 
 Two files there are exceptions, uploaded by hand and then deleted:
 
 - `tools/host-probe.php` — answers what can only be answered on the host
-- `tools/admin-cli.php` — the break-glass path when every way into the admin is shut
+- `tools/make_publish_key.py` — creates the key both halves sign content with. Run once, by a
+  person, and the same value placed on both hosts
 
 Full list: [tools.md](../40-reference/tools.md).
 
@@ -192,7 +190,7 @@ Never committed, never deployed, never inside the document root. `.gitignore` li
 backstop; `lib/private.php` refuses to start if it finds itself in the web root.
 
 [security-model.md](../40-reference/security-model.md) ·
-[secrets-recovery.md](../30-operations/secrets-recovery.md)
+*secrets-recovery.md* (in tech4time-backend)
 
 ### Generated and ignored
 

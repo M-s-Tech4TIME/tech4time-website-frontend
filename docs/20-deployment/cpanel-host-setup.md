@@ -59,7 +59,7 @@ Two are needed, and one of them is easy to overlook:
 |---|---|---|
 | `info@tech4time.bd` | where the contact form sends enquiries | yes |
 | `no-reply@tech4time.bd` | the envelope sender for outgoing mail | no |
-| **`admin@tech4time.bd`** | **where a password reset code goes** | **yes** |
+| **`admin@tech4time.bd`** | **where a password reset code goes — the BACKEND uses it** | **yes** |
 
 > **`admin@tech4time.bd` must exist as a real mailbox you can open.** A reset code goes there and
 > nowhere else. If it does not exist, use `info@tech4time.bd` as the account address instead — but
@@ -87,7 +87,7 @@ Current values: [host-facts.md](../40-reference/host-facts.md).
 
 **cPanel → SSH Access**
 
-You want this. It is how the setup key is read, how `admin-cli.php` is run, and how a rebuild is
+You want this. It is how the deploy reaches the host, how `publish.key` is placed, and how a rebuild is
 recovered from. cPanel's Terminal works too if SSH is unavailable.
 
 ```bash
@@ -97,15 +97,15 @@ cat ~/t4t-private/setup-token.txt
 
 ## 7. Directory Privacy — temporary
 
-**cPanel → Directory Privacy → `public_html/admin`**
+**cPanel → Directory Privacy — for the BACKEND's document root, not this one**
 
 Switch it on before the first deploy and remove it after the sign-in is proven. It covers the window
 between the files landing and the first account existing.
 
 Not required — the application is the lock — but there is no reason to remove it before the
-replacement is proven. [admin-activation.md](admin-activation.md)
+replacement is proven. *admin-activation.md* (in tech4time-backend)
 
-> **Never put an `.htaccess` in `admin/` in the repository.** cPanel writes its own file there for
+> **Never put an `.htaccess` where cPanel writes one.** cPanel writes its own file there for
 > this feature; uploading over it silently removes the password.
 
 ## 8. Backups
@@ -129,7 +129,7 @@ the ability to log into it. [backups.md](../30-operations/backups.md)
 [ ] admin@ exists AND you can read it
 [ ] MX, SPF, DKIM published; DMARC at p=none
 [ ] SSH or Terminal works
-[ ] Directory Privacy on /admin, temporarily
+[ ] Directory Privacy on the backend's docroot, temporarily
 [ ] Backup covers the home directory
 ```
 

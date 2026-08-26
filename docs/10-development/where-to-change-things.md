@@ -5,9 +5,14 @@
 "I want to change X — which file do I open?" This page answers that and nothing else. If you read
 one page in this documentation, make it this one.
 
-**The general rule:** if it is *content*, it is edited in `/admin/` and you should not touch a file.
-If it is *design or behaviour*, it is in `assets/`. If it is *structure*, it is in `pages/` or
-`tools/templates/`. If it is *rules*, it is in `lib/` or `.htaccess`.
+**The general rule:** if it is *content*, it is edited at **admin.tech4time.bd** and you should not
+touch a file — not here, and not on this server either. If it is *design or behaviour*, it is in
+`assets/`. If it is *structure*, it is in `pages/` or `tools/templates/`. If it is *rules*, it is in
+`lib/` or `.htaccess`.
+
+**This is the frontend.** The editor, the sign-in and everything they need live in
+**tech4time-backend**; this repository is the public site and its one inbound endpoint. Rows below
+that name the admin name the other repository too.
 
 ---
 
@@ -15,14 +20,17 @@ If it is *design or behaviour*, it is in `assets/`. If it is *structure*, it is 
 
 | I want to change | Where |
 |---|---|
-| A job post — add, edit, remove, reorder | `/admin/?s=careers` |
-| The CV / application form link | `/admin/?s=careers` |
-| An office address, phone number, email | `/admin/?s=contact` |
-| The contact page's headings and copy | `/admin/?s=contact` |
-| What the enquiry form says | `/admin/?s=contact` |
+| A job post — add, edit, remove, reorder | `https://admin.tech4time.bd/?s=careers` |
+| The CV / application form link | `https://admin.tech4time.bd/?s=careers` |
+| An office address, phone number, email | `https://admin.tech4time.bd/?s=contact` |
+| The contact page's headings and copy | `https://admin.tech4time.bd/?s=contact` |
+| What the enquiry form says | `https://admin.tech4time.bd/?s=contact` |
 
-These write `content/careers.json` and `content/contact.json`.
-[content-runbook.md](../30-operations/content-runbook.md) ·
+Saving there writes the backend's own record, then pushes a signed copy to `api/publish.php` here,
+which verifies it, re-sanitises it and writes `content/careers.json` or `content/contact.json`. This
+site's copy is a **replica** — never edit it by hand, on the server or anywhere else: the next
+publish overwrites it. [publish-api.md](server-side/publish-api.md)
+*content-runbook.md* (in tech4time-backend) ·
 [content-schemas.md](../40-reference/content-schemas.md)
 
 > **The footer is the exception.** The contact details repeated in every page's footer are *markup*,
@@ -44,7 +52,6 @@ These write `content/careers.json` and `content/contact.json`.
 | Page scaffolding | `assets/css/layout.css` |
 | Buttons, cards, forms, shared furniture | `assets/css/components.css` |
 | One page only | `assets/css/pages/<name>.css` |
-| The admin's appearance | `assets/css/admin.css` |
 
 **Cascade order is fixed:** `base` → `theme` → `layout` → `components` → `animations` → `pages/*`.
 [css.md](frontend/css.md)
@@ -95,7 +102,7 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 | I want to change | Where |
 |---|---|
 | Who the contact form emails | `MAIL_TO` in `contact-handler.php` |
-| The envelope sender for all mail | `MAIL_FROM_ADDRESS` in `lib/mailer.php` |
+| Who enquiries are sent to, and who they come from | `MAIL_TO` / `MAIL_FROM` in `contact-handler.php` |
 | Contact form validation | `contact-handler.php` — the server side is the real one |
 | The contact form's rate limit | `contact-handler.php`, using `lib/throttle.php` |
 | The shape of a job post | `lib/careers.php` — **and the form and the renderer with it** |
@@ -105,30 +112,30 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 
 > Changing a content shape means changing three files together — the model, the form and the
 > renderer. Something fails the build if one is left behind: `check_content_model.py` for contact,
-> `test_careers_admin.py` for careers, which posts a marker through every declared field and reads
-> it back off the page. [content-model.md](backend/content-model.md)
+> `test_publish.py` for careers, which sends a marker through every declared field and reads
+> it back off the page. [content-model.md](server-side/content-model.md)
 
 ---
 
 ## The admin and the sign-in
 
+**All of it is in tech4time-backend.** The section registry, session lifetimes, the lockout,
+recovery codes, password rules, hashing cost, reset codes and authenticator drift are constants in
+that repository's `tech4time-backend/lib/auth.php`, `tech4time-backend/lib/reset.php` and `tech4time-backend/lib/totp.php`, and its own copy of this page
+lists them.
+
+What is still here, because the public site uses it for the contact form:
+
 | I want to change | Where |
 |---|---|
-| **Add an editable page to the admin** | `ADMIN_SECTIONS` in `lib/admin.php` + a file in `admin/sections/` — [adding-an-editor.md](backend/adding-an-editor.md) |
-| The icon rail | `ADMIN_SECTIONS`; new icons go in `ADMIN_ICONS`, same file |
-| How long a session lasts | `AUTH_IDLE` (1 hour idle) and `AUTH_ABSOLUTE` (12 hours) in `lib/auth.php` |
-| How many failures before a lockout | `AUTH_ALLOW` in `lib/auth.php`; the backoff is in `lib/throttle.php` |
-| The longest lockout | `THROTTLE_MAX_BLOCK` in `lib/throttle.php` |
-| How many recovery codes | `AUTH_RECOVERY` in `lib/auth.php` |
-| Password rules | `auth_password_problem()` in `lib/auth.php` — currently 12 characters minimum |
-| Password hashing cost | `AUTH_ARGON` / `AUTH_BCRYPT` in `lib/auth.php` |
-| How long a reset code lives | `RESET_TTL` in `lib/reset.php` (10 minutes) |
-| How often a reset may be asked for | `RESET_PER_ACCOUNT` / `RESET_PER_IP` / `RESET_GLOBAL` in `lib/reset.php` |
-| Authenticator drift tolerance | `TOTP_DRIFT` in `lib/totp.php` |
+| How many enquiries one address may send | the `throttle_quota()` call in `contact-handler.php` |
+| The longest lockout | `THROTTLE_MAX_BLOCK` in `lib/throttle.php` — one hour |
 | Where the private store lives | `T4T_PRIVATE`, or the default in `lib/private.php` |
+| The key both halves sign content with | `publish.key` — `tools/make_publish_key.py`, never edited by hand |
 
-> **These constants are quoted in the documentation.** `tools/check_docs.py` fails if you change one
-> without updating the prose. [authentication.md](backend/authentication.md)
+> This side's private store holds three things: `secret.key`, `throttle.json` and `publish.key`.
+> There is no name in `T4T_PRIVATE_FILES` for a password hash, which is not a convention —
+> `t4t_private_path()` throws on a name it does not know. `tools/check_secrets.py` asserts it.
 
 ---
 
@@ -140,7 +147,7 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 | Caching | `.htaccess` section 6 |
 | Clean URLs | `.htaccess` section 3 |
 | What is blocked over HTTP | `.htaccess` section 8 |
-| Keeping the admin out of search results | `.htaccess` section 9 |
+| Keeping `/api/` out of search results | `.htaccess` section 9 |
 | Enabling HSTS | `.htaccess` — uncomment, **after** the site is live on HTTPS |
 | Crawl rules | `robots.txt` |
 | The sitemap | `sitemap.xml` |
@@ -156,8 +163,7 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 |---|---|
 | Deploy for the first time | [first-deploy.md](../20-deployment/first-deploy.md) |
 | Push an update | [routine-deploys.md](../20-deployment/routine-deploys.md) |
-| Turn on the admin sign-in | [admin-activation.md](../20-deployment/admin-activation.md) |
-| Recover a lost password or secret | [secrets-recovery.md](../30-operations/secrets-recovery.md) |
+| Recover a lost password or secret | *secrets-recovery.md* (in tech4time-backend) |
 | Diagnose something broken | [troubleshooting.md](../30-operations/troubleshooting.md) |
 
 ---
@@ -167,8 +173,8 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 | | Read this first |
 |---|---|
 | Anything in `lib/private.php` | [security-model.md](../40-reference/security-model.md) |
-| Anything in `lib/auth.php` | [authentication.md](backend/authentication.md) |
+| `api/publish.php`, or anything it calls | [publish-api.md](server-side/publish-api.md) |
 | The `.htaccess` blocking rules | [security-model.md](../40-reference/security-model.md) |
 | A page's header or footer, directly | [shared-markup.md](frontend/shared-markup.md) |
 | `content/*.json` on a live server | [routine-deploys.md](../20-deployment/routine-deploys.md) |
-| Adding an `.htaccess` to `admin/` | Don't. [conventions.md](../00-orientation/conventions.md) |
+| `lib/html.php`, `lib/contract.php`, `lib/publish.php` | They are **byte-identical** in both repositories. [publish-api.md](server-side/publish-api.md) |

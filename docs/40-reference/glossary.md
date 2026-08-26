@@ -12,7 +12,8 @@ hungry, so guessing costs an attacker real hardware. bcrypt at cost 12 is the fa
 lacks it.
 
 ### audit log
-`t4t-private/audit.log`. One JSON line per event — sign-ins successful and not, password changes,
+`t4t-private-admin/audit.log`, **in tech4time-backend**. One JSON line per event — sign-ins
+successful and not, password changes,
 recovery codes spent. Records; nothing watches it.
 
 ### bootstrap window
@@ -33,7 +34,8 @@ the code; the footer and `contact.json`. Most checks in `tools/` exist to catch 
 
 ### fail closed / fail open
 Whether a component refuses or continues when it cannot do its job. **Authority fails closed** — the
-admin refuses to run without its store. **Convenience fails open** — the contact form still works if
+admin refuses to run without its store, and `api/publish.php` refuses a payload it cannot verify.
+**Convenience fails open** — the contact form still works if
 its rate-limit counter is unreadable.
 
 ### master key
@@ -71,11 +73,11 @@ Random bytes mixed into a password before hashing, different for every password,
 hash string** by `password_hash()`. That is why there is no separate salt field to manage.
 
 ### section
-One editable page in the admin — a row in `ADMIN_SECTIONS` plus a file in `admin/sections/`. Reached
-at `/admin/?s=<name>`.
+One editable page in the admin — a row in `ADMIN_SECTIONS` plus a file in
+`tech4time-backend/sections/`. Reached at `https://admin.tech4time.bd/?s=<name>`.
 
 ### setup token
-A value written to `t4t-private/setup-token.txt` that `admin/setup.php` demands. Readable only with
+A value written to `t4t-private/setup-token.txt` that `tech4time-backend/public/setup.php` demands. Readable only with
 server access; destroyed the moment an account exists.
 
 ### shared markup
@@ -92,7 +94,7 @@ other session at once.
 
 ### TOTP — Time-based One-Time Password
 RFC 6238. The six digits an authenticator app shows, derived from a shared secret and the current
-30-second window. Implemented by hand in `lib/totp.php` and checked against the RFC's own test
+30-second window. Implemented by hand in `tech4time-backend/lib/totp.php` and checked against the RFC's own test
 vectors.
 
 ### throttle

@@ -364,13 +364,20 @@ def check_admin_is_hidden() -> list[str]:
     is world-readable and is the first thing a scanner fetches — and it would
     also stop a crawler reading the noindex, so a URL found some other way
     could still appear as a bare result. Silence is stronger.
+
+    Since the split the editor is at admin.tech4time.bd, so the first check
+    covers that host as well as the old path. The last two — that the editor's
+    own <head> carries a noindex — moved with it, and run in the same-named
+    tool in tech4time-backend. They are skipped here only when lib/admin.php is
+    genuinely absent, so a half-finished move fails rather than passes.
     """
     problems = []
 
     for path in pages():
         markup = path.read_text()
         for href in re.findall(r'href="([^"]*)"', markup):
-            if re.match(r"^(/|https?://[^/]*tech4time\.bd)?/?admin(/|$)", href):
+            if re.match(r"^(/|https?://[^/]*tech4time\.bd)?/?admin(/|$)", href) \
+                    or re.match(r"^https?://admin\.tech4time\.bd", href):
                 problems.append(f"{path.relative_to(ROOT)}: links to the admin editor ({href})")
 
     sitemap = ROOT / "sitemap.xml"
@@ -393,28 +400,26 @@ def check_admin_is_hidden() -> list[str]:
     # the refusal page that admin_require_auth() sends writes its own. Both
     # have to carry the noindex, so both are checked — a page nobody linked to
     # is still a page a crawler can be told about.
-    for path in (ROOT / "lib" / "admin.php", ROOT / "admin" / "index.php"):
-        if not path.is_file():
-            continue
-        text = path.read_text()
-        if 'name="robots"' in text:
-            break
-    else:
-        problems.append(
-            "the admin does not emit <meta name=\"robots\"> noindex "
-            "(looked in lib/admin.php and admin/index.php)"
-        )
-
     shell = ROOT / "lib" / "admin.php"
-    if shell.is_file() and shell.read_text().count('name="robots"') < 2:
-        problems.append(
-            "lib/admin.php: only one <meta name=\"robots\"> — the editor shell "
-            "and the not-protected refusal page each need their own"
-        )
+
+    if shell.is_file():
+        for path in (shell, ROOT / "public" / "index.php", ROOT / "admin" / "index.php"):
+            if path.is_file() and 'name="robots"' in path.read_text():
+                break
+        else:
+            problems.append(
+                "the admin does not emit <meta name=\"robots\"> noindex"
+            )
+
+        if shell.read_text().count('name="robots"') < 2:
+            problems.append(
+                "lib/admin.php: only one <meta name=\"robots\"> — the editor shell "
+                "and the not-protected refusal page each need their own"
+            )
 
     htaccess = ROOT / ".htaccess"
     if htaccess.is_file() and "X-Robots-Tag" not in htaccess.read_text():
-        problems.append(".htaccess: no X-Robots-Tag rule covering /admin")
+        problems.append(".htaccess: no X-Robots-Tag rule")
 
     return problems
 

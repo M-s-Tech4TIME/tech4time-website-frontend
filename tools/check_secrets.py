@@ -1,22 +1,30 @@
 #!/usr/bin/env python3
 """
-Prove that nothing which protects the admin has quietly stopped protecting it.
+Prove the public site still carries nothing it should not.
 
 Build/audit tool. NOT deployed to the web server (see tools/README.md).
 Run from the repo root:  python3 tools/check_secrets.py
 
 WHY THIS EXISTS
 The failures this looks for share one property: everything goes on working.
-A master key committed by accident, a private store that turns out to be
-web-reachable, a bypass flag left in for one afternoon's convenience, a
-password written into the audit log — none of them break a page, fail a save
-or raise an error. The site is exactly as usable the day after as the day
-before, and the only difference is that somebody else can sign in.
+A key committed by accident, a private store that turns out to be web-reachable,
+an .htaccess that quietly stopped blocking lib/ — none of them break a page,
+fail a save or raise an error. The site is exactly as usable the day after as
+the day before.
 
 So these are asserted mechanically, on every run, rather than remembered.
 
+WHAT THIS HALF CHECKS
+This is the FRONTEND. It has no accounts, no password hashes, no second factor
+and no sessions — that is the whole point of the split, and the third check
+below is that promise made mechanical rather than merely stated.
+
+The admin's own protections — the setup window, the bypass flags, what reaches
+the audit log — are checked by the same-named tool in tech4time-backend, which
+is where that code now lives.
+
 WHAT IS CHECKED BY BEHAVIOUR RATHER THAN BY READING
-Where a check can run the real code, it does — pointing lib/private.php at a
+Where a check can run the real code, it does. Pointing lib/private.php at a
 directory inside the web root and insisting it refuses is worth more than
 grepping for the function that refuses, because the grep goes on passing when
 the call to it is deleted.
@@ -24,24 +32,30 @@ the call to it is deleted.
 
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
 # Names that must never be committed, wherever they turn up.
 SECRET_NAMES = [
-    "secret.key", "admins.json", "audit.log", "audit.log.1",
+    "secret.key", "publish.key", "admins.json", "audit.log", "audit.log.1",
     "throttle.json", "resets.json", "setup-token.txt",
 ]
-SECRET_DIRS = ["t4t-private", ".dev-private"]
+SECRET_DIRS = ["t4t-private", "t4t-private-admin", ".dev-private"]
 
-# Every file that can emit an HTML page under /admin/.
-ADMIN_PAGES = [
-    "admin/login.php", "admin/forgot.php", "admin/reset.php", "admin/setup.php",
+# What belongs to the backend and must not reappear here. Each was deleted in
+# the split; each would work perfectly well if somebody copied it back, which
+# is exactly why this is a check and not a comment.
+BACKEND_ONLY = [
+    "admin",
+    "lib/auth.php",
+    "lib/admin.php",
+    "lib/totp.php",
+    "lib/reset.php",
+    "lib/mailer.php",
+    "lib/publish_client.php",
 ]
 
 problems: list[str] = []
@@ -55,30 +69,6 @@ def ok(label: str) -> None:
 def bad(label: str, detail: str = "") -> None:
     print(f"  FAIL  {label}" + (f"\n          {detail}" if detail else ""))
     problems.append(label)
-
-
-def log_contexts(text: str):
-    """Every auth_log() call's context argument, with its line number.
-
-    Brace counting rather than a regex, because the context is an array literal
-    that contains its own brackets and commas, and a lazy match would stop at
-    the first one.
-    """
-    for m in re.finditer(r"auth_log\(", text):
-        i, depth = m.end(), 1
-
-        while i < len(text) and depth:
-            if text[i] == "(":
-                depth += 1
-            elif text[i] == ")":
-                depth -= 1
-            i += 1
-
-        args = text[m.end():i - 1]
-        # Drop the event name — the first quoted literal — and keep the rest.
-        context = re.sub(r"^\s*'[^']*'\s*,?", "", args, count=1)
-
-        yield text.count("\n", 0, m.start()) + 1, context
 
 
 def tracked() -> list[str]:
@@ -157,244 +147,138 @@ def check_store_refuses_web_root() -> None:
     else:
         ok("and refusing it creates nothing")
 
-    # The admin must consult that refusal rather than merely have it available.
-    admin = (ROOT / "lib" / "admin.php").read_text()
-    start = re.search(r"function admin_start_session\(\).*?\n}", admin, re.S)
 
-    if start and "auth_problem()" in start.group(0) and "admin_refuse(" in start.group(0):
-        ok("the admin stops when the store is not sound")
-    else:
-        bad("the admin stops when the store is not sound",
-            "admin_start_session() no longer calls auth_problem() then admin_refuse()")
+# ------------------------------------------- this half holds no credentials
 
 
-def check_setup_window_closes() -> None:
-    """A setup token and an account must never exist at the same time.
+def check_ships_no_authentication() -> None:
+    """ADR 0011's promise, made mechanical.
 
-    admin/setup.php promises the window "is shut by the code rather than by a
-    step somebody has to remember". It was not: the recovery-codes screen
-    survives the "setup is over" redirect on purpose, and it re-created the
-    token auth_setup_done() had just deleted. Found on the live host, where
-    setup-token.txt sat in the private store beside a working account.
-
-    Driven through the real functions in a throwaway store, because the
-    interesting question is what the code does, not what it says. A grep for
-    the guard passes the moment somebody keeps the guard and adds a second way
-    in beside it.
+    "The public site stops shipping authentication code entirely." Nothing
+    enforces that by itself: every one of these files would work if it were
+    copied back, and the site would look identical with a login page on it.
     """
-    print("\nthe setup window shuts behind itself")
+    print("\nthe public site ships no way to sign in")
 
-    work = Path(tempfile.mkdtemp(prefix="t4t-setupwin-"))
-    private = work / "private"
-    env = dict(os.environ, T4T_PRIVATE=str(private))
-
-    def php(code: str) -> str:
-        done = subprocess.run(
-            ["php", "-r", "require 'lib/auth.php';" + code],
-            cwd=str(ROOT), capture_output=True, text=True, env=env, timeout=60,
-        )
-        return (done.stdout + done.stderr).strip()
-
-    try:
-        # Before any account: minting one is the whole point, and must work.
-        php("auth_setup_token();")
-        token_file = private / "setup-token.txt"
-
-        if token_file.exists():
-            ok("a fresh store still hands out a setup key")
-        else:
-            bad("a fresh store still hands out a setup key",
-                "auth_setup_token() wrote nothing — setup would be impossible")
-
-        minted = token_file.read_text().strip() if token_file.exists() else ""
-
-        php("var_export(auth_put(auth_defaults(["
-            "'user' => 'someone', 'hash' => 'x', 'totp' => 'y'])));")
-
-        if not (private / "admins.json").exists():
-            bad("the setup window shuts once an account exists",
-                "could not create a test account, so nothing below was proved")
-            return
-
-        # The token is deleted the way setup.php deletes it, then everything
-        # that could bring it back is asked to.
-        php("auth_setup_done();")
-
-        if token_file.exists():
-            bad("auth_setup_done() removes the key file",
-                "it is still there")
-        else:
-            ok("auth_setup_done() removes the key file")
-
-        php("auth_setup_token();")
-
-        if token_file.exists():
-            bad("and nothing re-creates it once an account exists",
-                "auth_setup_token() minted a new one — this is the live defect")
-        else:
-            ok("and nothing re-creates it once an account exists")
-
-        # The empty-token trap: with no file to read, a comparison against an
-        # empty submission must not agree with itself.
-        for given, label in ((minted, "the real key"), ("", "an empty key")):
-            said = php(f"var_export(auth_setup_token_check({given!r}));")
-            if said == "false":
-                ok(f"and {label} no longer opens setup")
-            else:
-                bad(f"and {label} no longer opens setup", f"php said {said!r}")
-    finally:
-        shutil.rmtree(work, ignore_errors=True)
-
-
-# ------------------------------------------------------------- no way around it
-
-
-def check_no_bypass() -> None:
-    print("\nthere is no way past the sign-in")
-
-    shipped = [p for p in ROOT.rglob("*.php")
-               if "tools" not in p.parts and p.is_file()]
-
-    # The old escape hatch: a constant whose false value granted full access.
-    hits = [str(p.relative_to(ROOT)) for p in shipped
-            if "ADMIN_REQUIRE_HTTP_AUTH" in p.read_text()]
-    if hits:
-        bad("the old Basic-auth bypass constant is gone", ", ".join(hits))
+    back = [p for p in BACKEND_ONLY if (ROOT / p).exists()]
+    if back:
+        bad("nothing belonging to the admin is here", ", ".join(back))
     else:
-        ok("the old Basic-auth bypass constant is gone")
+        ok("nothing belonging to the admin is here")
 
-    # Identity must not come from a request header ever again.
-    hits = []
-    for p in shipped:
-        text = p.read_text()
-        for m in re.finditer(r"\$_SERVER\[['\"](REMOTE_USER|REDIRECT_REMOTE_USER|PHP_AUTH_USER)", text):
-            hits.append(f"{p.relative_to(ROOT)}: {m.group(1)}")
-    if hits:
-        bad("nothing takes its identity from the web server", "; ".join(hits))
+    # The names, not just the files — a hand-copied fragment would not bring
+    # the filename with it.
+    php = [p for p in ROOT.rglob("*.php")
+           if "tools" not in p.parts and p.name != "check_secrets.py"]
+    leaked = []
+    for path in php:
+        text = path.read_text()
+        for needle in ("password_hash(", "password_verify(", "auth_attempt(",
+                       "totp_verify(", "admins.json"):
+            if needle in text:
+                leaked.append(f"{path.relative_to(ROOT)}: {needle}")
+
+    if leaked:
+        bad("no page here verifies a password", "; ".join(leaked))
     else:
-        ok("nothing takes its identity from the web server")
+        ok("no page here verifies a password")
 
-    # Every page that can be reached signed out must start the session through
-    # admin_start_session(), which is what runs the refusal check.
-    for name in ADMIN_PAGES:
-        text = (ROOT / name).read_text()
-        if "admin_start_session()" in text:
-            ok(f"{name} goes through the shell's checks")
-        else:
-            bad(f"{name} goes through the shell's checks",
-                "it does not call admin_start_session()")
+    # The store cannot even NAME an account file. t4t_private_path() throws on
+    # a key it does not know, so this is not a convention — there is no path
+    # for a password hash to be written to.
+    done = subprocess.run(
+        ["php", "-r",
+         "require 'lib/private.php';"
+         "echo implode(',', array_keys(T4T_PRIVATE_FILES));"],
+        cwd=str(ROOT), capture_output=True, text=True,
+    )
+    held = set(done.stdout.strip().split(",")) if done.stdout.strip() else set()
 
-    # And every page behind it must require an account.
-    index = (ROOT / "admin" / "index.php").read_text()
-    if "admin_require_auth()" in index:
-        ok("admin/index.php requires an account")
+    if held & {"admins", "setup", "sessions", "resets"}:
+        bad("the private store has no name for an account file",
+            f"T4T_PRIVATE_FILES still lists {sorted(held & {'admins', 'setup', 'sessions', 'resets'})}")
     else:
-        bad("admin/index.php requires an account")
+        ok(f"the private store has no name for an account file ({', '.join(sorted(held))})")
 
 
-# --------------------------------------------------------------- what is stored
+# --------------------------------------------- only one thing writes content
 
 
-def check_nothing_leaks() -> None:
-    print("\nsecrets stay out of the places we write to")
+def check_one_writer() -> None:
+    """The public site writes exactly one kind of file, from exactly one place.
 
-    auth = (ROOT / "lib" / "auth.php").read_text()
+    Everything a visitor can reach is a read. The only write is api/publish.php
+    landing a document the backend signed, and lib/throttle.php counting
+    attempts. A second writer appearing outside lib/ is worth noticing before
+    it is a way in rather than after.
+    """
+    print("\nonly the publish endpoint writes content")
 
-    # Session cookie flags. A cookie carrying a signed-in session without
-    # HttpOnly is readable by any script that gets onto the page.
-    boot = re.search(r"function auth_boot\(\).*?\n}", auth, re.S)
-    boot = boot.group(0) if boot else ""
-
-    for flag, label in [("'httponly' => true", "HttpOnly"),
-                        ("'samesite' => 'Lax'", "SameSite"),
-                        ("auth_is_https()", "Secure when the connection is")]:
-        if flag in boot:
-            ok(f"the session cookie is set {label}")
-        else:
-            bad(f"the session cookie is set {label}", f"{flag} missing from auth_boot()")
-
-    if "session_regenerate_id(true)" in auth:
-        ok("the session id is replaced when signing in")
-    else:
-        bad("the session id is replaced when signing in")
-
-    # Nothing that would help an attacker may reach the audit log.
-    #
-    # Only the CONTEXT is examined, never the event name: 'password-reset' and
-    # 'totp-enrolled' are things that happened, and a check that cannot tell
-    # those from a logged password is a check that gets switched off.
-    hits = []
-    for p in ROOT.rglob("*.php"):
-        if "tools" in p.parts or not p.is_file():
+    writers = []
+    for path in ROOT.rglob("*.php"):
+        if "tools" in path.parts or "lib" in path.parts:
             continue
-        for line, context in log_contexts(p.read_text()):
-            if re.search(r"password|passwd|secret|\btotp\b|\$code\b|'code'", context, re.I):
-                hits.append(f"{p.relative_to(ROOT)}:{line} {context.strip()[:60]}")
+        text = path.read_text()
+        if "store_write(" in text or "file_put_contents(" in text:
+            writers.append(path.relative_to(ROOT).as_posix())
 
-    if hits:
-        bad("nothing secret is written to the audit log", "; ".join(hits))
+    if writers == ["api/publish.php"]:
+        ok("api/publish.php is the only writer outside lib/")
     else:
-        ok("nothing secret is written to the audit log")
+        bad("api/publish.php is the only writer outside lib/",
+            f"also writing: {[w for w in writers if w != 'api/publish.php']}")
 
-    # A password must never be stored, only its hash.
-    if "password_hash(" in auth and "'hash'" in auth:
-        ok("accounts store a hash, not a password")
-    else:
-        bad("accounts store a hash, not a password")
+    api = (ROOT / "api" / "publish.php").read_text()
 
-    if "hash_equals(" in auth:
-        ok("comparisons that matter are constant time")
-    else:
-        bad("comparisons that matter are constant time")
-
-
-# ------------------------------------------------------------- staying unindexed
-
-
-def check_unindexed() -> None:
-    print("\nthe admin stays out of search results")
-
-    for name in ADMIN_PAGES:
-        text = (ROOT / name).read_text()
-        if "admin_shell_head(" in text:
-            ok(f"{name} renders through the noindexed shell")
+    for needle, label in (
+        ("publish_verify(", "it verifies the signature"),
+        ("publish_check_envelope(", "it checks the envelope"),
+        ("contract_sanitise(", "it re-sanitises what it was sent"),
+        ("<= $held", "it refuses anything not strictly newer"),
+    ):
+        if needle in api:
+            ok(label)
         else:
-            bad(f"{name} renders through the noindexed shell")
+            bad(label, f"api/publish.php no longer calls {needle}")
 
-    shell = (ROOT / "lib" / "admin.php").read_text()
-    count = len(re.findall(r'name="robots"', shell))
 
-    # admin_head(), admin_refuse() and admin_shell_head() each emit their own.
-    if count >= 3:
-        ok(f"lib/admin.php marks all {count} of its page shapes noindex")
-    else:
-        bad("lib/admin.php marks every page shape noindex",
-            f"found {count} robots tags, expected at least 3")
+# ------------------------------------------------------ the rules still exist
+
+
+def check_htaccess_blocks() -> None:
+    print("\n.htaccess still closes what it closed")
 
     htaccess = (ROOT / ".htaccess").read_text()
-    if "X-Robots-Tag" in htaccess and "/admin" in htaccess:
-        ok(".htaccess marks /admin noindex as a header too")
-    else:
-        bad(".htaccess marks /admin noindex as a header too")
 
-    if re.search(r'Cache-Control "no-store[^"]*".*admin', htaccess):
-        ok(".htaccess keeps /admin out of shared caches")
-    else:
-        bad(".htaccess keeps /admin out of shared caches")
+    for pattern, label in (
+        (r"RewriteRule \^lib/",       "lib/ is blocked"),
+        (r"RewriteRule \^content/",   "content/ is blocked"),
+        (r"RewriteRule \^tools/",     "tools/ is blocked"),
+        (r"RewriteRule \^references/", "references/ is blocked"),
+        (r"t4t-private",              "a stray private store is blocked"),
+        (r'RewriteRule "\(\^\|/\)\\\."', "any dotted path segment is blocked"),
+        (r"!\^/\\\.well-known/",      "and .well-known is exempt, so AutoSSL still renews"),
+        (r"Strict-Transport-Security", "HSTS is set"),
+        (r"Content-Security-Policy",  "the CSP is set"),
+    ):
+        if re.search(pattern, htaccess):
+            ok(label)
+        else:
+            bad(label, f"nothing in .htaccess matches {pattern!r}")
 
-    if "t4t-private" in htaccess:
-        ok(".htaccess blocks a stray private store")
+    if re.search(r'X-Robots-Tag[^\n]*\n[^\n]*api|api[^\n]*X-Robots-Tag', htaccess) \
+            or ("X-Robots-Tag" in htaccess and "/api" in htaccess):
+        ok("/api/ is kept out of search results")
     else:
-        bad(".htaccess blocks a stray private store")
+        bad("/api/ is kept out of search results")
 
 
 def main() -> None:
     check_nothing_committed()
     check_store_refuses_web_root()
-    check_no_bypass()
-    check_setup_window_closes()
-    check_nothing_leaks()
-    check_unindexed()
+    check_ships_no_authentication()
+    check_one_writer()
+    check_htaccess_blocks()
 
     for note in notes:
         print(f"\nnote: {note}")
@@ -404,10 +288,10 @@ def main() -> None:
         for p in problems:
             print(f"  - {p}")
         print("\nEach of these fails silently in production: the site goes on\n"
-              "working and the only difference is who can sign in.")
+              "working and the only difference is what a stranger can reach.")
         sys.exit(1)
 
-    print("\nThe admin's protections are all still in place.")
+    print("\nThe public site's protections are all still in place.")
 
 
 if __name__ == "__main__":

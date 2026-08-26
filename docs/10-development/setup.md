@@ -81,38 +81,34 @@ python3 tools/serve.py
 That is the whole setup. There is nothing to build and no dependency to fetch.
 
 > **Do not use `python3 -m http.server`.** It will show you the *source* of the careers page, the
-> contact page and the admin instead of their output. `serve.py` runs PHP's built-in server with a
+> contact page instead of their output. `serve.py` runs PHP's built-in server with a
 > router that resolves the same clean URLs Apache does on the host.
 
 Open the site and click around. Every page should work.
 
 ---
 
-## 4. Create an admin account
+## 4. Mint the publish key
 
-The sign-in is real locally — nothing is faked, because on the host there is nothing to fake it
-against any more.
+Content reaches this site only through `api/publish.php`, and only with a valid signature. The key
+is made once, by a person, and the **same value** goes in both halves' private stores.
 
-1. Go to **http://localhost:8000/admin/setup.php**
-2. Fill in a username, an email and a password.
-   *No setup key is asked for*, because the request comes from your own machine. On the host it is
-   required — see [admin-activation.md](../20-deployment/admin-activation.md).
-3. Pair an authenticator app. Type the grouped key into Google Authenticator, Aegis, 1Password,
-   Bitwarden — anything that does TOTP — then enter a code to prove it works.
-4. **Save the ten recovery codes.** They are shown once. Locally they matter more than on the host,
-   because a password reset email cannot be delivered on a machine with no mail server.
-
-You now have `../t4t-private/` beside your clone, holding your account.
-
-```
-CodeSpace/
-├── tech4time-website/     ← your clone
-└── t4t-private/           ← your local secrets, never committed
+```bash
+python3 tools/make_publish_key.py
 ```
 
-Delete that directory to start over.
+It prints 64 hex characters and writes them to `../t4t-private/publish.key`. If you are also running
+`tech4time-backend`, copy that value into its `../t4t-private-admin/publish.key`.
 
----
+It is deliberately not automatic. Every other secret here creates itself on first use; this one must
+not, because a key that appears by itself appears **differently** on each host, and the failure would
+read as "signature rejected" until somebody thought of it.
+
+> Without it, `tools/test_publish.py` still passes — it makes its own throwaway key — but a real
+> publish is refused as `not-configured`, which is what the editor will tell you.
+
+The editor itself, and the account you sign in to it with, are in **tech4time-backend**. See
+[running-locally.md](running-locally.md) for running both halves side by side.
 
 ## 5. Prove it works
 
@@ -128,12 +124,12 @@ python3 tools/check_docs.py
 All should pass and none needs a browser. Then, if you installed Firefox and geckodriver:
 
 ```bash
-python3 tools/test_admin_auth.py       # the whole sign-in cycle, over HTTP
+python3 tools/test_publish.py          # the one endpoint that writes, over HTTP
 python3 tools/test_contact_handler.py  # the enquiry form's handler
 python3 tools/test_nav.py              # a real browser
 ```
 
-`test_admin_auth.py` uses a throwaway private directory under `/tmp`, so it cannot disturb the
+`test_publish.py` uses a throwaway private directory under `/tmp`, so it cannot disturb the
 account you just made.
 
 > **Housekeeping:** the browser suites can leave `geckodriver` processes behind if a run is
@@ -156,7 +152,7 @@ account you just made.
 | Pages show PHP source | You used `python3 -m http.server`. Use `tools/serve.py`. |
 | `php: command not found` | `php-cli` is not installed — step 1 |
 | Assets 404, page unstyled | You opened the file over `file://`. Every path is root-relative; use the server. |
-| `/admin/` refuses to load | The private store cannot be created. The message names the path — check permissions on the directory *above* your clone. |
+| A publish is refused as `not-configured` | There is no `publish.key`, or the private store cannot be created. The message names the path — check permissions on the directory *above* your clone. |
 | Browser tests skip with a notice | Firefox or geckodriver is missing. That is by design — they exit 0 rather than fail. |
 | `ModuleNotFoundError: PIL` | Only the asset builders need Pillow: `pip3 install --user Pillow` |
 

@@ -10,7 +10,7 @@ The two JSON files the dynamic pages render from, field by field.
 optional field that happens to be absent from it is still a field.
 
 Changing a shape means changing three things together — the model, the form and the renderer.
-[content-model.md](../10-development/backend/content-model.md).
+[content-model.md](../10-development/server-side/content-model.md).
 
 ---
 

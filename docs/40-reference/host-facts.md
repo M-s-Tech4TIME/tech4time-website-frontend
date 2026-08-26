@@ -81,7 +81,7 @@ hostname in that secret would not match it.
 
 > **Created, not yet proven.** Existing and receiving are different facts, and only the second one
 > matters on the day you cannot sign in. It is proven by
-> [admin-activation.md](../20-deployment/admin-activation.md) step 6 — a real reset code, sent by
+> *admin-activation.md* (in tech4time-backend) step 6 — a real reset code, sent by
 > the live site, read in that mailbox — not by sending a test message to it from elsewhere, which
 > exercises none of the path that matters.
 
@@ -103,7 +103,7 @@ which is the worst way to discover a mail problem.
 cPanel enforces an **hourly outbound mail limit**. The reset throttle is sized to stay under it:
 three per hour per account, five per address, **twenty overall**.
 
-That global cap is not about this site. Somebody hammering `/admin/forgot.php` could use the
+That global cap is not about this site. Somebody hammering the admin's forgot-password page could use the
 allowance up, which would stop the genuine reset from being delivered at the moment it was wanted.
 
 ---
@@ -121,17 +121,17 @@ allowance up, which would stop the genuine reset from being delivered at the mom
 
 ## Directory Privacy
 
-Currently protecting `/admin` as a temporary measure during setup. To be removed once the
-application's own sign-in is proven — [admin-activation.md](../20-deployment/admin-activation.md).
+Not in use on this host. It belongs to the backend's document root, as a temporary measure while
+its own sign-in is being proven — *admin-activation.md* (in tech4time-backend).
 
-> **Never add an `.htaccess` to `admin/` in the repository.** cPanel writes its own there for this
+> **Never add an `.htaccess` where cPanel writes one.** cPanel writes its own for this
 > feature, and uploading over it silently removes the password.
 
 ---
 
 ## Outstanding on the host
 
-1. **Prove `admin@tech4time.bd` receives** what the site sends it — the mailbox exists as of
+1. **Prove `admin@tech4time.bd` receives** what the backend sends it — the mailbox exists as of
    2026-08-23; delivery is confirmed at activation step 6
 2. **Run `tools/host-probe.php`** — upload, set the token, load once, read, **delete** — and record
    the PHP version, argon2id availability and hash time here

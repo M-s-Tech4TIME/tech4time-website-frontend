@@ -10,7 +10,7 @@ Pushing an update to a site that is already live, without destroying anything pe
 
 > **The host's `content/` is the real data. Yours is test data.**
 
-Job posts and contact details are written by people using `/admin/`. They are not in your working
+Job posts and contact details are published from the admin host. They are not in your working
 copy. A deploy that includes `content/` destroys them, and the loss is silent — the site keeps
 working, showing older content, until somebody notices their job post is gone.
 
@@ -24,9 +24,8 @@ UPLOAD                            NEVER UPLOAD
   pages/                            tools/            ← scripts, incl. password reset
   assets/                           docs/
   lib/                              references/
-  admin/                            .git/
   contact-handler.php               *.md   *.py
-  .htaccess                         admin/.htaccess   ← cPanel owns it
+  .htaccess                         admin/            ← nothing, ever
   robots.txt   sitemap.xml
   site.webmanifest
 ```
@@ -42,7 +41,6 @@ rsync -avz --delete \
   --exclude='.git*' \
   --exclude='*.md' \
   --exclude='*.py' \
-  --exclude='admin/.htaccess' \
   ./ user@tech4time.bd:~/public_html/
 ```
 
@@ -70,10 +68,8 @@ python3 tools/audit_pages.py
 And if the change touched anything server-side:
 
 ```bash
-python3 tools/test_admin_auth.py
+python3 tools/test_publish.py
 python3 tools/test_contact_handler.py
-python3 tools/test_careers_admin.py
-python3 tools/test_contact_admin.py
 ```
 
 ---
@@ -82,7 +78,7 @@ python3 tools/test_contact_admin.py
 
 - [ ] The changed pages look right
 - [ ] `/pages/careers/` and `/pages/contact/` still render — **live content intact**
-- [ ] `/admin/` still signs in
+- [ ] `/api/publish.php` still answers 405 to a GET
 - [ ] `lib/`, `content/` and `tools/` still return 403
 
 That third check matters more than it looks: an `.htaccess` that failed to upload takes the blocking
@@ -125,7 +121,8 @@ python3 tools/check_shared_markup.py
 
 Getting step 1 wrong pushes your stale local details into all sixteen pages.
 
-The admin shows a banner when the JSON and the footers disagree, so the gap is never invisible — but
+The admin shows a banner when the details and the footers disagree — it learns the footers'
+fingerprint from `api/publish.php` in every publish response, so the gap is never invisible — but
 closing it is a deploy, not a save. [shared-markup.md](../10-development/frontend/shared-markup.md)
 
 ---

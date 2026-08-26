@@ -25,6 +25,16 @@
  *   host   $T4T_PRIVATE, or /home/USER/t4t-private beside /home/USER/public_html
  *   local  $T4T_PRIVATE, set by tools/serve.py and by the test harnesses
  *
+ * TWO STORES, ONE PER HALF
+ * The backend keeps its own at /home/USER/t4t-private-admin — the accounts,
+ * the master key that peppers them, the sessions. They are separate because
+ * the two sides are meant to be separable: the frontend must be able to run
+ * on a machine with no access to the backend's secrets at all, because that
+ * is where this is going. See docs/20-deployment/environments.md.
+ *
+ * The one thing both stores hold is publish.key, and it is the same bytes on
+ * purpose — it is what the two sign to each other with.
+ *
  * Not reachable over HTTP: .htaccess forbids /lib/.
  */
 
@@ -36,15 +46,20 @@ const T4T_PRIVATE_NAME = 't4t-private';
 /**
  * Everything the store holds. Names are here rather than spelled out at each
  * call site so that one list describes the whole of what we keep.
+ *
+ * THREE ENTRIES, AND THAT IS THE POINT.
+ * The public site holds no accounts, no password hashes, no authenticator
+ * secrets, no recovery codes and no sessions — they moved to
+ * tech4time-backend with the code that reads them. This list is not a
+ * convention: t4t_private_path() throws on a name it does not know, so there
+ * is no path on this host for a password hash to be written to at all.
+ *
+ * tools/check_secrets.py asserts that, because a list is easy to add to.
  */
 const T4T_PRIVATE_FILES = [
-    'key'      => 'secret.key',    // 32 random bytes; every other key derives from it
-    'admins'   => 'admins.json',   // accounts: hash, TOTP secret, recovery codes
-    'throttle' => 'throttle.json', // failed-attempt counters
-    'resets'   => 'resets.json',   // pending password-reset codes
-    'audit'    => 'audit.log',     // append-only JSONL
-    'sessions' => 'sessions',      // session.save_path (a directory)
-    'setup'    => 'setup-token.txt', // proves server access during first-run setup
+    'key'      => 'secret.key',    // 32 random bytes; the throttle's keys derive from it
+    'throttle' => 'throttle.json', // contact-form attempt counters
+    'publish'  => 'publish.key',   // shared with the backend; see lib/publish.php
 ];
 
 /* ------------------------------------------------------------------ paths */

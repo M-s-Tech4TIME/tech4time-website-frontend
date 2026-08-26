@@ -2,8 +2,8 @@
 
 **Applies to:** both
 
-The dev server, signing in, editing content safely, and the two things that genuinely cannot work
-on a development machine.
+The dev server, running both halves side by side, editing content safely, and the one thing that
+genuinely cannot work on a development machine.
 
 ---
 
@@ -14,71 +14,70 @@ python3 tools/serve.py            # http://localhost:8000
 python3 tools/serve.py 8080       # a different port
 ```
 
-It prints a menu of the pages worth visiting, tells you whether an admin account exists, and reminds
-you how to undo content edits. `Ctrl-C` stops it.
+It prints a menu of the pages worth visiting and reminds you how to undo content edits. `Ctrl-C`
+stops it.
 
 Under the hood it is `php -S localhost:8000 -t . tools/dev-router.php`. The router exists to make
 one machine behave like the other: it resolves `/pages/about/` to `pages/about/index.html` and
 `/pages/careers/` to `index.php` the way `.htaccess` does on Apache, so a URL that works here works
 there.
 
-It binds to localhost only. It is still a real sign-in on a real port — do not run it on a public
-interface.
+It binds to localhost only.
 
----
-
-## Signing in
-
-Nothing is faked. The editors used to be waved through locally, because on the host Apache asked for
-a password before any PHP ran — there was nothing to fake against. The admin has its own accounts
-now, so the local sign-in *is* the real one.
-
-**First time:** `/admin/setup.php` — see [setup.md](setup.md#4-create-an-admin-account).
-
-**After that:** `/admin/login.php`, with your password and a code from your authenticator app.
-
-Your account lives in `../t4t-private/`, beside the clone:
+This side's private store lives in `../t4t-private/`, beside the clone:
 
 ```
 CodeSpace/
-├── tech4time-website/     ← the repository
-└── t4t-private/           ← accounts, sessions, counters, audit log
-    ├── secret.key
-    ├── admins.json
-    ├── sessions/
-    ├── throttle.json
-    └── audit.log
+├── tech4time-frontend/    ← this repository
+├── tech4time-backend/     ← the other half
+├── t4t-private/           ← this side: three files
+│   ├── secret.key         the throttle's keys derive from it
+│   ├── throttle.json      contact-form attempt counters
+│   └── publish.key        THE SAME BYTES as the backend's copy
+└── t4t-private-admin/     the backend's: accounts, sessions, audit log
 ```
 
 Deliberately the same shape as `/home/USER/t4t-private` on the host, so nothing about the layout is
 different in development.
 
-### Starting over
+---
+
+## Running both halves at once
+
+The editor is in `tech4time-backend`. To watch content actually travel, run both servers and point
+the backend at this one:
 
 ```bash
-rm -rf ../t4t-private            # then visit /admin/setup.php again
+# terminal 1 — tech4time-frontend
+python3 tools/serve.py                       # http://localhost:8000
+
+# terminal 2 — tech4time-backend
+T4T_PUBLISH_URL=http://localhost:8000/api/publish.php python3 tools/serve.py 8001
 ```
 
-### Locked yourself out
+Then sign in at `http://localhost:8001/`, save a job post, and reload
+`http://localhost:8000/pages/careers/`.
 
-The lockout is real: five wrong passwords are free, then each attempt waits longer than the last.
+**Both stores need the same `publish.key`.** Without it every publish is refused as
+`not-configured`; with two *different* keys, as `unknown-key` — which is the intended failure, and
+is exactly what it says.
 
 ```bash
-php tools/admin-cli.php unlock       # clear the counters
-php tools/admin-cli.php passwd       # set a new password
-php tools/admin-cli.php totp-clear   # unpair the authenticator
-php tools/admin-cli.php list         # what accounts exist
+# in either repository, once
+python3 tools/make_publish_key.py
+# then put the printed value in the other store's publish.key
 ```
 
-Locally `admin-cli.php` runs where it sits. On the host it is uploaded, run, and deleted —
-[secrets-recovery.md](../30-operations/secrets-recovery.md).
+Signing in, the lockout and the rescue CLI are the backend's — see the same page in
+**tech4time-backend**.
 
 ---
 
 ## Editing content
 
-**Saving in `/admin/` writes `content/careers.json` and `content/contact.json` for real.** They are
-tracked files, so your edits show up in `git status`.
+**Saving in the admin writes this side's `content/careers.json` and `content/contact.json` for
+real**, through `api/publish.php`, exactly as it does on the host. They are tracked files, so the
+edits show up in `git status`.
 
 ```bash
 git checkout content/careers.json content/contact.json   # undo them
@@ -87,9 +86,12 @@ git checkout content/careers.json content/contact.json   # undo them
 Keep the development data rich — several job posts, every contact field populated — because it is
 what exercises the renderers. An empty JSON file tests nothing.
 
-> **This is the opposite of the rule on the host**, where `content/` is the real data and must never
-> be overwritten by a deploy. Locally it is test data; there, it is the company's.
+> **This is the opposite of the rule on the host**, where `content/` is the live replica and must
+> never be overwritten by a deploy. Locally it is test data; there, it is what the client published.
 > [environments.md](../20-deployment/environments.md)
+>
+> Either way it is a **replica**: `api/publish.php` is the only thing that writes it, and a hand
+> edit survives only until the next save in the admin.
 
 ---
 

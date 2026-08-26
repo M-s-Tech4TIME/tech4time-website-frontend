@@ -8,9 +8,14 @@ Run from the repo root:  python3 tools/check_content_model.py
 WHY THIS EXISTS
 An editable page is three things that have to agree:
 
-    the model      lib/contact.php   — what a field is called and what it holds
+    the model      lib/contract.php  — what a field is called and what it holds
     the form       admin/sections/   — where somebody types it
     the renderer   pages/…/index.php — where it comes out
+
+The model moved to lib/contract.php with the repository split: it is the one
+file the frontend and the backend hold byte-identical, because a field they
+disagree about is a field one of them loses. The helpers that read it stayed
+where they were, so "the renderer" is now the page plus lib/contact.php.
 
 Nothing forces them to. Add a band to the contact page and forget the editor,
 and the band is unmanageable; drop a band from the page and leave the field in
@@ -21,6 +26,16 @@ This is a structural check, not a taste one: it asserts that every field in the
 model is written by the form and read by the page, and that neither of the
 other two reaches for a field the model does not define. It cannot tell you
 whether the band looks right — that is what the screenshots are for.
+
+TWO REPOSITORIES, ONE CHECK, HALF EACH
+Since the split there is no repository holding both the form and the page. The
+frontend has the renderer; the backend has the editor; both hold the model,
+byte-identical, which is what makes the two halves add up to the whole check.
+
+So this runs whichever half is present and SAYS which one, rather than quietly
+checking less than it used to. It refuses to run at all if neither is here,
+because "nothing to check" and "everything passed" must not print the same
+thing.
 
 It also asserts that it is being asked about every editor there is. Comparing
 source text only works while the fields appear in the source as themselves; a
@@ -38,19 +53,42 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# Which half this repository is, worked out from what is on disk rather than
+# from a constant somebody has to remember to set when copying the file.
+#
+#   sections/         the backend, whose admin is its whole document root
+#   admin/sections/   the monolith, before the split
+FORM_DIR = next(
+    (d for d in (ROOT / "sections", ROOT / "admin" / "sections") if d.is_dir()),
+    None,
+)
+PAGE_DIR = ROOT / "pages" if (ROOT / "pages" / "contact").is_dir() else None
+
+SIDE = ("both" if FORM_DIR and PAGE_DIR else
+        "backend" if FORM_DIR else
+        "frontend" if PAGE_DIR else None)
+
 # One entry per editable page. Adding a section to the admin means adding it
 # here, which is deliberate: the check has to be told what to check.
 SUBJECTS = [
     {
         "name": "contact",
-        "model": ROOT / "lib" / "contact.php",
-        "form": ROOT / "admin" / "sections" / "contact.php",
-        "page": ROOT / "pages" / "contact" / "index.php",
-        # Fields nothing renders, and nothing should: they are the store's
-        # own bookkeeping, and the admin prints them as such.
-        "page_indirect": {"updated", "footer_synced"},
-        # Fields the form does not write, and should not.
-        "form_exempt": {"updated", "footer_synced", "offices.items.id"},
+        "model": ROOT / "lib" / "contract.php",
+        "form": (FORM_DIR / "contact.php") if FORM_DIR else None,
+        "page": (PAGE_DIR / "contact" / "index.php") if PAGE_DIR else None,
+        # Where a field may be read on the way to the page. The model file is
+        # in here too: contact_shown_offices() and contact_email() read fields
+        # the page then never names itself.
+        "helpers": [ROOT / "lib" / "contact.php", ROOT / "lib" / "contract.php"],
+        # Where the other half of this check lives, named so that a run which
+        # can only do one direction says who does the other.
+        "other_half": {"frontend": "tech4time-backend",
+                       "backend": "tech4time-frontend"}.get(SIDE, ""),
+        # Fields nothing renders and nothing edits beyond the bookkeeping,
+        # which is read from CONTRACT_BOOKKEEPING and added to both sets below
+        # rather than written out twice here.
+        "page_indirect": set(),
+        "form_exempt": {"offices.items.id"},
     },
 ]
 
@@ -60,19 +98,48 @@ SUBJECTS = [
 # every one of them has to be accounted for — here or in SUBJECTS. That is the
 # point of the pairing: "the check covers one of the two editable pages" was
 # true for a long time and nothing said so.
+#
+# The named test differs per half, because the round trip it stands in for is
+# only half here. The backend drives the editor; the frontend drives a signed
+# document through api/publish.php and reads the page. Both walk every field
+# the model declares, which is the property this entry is claiming.
 COVERED_ELSEWHERE = {
     "careers": (
-        "tools/test_careers_admin.py",
+        "tools/test_careers_admin.py" if SIDE in ("backend", "both")
+        else "tools/test_publish.py",
         "Both sides of the careers page are loops. The editor posts its seven "
         "body fields as name=\"<?= h($field) ?>\" and the page renders them by "
         "walking CAREERS_SECTIONS, so the regexes below read the loop variable "
         "and find 'h' and 'field' rather than 'about' and 'offers'. Adding it "
         "to SUBJECTS would mean exempting exactly the seven fields most likely "
         "to drift, and then reporting that all is well. It is proved by round "
-        "trip instead: a marker through every field the model declares, editor "
-        "to visitor, over HTTP.",
+        "trip instead: a marker through every field the model declares, over "
+        "HTTP, through whichever half of the journey this repository owns.",
     ),
 }
+
+
+def bookkeeping() -> set[str]:
+    """The fields a document keeps about itself — asked of PHP, not listed here.
+
+    They are neither edited nor rendered, so both directions of the check have
+    to exempt them, and a second copy of the list is a second thing to keep
+    true. lib/contract.php owns it; 'revision' was added there and this file
+    needed no edit.
+    """
+    if not shutil.which("php"):
+        return set()
+
+    out = subprocess.run(
+        ["php", "-r", "require 'lib/contract.php'; echo json_encode(CONTRACT_BOOKKEEPING);"],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if out.returncode != 0 or not out.stdout.strip():
+        raise SystemExit("could not read CONTRACT_BOOKKEEPING from lib/contract.php:\n"
+                         + (out.stderr or out.stdout)[:400])
+
+    import json
+    return set(json.loads(out.stdout))
 
 
 def editors() -> list[str]:
@@ -83,7 +150,7 @@ def editors() -> list[str]:
     true, and this one would be wrong the moment a section gained a page to
     view without gaining a content model.
     """
-    if not shutil.which("php"):
+    if not shutil.which("php") or not (ROOT / "lib" / "admin.php").is_file():
         return []
 
     out = subprocess.run(
@@ -180,7 +247,9 @@ def page_reads(php: str) -> set[str]:
 
     Run over the page and over the helpers in lib/, because a field the page
     hands to a helper whole — an office to contact_flag_picture() — is read
-    there rather than in the page.
+    there rather than in the page. Those helpers are named by the subject, so
+    that splitting a helper out of the model file does not silently stop the
+    fields it reads from counting as read.
 
     Any variable subscripted by a string is counted, not a fixed list of
     variable names. That is deliberately generous: contact_addresses() copies
@@ -243,11 +312,26 @@ def fingerprints_agree() -> str:
 def main() -> None:
     problems: list[str] = []
 
+    if SIDE is None:
+        raise SystemExit(
+            "This repository holds neither an editor (sections/) nor a renderer\n"
+            "(pages/), so there is nothing here to compare the model against.\n"
+            "Run it in tech4time-frontend or tech4time-backend."
+        )
+
+    print({
+        "frontend": "the frontend half  —  model against the renderer",
+        "backend":  "the backend half   —  model against the editor",
+        "both":     "both halves        —  model, editor and renderer together",
+    }[SIDE])
+
     drift = fingerprints_agree()
     if drift:
         problems.append(drift)
-    else:
+    elif (ROOT / "tools" / "sync_site_contact.py").is_file():
         print("fingerprint  —  PHP and Python agree")
+    else:
+        print("fingerprint  —  not checked here; the footers are the frontend's")
 
 
     accounted = {s["name"] for s in SUBJECTS} | set(COVERED_ELSEWHERE)
@@ -275,30 +359,40 @@ def main() -> None:
 
     for subject in SUBJECTS:
         for key in ("model", "form", "page"):
-            if not subject[key].is_file():
-                raise SystemExit(f"Missing {subject[key].relative_to(ROOT)}")
+            here = subject[key]
+            if here is not None and not here.is_file():
+                raise SystemExit(f"Missing {here.relative_to(ROOT)}")
 
+        keep = bookkeeping()
         model_php = subject["model"].read_text()
 
         model = model_fields(model_php)
-        form = form_writes(subject["form"].read_text())
+        form_php = subject["form"].read_text() if subject["form"] else ""
+        form = form_writes(form_php) if subject["form"] else set()
 
         # The renderer is the page plus the helpers it renders through:
         # contact_flag_picture() reads the flag, contact_reach_href() reads the
         # kind and the value. A field used only inside one of those is still a
         # field the visitor sees, so both files count as the page side.
-        page = page_reads(subject["page"].read_text()) | page_reads(model_php)
+        page = page_reads(subject["page"].read_text()) if subject["page"] else set()
+        for helper in subject["helpers"]:
+            if helper.is_file():
+                page |= page_reads(helper.read_text())
 
         print(f"{subject['name']}  —  {len(model)} fields in the model")
 
+        exempt_form = subject["form_exempt"] | keep
+        exempt_page = subject["page_indirect"] | keep
+
         missing_form = sorted(
             f for f in model
-            if f not in subject["form_exempt"] and leaf(f) not in form
-        )
+            if f not in exempt_form and leaf(f) not in exempt_form and leaf(f) not in form
+        ) if subject["form"] else []
+
         missing_page = sorted(
             f for f in model
-            if f not in subject["page_indirect"] and leaf(f) not in page
-        )
+            if f not in exempt_page and leaf(f) not in exempt_page and leaf(f) not in page
+        ) if subject["page"] else []
 
         for field in missing_form:
             problems.append(
@@ -316,7 +410,7 @@ def main() -> None:
         # does not keep, because contact_from_post() would silently drop it.
         model_leaves = {leaf(f) for f in model}
         posted = set(re.findall(r'name="(?:reach|offices|form|meta|hero)\[[^"]*?(\w+)\]"',
-                                subject["form"].read_text()))
+                                form_php))
         stray = sorted(n for n in posted if n not in model_leaves)
         for name in stray:
             problems.append(
@@ -324,8 +418,19 @@ def main() -> None:
                 f"does not define — it is discarded on save"
             )
 
-        if not (missing_form or missing_page or stray):
+        if missing_form or missing_page or stray:
+            continue
+
+        if subject["form"] and subject["page"]:
             print("           every field is edited, stored and rendered")
+        elif subject["page"]:
+            print("           every field the model defines is rendered")
+            print(f"           that it is also EDITABLE is proved in "
+                  f"{subject['other_half']}")
+        else:
+            print("           every field the model defines is editable")
+            print(f"           that it also REACHES A VISITOR is proved in "
+                  f"{subject['other_half']}")
 
     if problems:
         print(f"\n{len(problems)} problem(s):\n")
@@ -333,12 +438,21 @@ def main() -> None:
             print(f"  - {p}")
         print(
             "\nThe page's shape and the editor's shape have parted. Bring the "
-            "model, the form and the renderer back into line — see the note at "
-            "the top of admin/sections/contact.php."
+            "model, the form and the renderer back into line."
         )
+        if SIDE != "both":
+            print(
+                "lib/contract.php is byte-identical in both repositories, so a "
+                "change to\nthe model is a change to the other half as well — "
+                "and check_shared_lib.py\nwill say so there."
+            )
         sys.exit(1)
 
-    print("\nThe editors and the pages they edit describe the same thing.")
+    print({
+        "frontend": "\nEvery field the model defines reaches a visitor.",
+        "backend":  "\nEvery field the model defines can be edited.",
+        "both":     "\nThe editors and the pages they edit describe the same thing.",
+    }[SIDE])
 
 
 if __name__ == "__main__":

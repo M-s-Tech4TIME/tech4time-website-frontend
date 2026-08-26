@@ -14,7 +14,7 @@ static. Content changes by editing the file and redeploying.
 **Dynamic `.php`** — only when the page says something that changes on its own schedule, without a
 redeploy. Two pages qualify: job posts appear and expire, and contact details change. Making a page
 dynamic means building an editor for it, a content model, and a renderer — see
-[adding-an-editor.md](../backend/adding-an-editor.md).
+*adding-an-editor.md* (in tech4time-backend).
 
 The rest of this page covers a static page.
 
