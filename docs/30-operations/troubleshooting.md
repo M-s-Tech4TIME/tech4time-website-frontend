@@ -123,8 +123,12 @@ Full table: [publish-api.md](../10-development/server-side/publish-api.md).
 
 On the admin host:
 
+On the admin host — `tools/` is never deployed there, so it is uploaded, run and deleted:
+
 ```bash
-python3 tools/reconcile.py          # sends anything this site is behind on
+scp tools/reconcile.py techtime@HOST:~/          # from tech4time-backend
+ssh techtime@HOST 'python3 ~/reconcile.py ~/admin.tech4time.bd'
+ssh techtime@HOST 'rm ~/reconcile.py'
 ```
 
 It reports one of four things per document. **Stop at "the live site is ahead"** — that means this
