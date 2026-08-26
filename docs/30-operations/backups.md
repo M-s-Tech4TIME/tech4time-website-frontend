@@ -117,7 +117,7 @@ content/*.json.bak
 ```
 
 A `secret.key` in a commit is in the history forever, and rotating it means resetting every
-password. If it happens, treat it as *rung 8* (in tech4time-backend) — rotate
+password. If it happens, treat it as *rung 8* (in tech4time-website-backend) — rotate
 rather than just removing the file.
 
 ---
@@ -135,7 +135,7 @@ a cleared rate-limit counter. `throttle.json` is a counter.
 copying the backend's; losing *both* means minting a new one and placing it on both hosts, during
 which every publish is refused as `unknown-key`. Back it up with `secret.key`, in the same place.
 
-**`content/` here is reconstructible by re-publishing** — `tech4time-backend/tools/reconcile.py`
+**`content/` here is reconstructible by re-publishing** — `tech4time-website-backend/tools/reconcile.py`
 sends anything this site is behind on. It is still worth backing up, because "reconstructible" means
 "if the backend still has it".
 

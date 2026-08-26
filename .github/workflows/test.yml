@@ -1,7 +1,7 @@
 # Every check this repository has, run on the machine rather than on a promise.
 #
 # THIS IS THE FRONTEND. The editor's round trips, the sign-in and the browser
-# run over the admin are in tech4time-backend's workflow of the same name.
+# run over the admin are in tech4time-website-backend's workflow of the same name.
 # Neither list is the whole suite any more, and neither pretends to be.
 #
 # The pre-commit list in docs/10-development/testing.md is what a person is

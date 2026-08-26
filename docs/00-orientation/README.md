@@ -4,7 +4,7 @@
 
 The public website of Tech4TIME, a Bangladeshi IT company: sixteen pages, a contact form, a job
 board, and one inbound endpoint where content arrives from the admin — which is a separate
-site, in `tech4time-backend`, serving `admin.tech4time.bd`.
+site, in `tech4time-website-backend`, serving `admin.tech4time.bd`.
 
 It is built to a constraint that explains almost every decision you will find odd:
 
@@ -70,7 +70,7 @@ ever committed. See [security-model.md](../40-reference/security-model.md).
 **The admin is not here.** It has its own repository, its own host, its own private store and its
 own sign-in — password, then an authenticator app, with lockout, an audit log,
 recovery codes, and password recovery by emailed code. It used to be cPanel Directory Privacy;
-it is not any more. See *authentication.md* (in tech4time-backend).
+it is not any more. See *authentication.md* (in tech4time-website-backend).
 
 **Progressive enhancement is a hard rule, not an aspiration.** Every page works with JavaScript
 off: the forms post natively, content is visible, navigation works, and nothing is hidden that
@@ -88,7 +88,7 @@ Honest status, so you do not go looking for things that are not there.
 
 - **Two of sixteen pages are editable.** The other fourteen are hand-edited HTML. Making them
   manageable is planned work, not missing work — see
-  *adding-an-editor.md* (in tech4time-backend).
+  *adding-an-editor.md* (in tech4time-website-backend).
 - **The repository has not been split yet.** The plan is `tech4time-website-frontend` and
   `tech4time-website-backend` on `tech4time.bd` and `admin.tech4time.bd`, talking over a signed
   publish API. Not built. See [0011-two-repositories.md](../90-decisions/0011-two-repositories.md).

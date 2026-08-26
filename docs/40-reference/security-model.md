@@ -3,7 +3,7 @@
 **Applies to:** both
 
 What is protected, by what, and what is deliberately not protected. Read this before changing
-`.htaccess`, `lib/private.php` or anything in `tech4time-backend/lib/auth.php`.
+`.htaccess`, `lib/private.php` or anything in `tech4time-website-backend/lib/auth.php`.
 
 ---
 
@@ -43,7 +43,7 @@ There is no password hash here, no authenticator secret, no recovery code and no
 be broken by a careless addition. `tools/check_secrets.py` asserts it on every run.
 
 The accounts, the sessions, the audit log and their own unrelated master key are in
-`/home/USER/t4t-private-admin/`, which belongs to `tech4time-backend` and is described in that
+`/home/USER/t4t-private-admin/`, which belongs to `tech4time-website-backend` and is described in that
 repository's copy of this page. Neither host can read the other's store.
 [0017](../90-decisions/0017-two-private-stores.md)
 
@@ -65,7 +65,7 @@ differ by construction and nothing would ever publish.
 
 ## The password
 
-Not here. The sign-in, the argon2id pepper and everything around them are in `tech4time-backend`;
+Not here. The sign-in, the argon2id pepper and everything around them are in `tech4time-website-backend`;
 see that repository's copy of this page and its *authentication.md*.
 
 **`secret.key` on this host peppers nothing but the throttle's keys.** That is the only thing it was
@@ -186,7 +186,7 @@ protections are of a different kind:
 | Contact-form throttle, keyed by HMAC | brute-forcing the form, without the IP hitting disk in the clear |
 
 The admin's own protections — argon2id and the pepper, the TOTP second factor, the lockout, the CSRF
-tokens, the session rules, the setup token and the audit log — are in `tech4time-backend`, and so is
+tokens, the session rules, the setup token and the audit log — are in `tech4time-website-backend`, and so is
 the table describing them.
 
 ---
@@ -254,5 +254,5 @@ removes the layout that would exercise it rather than the gap itself.
 
 Found something? Do not open a public issue. Contact whoever holds the cPanel account directly. If
 `secret.key` may have been exposed, treat it as
-*rung 8* (in tech4time-backend) and rotate rather than merely
+*rung 8* (in tech4time-website-backend) and rotate rather than merely
 removing the file.

@@ -42,7 +42,7 @@ Touched `lib/contract.php`, `lib/publish.php` or `lib/html.php`? Then also:
 
 ```bash
 python3 tools/check_shared_lib.py --update    # re-record the digests
-# then copy the changed file AND tools/shared-lib.sha256 into tech4time-backend,
+# then copy the changed file AND tools/shared-lib.sha256 into tech4time-website-backend,
 # and bump CONTRACT_VERSION if the SHAPE of a document changed
 ```
 

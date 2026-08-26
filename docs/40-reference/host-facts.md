@@ -81,7 +81,7 @@ hostname in that secret would not match it.
 
 > **Created, not yet proven.** Existing and receiving are different facts, and only the second one
 > matters on the day you cannot sign in. It is proven by
-> *admin-activation.md* (in tech4time-backend) step 6 — a real reset code, sent by
+> *admin-activation.md* (in tech4time-website-backend) step 6 — a real reset code, sent by
 > the live site, read in that mailbox — not by sending a test message to it from elsewhere, which
 > exercises none of the path that matters.
 
@@ -122,7 +122,7 @@ allowance up, which would stop the genuine reset from being delivered at the mom
 ## Directory Privacy
 
 Not in use on this host. It belongs to the backend's document root, as a temporary measure while
-its own sign-in is being proven — *admin-activation.md* (in tech4time-backend).
+its own sign-in is being proven — *admin-activation.md* (in tech4time-website-backend).
 
 > **Never add an `.htaccess` where cPanel writes one.** cPanel writes its own for this
 > feature, and uploading over it silently removes the password.

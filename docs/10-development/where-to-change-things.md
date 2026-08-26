@@ -11,7 +11,7 @@ touch a file — not here, and not on this server either. If it is *design or be
 `lib/` or `.htaccess`.
 
 **This is the frontend.** The editor, the sign-in and everything they need live in
-**tech4time-backend**; this repository is the public site and its one inbound endpoint. Rows below
+**tech4time-website-backend**; this repository is the public site and its one inbound endpoint. Rows below
 that name the admin name the other repository too.
 
 ---
@@ -30,7 +30,7 @@ Saving there writes the backend's own record, then pushes a signed copy to `api/
 which verifies it, re-sanitises it and writes `content/careers.json` or `content/contact.json`. This
 site's copy is a **replica** — never edit it by hand, on the server or anywhere else: the next
 publish overwrites it. [publish-api.md](server-side/publish-api.md)
-*content-runbook.md* (in tech4time-backend) ·
+*content-runbook.md* (in tech4time-website-backend) ·
 [content-schemas.md](../40-reference/content-schemas.md)
 
 > **The footer is the exception.** The contact details repeated in every page's footer are *markup*,
@@ -119,9 +119,9 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 
 ## The admin and the sign-in
 
-**All of it is in tech4time-backend.** The section registry, session lifetimes, the lockout,
+**All of it is in tech4time-website-backend.** The section registry, session lifetimes, the lockout,
 recovery codes, password rules, hashing cost, reset codes and authenticator drift are constants in
-that repository's `tech4time-backend/lib/auth.php`, `tech4time-backend/lib/reset.php` and `tech4time-backend/lib/totp.php`, and its own copy of this page
+that repository's `tech4time-website-backend/lib/auth.php`, `tech4time-website-backend/lib/reset.php` and `tech4time-website-backend/lib/totp.php`, and its own copy of this page
 lists them.
 
 What is still here, because the public site uses it for the contact form:
@@ -163,7 +163,7 @@ What is still here, because the public site uses it for the contact form:
 |---|---|
 | Deploy for the first time | [first-deploy.md](../20-deployment/first-deploy.md) |
 | Push an update | [routine-deploys.md](../20-deployment/routine-deploys.md) |
-| Recover a lost password or secret | *secrets-recovery.md* (in tech4time-backend) |
+| Recover a lost password or secret | *secrets-recovery.md* (in tech4time-website-backend) |
 | Diagnose something broken | [troubleshooting.md](../30-operations/troubleshooting.md) |
 
 ---

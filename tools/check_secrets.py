@@ -20,7 +20,7 @@ and no sessions — that is the whole point of the split, and the third check
 below is that promise made mechanical rather than merely stated.
 
 The admin's own protections — the setup window, the bypass flags, what reaches
-the audit log — are checked by the same-named tool in tech4time-backend, which
+the audit log — are checked by the same-named tool in tech4time-website-backend, which
 is where that code now lives.
 
 WHAT IS CHECKED BY BEHAVIOUR RATHER THAN BY READING

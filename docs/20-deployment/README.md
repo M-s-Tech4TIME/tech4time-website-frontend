@@ -24,7 +24,7 @@ site is asked afterwards whether its protections are still in place. See [ci-cd.
 |---|---|
 | [first-deploy.md](first-deploy.md) | scratch → live website, in order |
 | [cpanel-host-setup.md](cpanel-host-setup.md) | the host: domains, SSL, PHP, mailboxes, DNS |
-| *admin-activation.md* (in tech4time-backend) | standing the admin host up: the setup key, the first account, the cutover order |
+| *admin-activation.md* (in tech4time-website-backend) | standing the admin host up: the setup key, the first account, the cutover order |
 | [ci-cd.md](ci-cd.md) | **the pipeline**: checks on every push, deploy on `main` |
 | [routine-deploys.md](routine-deploys.md) | pushing an update by hand, when the pipeline cannot |
 | [environments.md](environments.md) | document roots, `T4T_PRIVATE`, dev data vs production data |
@@ -48,7 +48,7 @@ blocks the path as a backstop; the rule is that it is never uploaded at all.
 ### 3. There is no `admin/` here
 
 cPanel writes its own file there. Uploading over it silently removes whatever protection it was
-The editor moved to `tech4time-backend` with the split, and with it the rule about cPanel writing
+The editor moved to `tech4time-website-backend` with the split, and with it the rule about cPanel writing
 its own `.htaccess` into a Directory-Privacy-protected folder. Nothing in this repository ships into
 an `admin/` directory, and `tools/build_deploy_set.py` lists `admin` among its forbidden trees so
 that a stray one could not.
@@ -81,4 +81,4 @@ repository's procedure now, and it still matters here for one reason: **both pri
 hold the same `publish.key` before the first save**, or the editor will report every publish
 refused.
 
-*admin-activation.md* (in tech4time-backend) has it. Do not improvise it.
+*admin-activation.md* (in tech4time-website-backend) has it. Do not improvise it.

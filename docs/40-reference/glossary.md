@@ -12,7 +12,7 @@ hungry, so guessing costs an attacker real hardware. bcrypt at cost 12 is the fa
 lacks it.
 
 ### audit log
-`t4t-private-admin/audit.log`, **in tech4time-backend**. One JSON line per event — sign-ins
+`t4t-private-admin/audit.log`, **in tech4time-website-backend**. One JSON line per event — sign-ins
 successful and not, password changes,
 recovery codes spent. Records; nothing watches it.
 
@@ -74,10 +74,10 @@ hash string** by `password_hash()`. That is why there is no separate salt field 
 
 ### section
 One editable page in the admin — a row in `ADMIN_SECTIONS` plus a file in
-`tech4time-backend/sections/`. Reached at `https://admin.tech4time.bd/?s=<name>`.
+`tech4time-website-backend/sections/`. Reached at `https://admin.tech4time.bd/?s=<name>`.
 
 ### setup token
-A value written to `t4t-private/setup-token.txt` that `tech4time-backend/public/setup.php` demands. Readable only with
+A value written to `t4t-private/setup-token.txt` that `tech4time-website-backend/public/setup.php` demands. Readable only with
 server access; destroyed the moment an account exists.
 
 ### shared markup
@@ -94,7 +94,7 @@ other session at once.
 
 ### TOTP — Time-based One-Time Password
 RFC 6238. The six digits an authenticator app shows, derived from a shared secret and the current
-30-second window. Implemented by hand in `tech4time-backend/lib/totp.php` and checked against the RFC's own test
+30-second window. Implemented by hand in `tech4time-website-backend/lib/totp.php` and checked against the RFC's own test
 vectors.
 
 ### throttle

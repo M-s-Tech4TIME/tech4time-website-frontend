@@ -368,7 +368,7 @@ def check_admin_is_hidden() -> list[str]:
     Since the split the editor is at admin.tech4time.bd, so the first check
     covers that host as well as the old path. The last two — that the editor's
     own <head> carries a noindex — moved with it, and run in the same-named
-    tool in tech4time-backend. They are skipped here only when lib/admin.php is
+    tool in tech4time-website-backend. They are skipped here only when lib/admin.php is
     genuinely absent, so a half-finished move fails rather than passes.
     """
     problems = []

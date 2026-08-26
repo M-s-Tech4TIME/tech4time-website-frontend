@@ -6,9 +6,9 @@ Keeping the site running once it is live.
 
 | | |
 |---|---|
-| *content-runbook.md* (in tech4time-backend) | day-to-day content work, for whoever maintains the site |
+| *content-runbook.md* (in tech4time-website-backend) | day-to-day content work, for whoever maintains the site |
 | [troubleshooting.md](troubleshooting.md) | **symptom → cause → fix**, indexed by what you see |
-| *secrets-recovery.md* (in tech4time-backend) | every way back into the admin, tested |
+| *secrets-recovery.md* (in tech4time-website-backend) | every way back into the admin, tested |
 | [backups.md](backups.md) | what to back up, and proving a restore works |
 
 ---
@@ -17,10 +17,10 @@ Keeping the site running once it is live.
 
 | | |
 |---|---|
-| **Cannot sign in to the admin** | *secrets-recovery.md* (in tech4time-backend) — find your rung in the first table |
+| **Cannot sign in to the admin** | *secrets-recovery.md* (in tech4time-website-backend) — find your rung in the first table |
 | **The site is down or looks broken** | [troubleshooting.md](troubleshooting.md) |
 | **Live content has been overwritten by a deploy** | `content/*.json.bak` on the host holds one generation. Then [backups.md](backups.md) |
-| **You think the secrets were stolen** | *rung 8* (in tech4time-backend) — rotate everything, in order |
+| **You think the secrets were stolen** | *rung 8* (in tech4time-website-backend) — rotate everything, in order |
 
 ---
 

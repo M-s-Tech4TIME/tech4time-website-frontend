@@ -16,7 +16,7 @@ api/publish.php receives content from the admin host. A static file server
 shows you their source instead of their output.
 
 THE EDITOR IS NOT HERE
-The admin moved to tech4time-backend with the split. This serves the public
+The admin moved to tech4time-website-backend with the split. This serves the public
 site: sixteen pages, the two that render from content/, and api/publish.php.
 
 To watch content actually arrive, run the backend's serve.py beside this one

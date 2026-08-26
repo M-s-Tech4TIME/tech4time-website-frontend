@@ -21,7 +21,7 @@ flowchart TB
         PS[("t4t-private/<br/>secret.key · throttle · publish.key")]
     end
 
-    subgraph BE["admin.tech4time.bd — tech4time-backend"]
+    subgraph BE["admin.tech4time.bd — tech4time-website-backend"]
         ADM["The editor<br/>sign-in required"]
         BJ[("content/*.json<br/>SYSTEM OF RECORD")]
         BPS[("t4t-private-admin/<br/>accounts · sessions · publish.key")]
@@ -153,7 +153,7 @@ If any of them refuses, the editor says so in words and offers to send it again.
 │   └── content/                       blocked by .htaccess
 │       ├── careers.json               ← a REPLICA. api/publish.php writes it
 │       └── contact.json               ← a REPLICA. api/publish.php writes it
-├── backend/                           tech4time-backend — see that repository
+├── admin.tech4time.bd/                tech4time-website-backend — see that repository
 │   └── public/                        ← DOCUMENT_ROOT   admin.tech4time.bd
 ├── t4t-private/            0700       ← no URL maps here at all
 │   ├── secret.key          0600       32 bytes; the throttle's keys derive from it
@@ -191,7 +191,7 @@ The one invariant that keeps the editor and the page from drifting apart:
 ```mermaid
 flowchart LR
     M["lib/contract.php<br/>THE MODEL<br/>byte-identical in both repos"]
-    M --> F["tech4time-backend<br/>sections/contact.php<br/>the form"]
+    M --> F["tech4time-website-backend<br/>sections/contact.php<br/>the form"]
     M --> R["pages/contact/index.php<br/>the renderer"]
     F -->|"signed publish"| J[("content/contact.json<br/>replica")]
     J -->|read by| R

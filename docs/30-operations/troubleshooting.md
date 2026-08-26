@@ -4,7 +4,7 @@
 
 Indexed by what you actually see, not by what is actually wrong.
 
-Cannot sign in to the admin? → *secrets-recovery.md* (in tech4time-backend).
+Cannot sign in to the admin? → *secrets-recovery.md* (in tech4time-website-backend).
 
 ---
 
@@ -126,7 +126,7 @@ On the admin host:
 On the admin host — `tools/` is never deployed there, so it is uploaded, run and deleted:
 
 ```bash
-scp tools/reconcile.py techtime@HOST:~/          # from tech4time-backend
+scp tools/reconcile.py techtime@HOST:~/          # from tech4time-website-backend
 ssh techtime@HOST 'python3 ~/reconcile.py ~/admin.tech4time.bd'
 ssh techtime@HOST 'rm ~/reconcile.py'
 ```
@@ -159,7 +159,7 @@ The contact details in the data and the ones in this site's page footers disagre
 editing contact details — the footer is markup, not content, and lives here.
 
 ```bash
-# in tech4time-frontend, with content/contact.json as this site now holds it
+# in tech4time-website-frontend, with content/contact.json as this site now holds it
 python3 tools/sync_site_contact.py     # rewrites the footers and lib/footer-fingerprint.php
 python3 tools/check_shared_markup.py   # proves the sixteen still agree
 git commit && git push                 # the deploy carries it
@@ -172,7 +172,7 @@ next publish would overwrite it.
 ### Anything about signing in
 
 Lockouts, setup keys, recovery codes, the authenticator, the audit log and the reset email are the
-admin's, and so is the troubleshooting for them — see the same page in **tech4time-backend**.
+admin's, and so is the troubleshooting for them — see the same page in **tech4time-website-backend**.
 
 ---
 
@@ -291,7 +291,7 @@ AutoSSL needs), archives and dumps join the extension rule, `references/` is blo
 `verify_live.py` asserts all of it against the running site after every deploy. The deploy set is
 built from an allow list, so none of it can be uploaded again.
 
-**Fixed 2026-08-23** — the setup token outlived setup. `tech4time-backend/public/setup.php` promises the bootstrap
+**Fixed 2026-08-23** — the setup token outlived setup. `tech4time-website-backend/public/setup.php` promises the bootstrap
 window is *"shut by the code rather than by a step somebody has to remember"*, and on the live host
 `setup-token.txt` sat in the private store beside a working account.
 
@@ -336,18 +336,18 @@ ever measured a narrower one. `tools/check_responsive.py` now does, in a frame.
 
 **Fixed 2026-08-23** — a careers field drifting between model, form and renderer unnoticed.
 `check_content_model.py` could never have caught it: both sides of that page are loops, so its
-regexes read the loop variable rather than the fields. `tech4time-backend/tools/test_careers_admin.py` proves it by
+regexes read the loop variable rather than the fields. `tech4time-website-backend/tools/test_careers_admin.py` proves it by
 round trip instead — a marker through every field the model declares, editor to visitor — and
 `check_content_model.py` now fails if an editor is in neither `SUBJECTS` nor `COVERED_ELSEWHERE`.
 
 **Fixed 2026-08-23** — recovery codes dying silently with `secret.key`. Stored codes carry the
 fingerprint of the key that made them, so `admin-cli list` prints `10 DEAD` and says what to run
-instead of counting entries. Covered by `tech4time-backend/tools/test_admin_auth.py`.
+instead of counting entries. Covered by `tech4time-website-backend/tools/test_admin_auth.py`.
 
 **Fixed 2026-08-23** — `store_read()` answering `null` for both a missing and a corrupt file. They
 are told apart by `store_state()` now: the admin refuses to start on a damaged account file instead
 of offering setup, and `store_write()` will not let a damaged file become the `.bak`. Covered by
-`tools/test_store.py` and `tech4time-backend/tools/test_admin_auth.py`.
+`tools/test_store.py` and `tech4time-website-backend/tools/test_admin_auth.py`.
 
 ---
 
