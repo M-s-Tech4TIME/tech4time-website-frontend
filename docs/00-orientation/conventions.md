@@ -69,7 +69,7 @@ both store names as a backstop, and
 `check_secrets.py` fails the build if one appears.
 
 **Why:** a leaked master key means every stored password can be attacked offline, and a leaked
-`tech4time-backend/`'s `admins.json` hands over the authenticator secrets, which cannot be hashed and so cannot be
+`tech4time-website-backend/`'s `admins.json` hands over the authenticator secrets, which cannot be hashed and so cannot be
 protected any other way.
 
 ### Never add an `.htaccess` to `admin/`

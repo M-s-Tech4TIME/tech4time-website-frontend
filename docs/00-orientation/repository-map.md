@@ -106,7 +106,7 @@ Never reachable over HTTP: `.htaccess` has `RewriteRule ^lib/ - [F,L]`.
 | `throttle.php` | counting attempts, so guessing costs something |
 | `footer-fingerprint.php` | **generated** — what this site's footers currently say |
 
-**Shared** means byte-identical with `tech4time-backend`. `tools/check_shared_lib.py` compares all
+**Shared** means byte-identical with `tech4time-website-backend`. `tools/check_shared_lib.py` compares all
 three against a committed digest; the real guarantee is `CONTRACT_VERSION`, checked at run time by
 `api/publish.php` against what it was actually sent.
 
@@ -158,7 +158,7 @@ that never appears.
 
 Full description: [publish-api.md](../10-development/server-side/publish-api.md).
 
-> **The editor itself is in `tech4time-backend`**, served at `admin.tech4time.bd`, with its own
+> **The editor itself is in `tech4time-website-backend`**, served at `admin.tech4time.bd`, with its own
 > document root, its own private store and its own pipeline. Nothing in this repository can reach an
 > account, and `tools/check_secrets.py` asserts that on every run.
 
@@ -190,7 +190,7 @@ Never committed, never deployed, never inside the document root. `.gitignore` li
 backstop; `lib/private.php` refuses to start if it finds itself in the web root.
 
 [security-model.md](../40-reference/security-model.md) ·
-*secrets-recovery.md* (in tech4time-backend)
+*secrets-recovery.md* (in tech4time-website-backend)
 
 ### Generated and ignored
 

@@ -103,7 +103,7 @@ Switch it on before the first deploy and remove it after the sign-in is proven. 
 between the files landing and the first account existing.
 
 Not required — the application is the lock — but there is no reason to remove it before the
-replacement is proven. *admin-activation.md* (in tech4time-backend)
+replacement is proven. *admin-activation.md* (in tech4time-website-backend)
 
 > **Never put an `.htaccess` where cPanel writes one.** cPanel writes its own file there for
 > this feature; uploading over it silently removes the password.

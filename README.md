@@ -7,7 +7,7 @@ are.
 Sixteen pages, a contact form, a job board, and one inbound endpoint — `api/publish.php` — where
 content arrives from the admin.
 
-**The editor lives in [`tech4time-backend`](https://github.com/M-s-Tech4TIME/tech4time-backend)**,
+**The editor lives in [`tech4time-website-backend`](https://github.com/M-s-Tech4TIME/tech4time-website-backend)**,
 served at `admin.tech4time.bd`. It owns the content and pushes a signed copy here on every save;
 this site renders from the replica it is sent and never calls the backend during a request.
 

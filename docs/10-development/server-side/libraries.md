@@ -85,7 +85,7 @@ damage is recovered from. `tools/test_store.py` covers both.
 
 ### `contract.php`
 
-**Shared — byte-identical in `tech4time-frontend` and `tech4time-backend`.**
+**Shared — byte-identical in `tech4time-website-frontend` and `tech4time-website-backend`.**
 
 `CONTRACT_VERSION` · `CONTRACT_DOCUMENTS` · `CONTRACT_BOOKKEEPING` · `careers_normalise()` ·
 `contact_normalise()` · `contact_defaults()` · `contact_fingerprint()` · `contract_sanitise()` ·
@@ -205,7 +205,7 @@ side that knows what its own footers say is the side that answers.
 
 ## The sign-in
 
-Full design: *authentication.md* (in tech4time-backend).
+Full design: *authentication.md* (in tech4time-website-backend).
 
 ### `private.php`
 
@@ -308,7 +308,7 @@ by hand in three places.
 setup. They exist because `admin_head()` fatals on a section that is not in the registry, and those
 pages are not sections.
 
-*adding-an-editor.md* (in tech4time-backend)
+*adding-an-editor.md* (in tech4time-website-backend)
 
 ---
 

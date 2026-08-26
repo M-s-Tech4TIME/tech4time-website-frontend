@@ -119,7 +119,7 @@ Two things, in this order:
 
    It writes `~/t4t-private/publish.key`, 0600.
 
-2. **Then stand the backend up** — *admin-activation.md* (in tech4time-backend) — and put the **same
+2. **Then stand the backend up** — *admin-activation.md* (in tech4time-website-backend) — and put the **same
    value** in its `~/t4t-private-admin/publish.key`. Until both hold it, every publish is refused,
    which the editor reports as `not-configured` or `unknown-key`.
 
@@ -207,4 +207,4 @@ The one genuinely dangerous state on this half is **`.htaccess` not arriving** �
 renders and nothing announces that `lib/` and `content/` have stopped answering 403.
 `tools/verify_live.py` is the check that catches it. Being unable to sign in to the admin is the
 other repository's dangerous state, and there is a floor
-under it: *secrets-recovery.md* (in tech4time-backend).
+under it: *secrets-recovery.md* (in tech4time-website-backend).

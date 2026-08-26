@@ -28,8 +28,8 @@ This side's private store lives in `../t4t-private/`, beside the clone:
 
 ```
 CodeSpace/
-├── tech4time-frontend/    ← this repository
-├── tech4time-backend/     ← the other half
+├── tech4time-website-frontend/    ← this repository
+├── tech4time-website-backend/     ← the other half
 ├── t4t-private/           ← this side: three files
 │   ├── secret.key         the throttle's keys derive from it
 │   ├── throttle.json      contact-form attempt counters
@@ -44,14 +44,14 @@ different in development.
 
 ## Running both halves at once
 
-The editor is in `tech4time-backend`. To watch content actually travel, run both servers and point
+The editor is in `tech4time-website-backend`. To watch content actually travel, run both servers and point
 the backend at this one:
 
 ```bash
-# terminal 1 — tech4time-frontend
+# terminal 1 — tech4time-website-frontend
 python3 tools/serve.py                       # http://localhost:8000
 
-# terminal 2 — tech4time-backend
+# terminal 2 — tech4time-website-backend
 T4T_PUBLISH_URL=http://localhost:8000/api/publish.php python3 tools/serve.py 8001
 ```
 
@@ -69,7 +69,7 @@ python3 tools/make_publish_key.py
 ```
 
 Signing in, the lockout and the rescue CLI are the backend's — see the same page in
-**tech4time-backend**.
+**tech4time-website-backend**.
 
 ---
 

@@ -4,7 +4,7 @@ The public site at **`tech4time.bd`**: sixteen pages, a contact form, and one in
 receives content from the admin. No build step, no framework — the files here are the files that run
 on the server.
 
-**The editor is not in this repository.** It is **`tech4time-backend`**, served at
+**The editor is not in this repository.** It is **`tech4time-website-backend`**, served at
 `admin.tech4time.bd`, and it owns the content. This site renders from a local replica it is *sent*;
 it never calls the backend during a request. [publish-api.md](docs/10-development/server-side/publish-api.md)
 
@@ -32,7 +32,7 @@ its record before acting.
 7. **`content/` is a replica.** It is written by `api/publish.php` and by nothing else — not by
    hand, not on the server, not by a deploy. The next publish overwrites anything you put there.
 8. **`lib/html.php`, `lib/contract.php` and `lib/publish.php` are byte-identical** with
-   `tech4time-backend`. Change one and you change both, in the same breath.
+   `tech4time-website-backend`. Change one and you change both, in the same breath.
 9. **`tools/` is never deployed.**
 10. **Never edit a header or footer in a page file.** Edit `tools/templates/`, then
     `python3 tools/propagate_shared.py`.
@@ -89,7 +89,7 @@ Four things need PHP: the careers page, the contact page, the contact handler, a
 To watch content actually arrive, run the backend's `serve.py` beside this one and point it here:
 
 ```bash
-# in tech4time-backend
+# in tech4time-website-backend
 T4T_PUBLISH_URL=http://localhost:8000/api/publish.php python3 tools/serve.py 8001
 ```
 
@@ -132,7 +132,7 @@ link, a cited path that no longer exists, or a constant the prose quotes that ha
 read prose; that part is on you.
 
 **A path in backticks always means *this* repository.** A file in the other half is written with the
-repository in front: `tech4time-backend/lib/auth.php`. `check_docs.py` enforces it.
+repository in front: `tech4time-website-backend/lib/auth.php`. `check_docs.py` enforces it.
 
 ---
 

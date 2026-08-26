@@ -29,7 +29,7 @@ Then make a change and run [the checks](testing.md).
 **`python3 -m http.server` is not enough.** Four things need PHP: the careers page, the contact page,
 the contact form's handler, and `api/publish.php`. Use `python3 tools/serve.py`.
 
-**The editor is not in this repository.** It is `tech4time-backend`, serving `admin.tech4time.bd`.
+**The editor is not in this repository.** It is `tech4time-website-backend`, serving `admin.tech4time.bd`.
 Clone it beside this one and run both servers to watch content actually travel —
 [running-locally.md](running-locally.md).
 

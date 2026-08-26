@@ -20,7 +20,7 @@ agree with each other and nothing about whether either is right. This is a
 second implementation of the format from its written description, so the
 backend's PHP and this must both match the same third thing.
 
-tech4time-backend has the mirror of this: its client posts to a stub endpoint
+tech4time-website-backend has the mirror of this: its client posts to a stub endpoint
 written in Python that verifies the signature. Neither side is ever checked
 against its own counterpart.
 

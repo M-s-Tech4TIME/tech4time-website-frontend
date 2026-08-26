@@ -153,20 +153,20 @@ Answers the questions that can only be answered on the server, and that all fail
 It refuses to run until the token is changed, and its recipient is hard-coded so it cannot be
 pointed anywhere else.
 
-### The admin's own tools are in tech4time-backend
+### The admin's own tools are in tech4time-website-backend
 
-`tech4time-backend/tools/admin-cli.php` — the rescue tool that resets a password, issues recovery
+`tech4time-website-backend/tools/admin-cli.php` — the rescue tool that resets a password, issues recovery
 codes, unpairs the authenticator and reads the audit log over SSH — belongs with the accounts it
 edits. So do these:
 
 | | |
 |---|---|
-| `tech4time-backend/tools/test_admin_auth.py` | the whole sign-in cycle |
-| `tech4time-backend/tools/test_careers_admin.py` | the job post editor |
-| `tech4time-backend/tools/test_contact_admin.py` | the contact page editor |
-| `tech4time-backend/tools/test_editor.py` | the editor in a real browser |
-| `tech4time-backend/tools/admin_session.py` | *(not run directly)* signs a test in |
-| `tech4time-backend/tools/reconcile.py` | re-sends anything this site is behind on |
+| `tech4time-website-backend/tools/test_admin_auth.py` | the whole sign-in cycle |
+| `tech4time-website-backend/tools/test_careers_admin.py` | the job post editor |
+| `tech4time-website-backend/tools/test_contact_admin.py` | the contact page editor |
+| `tech4time-website-backend/tools/test_editor.py` | the editor in a real browser |
+| `tech4time-website-backend/tools/admin_session.py` | *(not run directly)* signs a test in |
+| `tech4time-website-backend/tools/reconcile.py` | re-sends anything this site is behind on |
 
 Nothing here can reach an account: this half holds no password hash and no name for a file that
 could contain one. `check_secrets.py` asserts that on every run.

@@ -106,7 +106,7 @@ gap is never invisible — but closing it is a deploy, not a save.
 
 > On the host, the server's `content/contact.json` is the real one. Download it before running the
 > sync, or you will push stale details into every page.
-> *content-runbook.md* (in tech4time-backend)
+> *content-runbook.md* (in tech4time-website-backend)
 
 ---
 

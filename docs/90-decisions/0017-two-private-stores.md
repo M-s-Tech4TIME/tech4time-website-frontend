@@ -36,7 +36,7 @@ recovery code. It is not a convention: the frontend's `T4T_PRIVATE_FILES` has **
 `t4t_private_path()` throws on a name it does not know — so there is no path on that host for a
 credential to be written to. `tools/check_secrets.py` asserts it on every run.
 
-The two master keys are unrelated, so rotating one (*secrets-recovery.md*, in tech4time-backend) has no
+The two master keys are unrelated, so rotating one (*secrets-recovery.md*, in tech4time-website-backend) has no
 effect on the other. The frontend's `secret.key` peppers nothing but the throttle's keys, which is
 the only thing it was ever doing there.
 
@@ -52,7 +52,7 @@ long as it took somebody to think of it.
 So both sides refuse to start publishing without one and say what to do, and
 `tools/make_publish_key.py` prints the value once for a person to place on both hosts. Every
 signature carries the key's fingerprint, per
-*0014 — a value derived from the master key carries the key's name* (in tech4time-backend), so a mismatch answers *"the live site holds a
+*0014 — a value derived from the master key carries the key's name* (in tech4time-website-backend), so a mismatch answers *"the live site holds a
 different publish key"* rather than *"wrong signature"*.
 
 **The containment check still compares against the requesting document root.** On a host running

@@ -26,16 +26,16 @@ record went. A gap is not a missing decision; it is a decision that belongs to t
 | [0002](0002-no-database.md) | No database — flat JSON files | accepted |
 | [0003](0003-server-rendered-content.md) | Content renders on the server, never by `fetch()` | accepted |
 | [0004](0004-self-hosted-strict-csp.md) | Self-hosted assets and a strict CSP | accepted |
-| *0005* (in tech4time-backend) | Own authentication, not Directory Privacy | accepted |
-| *0006* (in tech4time-backend) | argon2id over a peppered pre-hash | accepted |
-| *0007* (in tech4time-backend) | TOTP as the second factor, email only for recovery | accepted |
+| *0005* (in tech4time-website-backend) | Own authentication, not Directory Privacy | accepted |
+| *0006* (in tech4time-website-backend) | argon2id over a peppered pre-hash | accepted |
+| *0007* (in tech4time-website-backend) | TOTP as the second factor, email only for recovery | accepted |
 | [0008](0008-private-store-outside-docroot.md) | The private store lives outside the document root | accepted |
-| *0009* (in tech4time-backend) | A setup token closes the bootstrap window | accepted |
+| *0009* (in tech4time-website-backend) | A setup token closes the bootstrap window | accepted |
 | [0010](0010-backend-pushes-content.md) | The backend pushes content; the frontend never fetches | accepted, **built** |
 | [0011](0011-two-repositories.md) | Two repositories, two hosts | accepted, **built** |
 | [0012](0012-motion-may-not-gate.md) | Motion may decorate, never gate | accepted |
-| *0013* (in tech4time-backend) | A damaged store refuses; it never looks empty | accepted |
-| *0014* (in tech4time-backend) | A value derived from the master key carries the key's name | accepted |
+| *0013* (in tech4time-website-backend) | A damaged store refuses; it never looks empty | accepted |
+| *0014* (in tech4time-website-backend) | A value derived from the master key carries the key's name | accepted |
 | [0015](0015-narrow-widths-need-a-frame.md) | Narrow widths are tested in a frame, not in the window | accepted |
 | [0016](0016-a-deploy-protects-what-the-panel-owns.md) | A deploy protects what the panel owns | accepted |
 | [0017](0017-two-private-stores.md) | Two private stores, one per half | accepted |

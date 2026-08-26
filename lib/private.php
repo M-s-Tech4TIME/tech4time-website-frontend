@@ -50,7 +50,7 @@ const T4T_PRIVATE_NAME = 't4t-private';
  * THREE ENTRIES, AND THAT IS THE POINT.
  * The public site holds no accounts, no password hashes, no authenticator
  * secrets, no recovery codes and no sessions — they moved to
- * tech4time-backend with the code that reads them. This list is not a
+ * tech4time-website-backend with the code that reads them. This list is not a
  * convention: t4t_private_path() throws on a name it does not know, so there
  * is no path on this host for a password hash to be written to at all.
  *

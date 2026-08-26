@@ -62,8 +62,8 @@ firefox --version      # optional
 ## 2. Clone
 
 ```bash
-git clone <repository-url> tech4time-website
-cd tech4time-website
+git clone <repository-url> tech4time-website-frontend
+cd tech4time-website-frontend
 git checkout dev
 ```
 
@@ -98,7 +98,7 @@ python3 tools/make_publish_key.py
 ```
 
 It prints 64 hex characters and writes them to `../t4t-private/publish.key`. If you are also running
-`tech4time-backend`, copy that value into its `../t4t-private-admin/publish.key`.
+`tech4time-website-backend`, copy that value into its `../t4t-private-admin/publish.key`.
 
 It is deliberately not automatic. Every other secret here creates itself on first use; this one must
 not, because a key that appears by itself appears **differently** on each host, and the failure would
@@ -107,7 +107,7 @@ read as "signature rejected" until somebody thought of it.
 > Without it, `tools/test_publish.py` still passes — it makes its own throwaway key — but a real
 > publish is refused as `not-configured`, which is what the editor will tell you.
 
-The editor itself, and the account you sign in to it with, are in **tech4time-backend**. See
+The editor itself, and the account you sign in to it with, are in **tech4time-website-backend**. See
 [running-locally.md](running-locally.md) for running both halves side by side.
 
 ## 5. Prove it works
