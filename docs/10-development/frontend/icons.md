@@ -78,7 +78,7 @@ dead weight.
 ## Icons in the admin
 
 The admin's pages are PHP, so their icon block is generated at request time by `admin_icons()` in
-`lib/admin.php` rather than injected by the script. The set is the `ADMIN_ICONS` constant in the same
+`tech4time-backend/lib/admin.php` rather than injected by the script. The set is the `ADMIN_ICONS` constant in the same
 file.
 
 **Adding an icon to an admin page means adding its name to `ADMIN_ICONS`.** Nothing else — the shell

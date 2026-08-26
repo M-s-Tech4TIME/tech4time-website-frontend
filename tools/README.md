@@ -18,7 +18,7 @@ guidance. Those are now in `docs/`, so each fact lives in exactly one place:
 | Was here | Now |
 |---|---|
 | What each script does | [40-reference/tools.md](../docs/40-reference/tools.md) |
-| The admin, signing in, the private store | [10-development/backend/authentication.md](../docs/10-development/backend/authentication.md) |
+| The private store, and the key both halves sign with | [10-development/server-side/publish-api.md](../docs/10-development/server-side/publish-api.md) |
 | Recovering a lost password or secret | [30-operations/secrets-recovery.md](../docs/30-operations/secrets-recovery.md) |
 | Job posts and the contact page, day to day | [30-operations/content-runbook.md](../docs/30-operations/content-runbook.md) |
 | Host state — mail, DNS, DMARC, quotas | [40-reference/host-facts.md](../docs/40-reference/host-facts.md) |

@@ -64,11 +64,12 @@ most often searched for by name.
 
 ### Never commit anything from the private store
 
-`secret.key`, `admins.json`, sessions, the audit log. `.gitignore` covers them as a backstop, and
+`secret.key`, `publish.key`, and on the backend the accounts and sessions too. `.gitignore` covers
+both store names as a backstop, and
 `check_secrets.py` fails the build if one appears.
 
 **Why:** a leaked master key means every stored password can be attacked offline, and a leaked
-`admins.json` hands over the authenticator secrets, which cannot be hashed and so cannot be
+`tech4time-backend/`'s `admins.json` hands over the authenticator secrets, which cannot be hashed and so cannot be
 protected any other way.
 
 ### Never add an `.htaccess` to `admin/`
@@ -78,13 +79,13 @@ removes whatever protection it was applying.
 
 ### Never overwrite `content/` on a live server
 
-**Why:** the host's copy is the real data. Job posts and contact details are edited through `/admin/`
+**Why:** the host's copy is the live replica. Job posts and contact details are published from the admin
 by people who are not you, and a deploy that includes `content/` destroys their work.
 [routine-deploys.md](../20-deployment/routine-deploys.md)
 
 ### `tools/` is never deployed
 
-**Why:** it contains scripts that manipulate the site, and two that can reset an admin password.
+**Why:** it contains scripts that manipulate the site, and one that mints the key both halves sign with.
 `.htaccess` blocks the path as a backstop; the real rule is that it never gets uploaded.
 
 ---
@@ -97,7 +98,7 @@ by people who are not you, and a deploy that includes `content/` destroys their 
 - Every file opens with a comment block saying **what it owns and why it exists** — not what the
   functions are named. Follow that pattern; it is the main reason this codebase can be read.
 - Escape on output, always: `h()` from `lib/html.php`. Never trust that a value was cleaned earlier.
-- Section files under `admin/sections/` must refuse to run unless `T4T_ADMIN` is defined.
+- Section files in the backend must refuse to run unless `T4T_ADMIN` is defined.
 - **Fail closed on authority, fail open on convenience.** The sign-in refuses to run when it cannot
   reach its store; the contact form's rate limit carries on if its counter is unreadable. An
   unreachable file must not make the company uncontactable.

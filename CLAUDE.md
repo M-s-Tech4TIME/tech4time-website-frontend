@@ -1,8 +1,12 @@
-# Tech4TIME website
+# Tech4TIME — frontend
 
-Static site for a Bangladeshi IT company: sixteen pages, a contact form, a job board, and an admin
-panel for the two pages whose content changes. Deploys to **cPanel shared hosting by uploading
-files** — that constraint explains most of what follows.
+The public site at **`tech4time.bd`**: sixteen pages, a contact form, and one inbound endpoint that
+receives content from the admin. No build step, no framework — the files here are the files that run
+on the server.
+
+**The editor is not in this repository.** It is **`tech4time-backend`**, served at
+`admin.tech4time.bd`, and it owns the content. This site renders from a local replica it is *sent*;
+it never calls the backend during a request. [publish-api.md](docs/10-development/server-side/publish-api.md)
 
 **Full documentation is in [docs/](docs/).** Start at [docs/README.md](docs/README.md), which routes
 by intent. New to the project: [docs/00-orientation/README.md](docs/00-orientation/README.md), then
@@ -23,11 +27,12 @@ its record before acting.
 4. **Every page must work with JavaScript off.** Progressive enhancement is a hard rule. Motion may
    decorate; it may never be the only route to anything.
 5. **Content renders on the server.** No runtime `fetch()` for content, ever — including for the
-   header and footer.
-6. **Never commit anything from the private store** (`t4t-private/`, `*.key`, `admins.json`).
-7. **Never overwrite `content/` on a live server.** The host's copy is the real data — live job
-   posts and contact details.
-8. **Never add an `.htaccess` to `admin/`.** cPanel writes its own there.
+   header and footer, and including from the backend.
+6. **Never commit anything from the private store** (`t4t-private/`, `*.key`).
+7. **`content/` is a replica.** It is written by `api/publish.php` and by nothing else — not by
+   hand, not on the server, not by a deploy. The next publish overwrites anything you put there.
+8. **`lib/html.php`, `lib/contract.php` and `lib/publish.php` are byte-identical** with
+   `tech4time-backend`. Change one and you change both, in the same breath.
 9. **`tools/` is never deployed.**
 10. **Never edit a header or footer in a page file.** Edit `tools/templates/`, then
     `python3 tools/propagate_shared.py`.
@@ -40,12 +45,16 @@ its record before acting.
 |---|---|
 | `pages/` `index.html` | the sixteen pages — two are `.php` and render from `content/` |
 | `assets/` | css, js, fonts, icons, images — all self-hosted |
-| `lib/` | server-side PHP: rendering, content, and the whole sign-in |
-| `content/` | the JSON the two dynamic pages render from |
-| `admin/` | the editor, behind its own sign-in |
-| `tools/` | 33 build, audit and test scripts — never deployed |
+| `lib/` | server-side PHP: rendering, the contract, the publish format |
+| `api/publish.php` | where the backend's content arrives. The only thing here that writes |
+| `content/` | the replica the two dynamic pages render from |
+| `tools/` | build, audit and test scripts — never deployed |
 | `docs/` | the documentation |
-| `../t4t-private/` | **outside the repo** — hashes, keys, sessions. Never committed |
+| `../t4t-private/` | **outside the repo** — `secret.key`, `throttle.json`, `publish.key`. Never committed |
+
+There is no `admin/`, no `lib/auth.php` and no password hash on this host. The private store has no
+*name* for one — `t4t_private_path()` throws on a key it does not know — and
+`tools/check_secrets.py` asserts it on every run.
 
 ---
 
@@ -60,10 +69,9 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 | Browser behaviour | `assets/js/` — modules register on `window.Tech4Time` |
 | Header / footer | `tools/templates/` → `propagate_shared.py` |
 | An icon | the markup, then `python3 tools/inject_icons.py` |
-| A job post or contact detail | **`/admin/`** — not a file |
-| The shape of editable content | `lib/careers.php` or `lib/contact.php` — **and the form and the renderer with it** |
-| The sign-in, sessions, hashing | `lib/auth.php` — read [authentication.md](docs/10-development/backend/authentication.md) first |
-| Make a page editable | [adding-an-editor.md](docs/10-development/backend/adding-an-editor.md) |
+| A job post or contact detail | **`https://admin.tech4time.bd/`** — not a file, and not here |
+| The shape of editable content | `lib/contract.php` — **and the same file in the backend** |
+| How a document is signed | `lib/publish.php` — likewise byte-identical |
 | Add a page | [adding-a-page.md](docs/10-development/frontend/adding-a-page.md) |
 | Headers, caching, blocking | `.htaccess` — not read by the local dev server |
 
@@ -75,8 +83,17 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 python3 tools/serve.py          # http://localhost:8000  — NOT python3 -m http.server
 ```
 
-Four things need PHP: the careers page, the contact page, the admin and the contact handler. The
-admin sign-in is real locally too — `/admin/setup.php` once, then `/admin/login.php`.
+Four things need PHP: the careers page, the contact page, the contact handler, and
+`api/publish.php`.
+
+To watch content actually arrive, run the backend's `serve.py` beside this one and point it here:
+
+```bash
+# in tech4time-backend
+T4T_PUBLISH_URL=http://localhost:8000/api/publish.php python3 tools/serve.py 8001
+```
+
+Both halves need the **same** `publish.key` in their private stores — `tools/make_publish_key.py`.
 
 [docs/10-development/running-locally.md](docs/10-development/running-locally.md)
 
@@ -88,18 +105,18 @@ admin sign-in is real locally too — `/admin/setup.php` once, then `/admin/logi
 python3 tools/check_contrast.py        python3 tools/check_content_model.py
 python3 tools/inject_icons.py --check  python3 tools/check_secrets.py
 python3 tools/check_shared_markup.py   python3 tools/check_docs.py
-python3 tools/audit_pages.py
+python3 tools/audit_pages.py           python3 tools/check_shared_lib.py
 ```
 
-Touched the admin, auth or the contact handler? Also `test_admin_auth.py`,
-`test_contact_handler.py`, `test_careers_admin.py`, `test_contact_admin.py`.
+Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and
+`check_shared_lib.py --update`, and copy the changed file to the backend.**
 
-Touched `lib/store.php`? Also `test_store.py`.
+Touched the contact handler? Also `test_contact_handler.py`. Touched `lib/store.php`? Also
+`test_store.py`.
 
 Touched CSS, markup or motion? Also `test_motion.py`, `test_nav.py`, `test_theme.py`,
 `check_hover.py`, `check_dark_mode.py`, `check_responsive.py`, `check_focus.py` — these need
-Firefox and geckodriver,
-and leave processes behind if interrupted (`pkill firefox geckodriver`).
+Firefox and geckodriver, and leave processes behind if interrupted (`pkill firefox geckodriver`).
 
 [docs/10-development/testing.md](docs/10-development/testing.md)
 
@@ -110,13 +127,12 @@ and leave processes behind if interrupted (`pkill firefox geckodriver`).
 **Change the code, update the doc that owns it, in the same commit.** The ownership table is in
 [docs/README.md](docs/README.md#which-doc-owns-what).
 
-`python3 tools/check_docs.py` catches the mechanical half — an undocumented tool, library or admin
-section, a dead link, a cited path that no longer exists, or a constant the prose quotes that has
-changed. It cannot read prose; that part is on you.
+`python3 tools/check_docs.py` catches the mechanical half — an undocumented tool or library, a dead
+link, a cited path that no longer exists, or a constant the prose quotes that has changed. It cannot
+read prose; that part is on you.
 
-New failure mode discovered? Add it to
-[docs/30-operations/troubleshooting.md](docs/30-operations/troubleshooting.md). New decision that
-constrains future work? A record in [docs/90-decisions/](docs/90-decisions/).
+**A path in backticks always means *this* repository.** A file in the other half is written with the
+repository in front: `tech4time-backend/lib/auth.php`. `check_docs.py` enforces it.
 
 ---
 
@@ -124,11 +140,10 @@ constrains future work? A record in [docs/90-decisions/](docs/90-decisions/).
 
 Work happens on `dev`; pull requests to `main` need explicit approval.
 
-**Live** at `https://tech4time.bd` — cPanel, LiteSpeed, PHP 8.2.33, admin signed in and working.
-**A push to `main` deploys it.** Checks run, rsync over SSH, and the site is asked afterwards
-whether `lib/`, `content/` and dotted paths still answer 403 —
-[ci-cd.md](docs/20-deployment/ci-cd.md). Never sync `content/`; it is seeded with
-`--ignore-existing` and the host's copy always wins.
+**Live** at `https://tech4time.bd` — cPanel, LiteSpeed, PHP 8.2.33. **A push to `main` deploys it.**
+Checks run, rsync over SSH, and the site is asked afterwards whether `lib/`, `content/` and dotted
+paths still answer 403 and `/api/publish.php` still answers 405 —
+[ci-cd.md](docs/20-deployment/ci-cd.md). Never sync `content/`; it is seeded with `--ignore-existing`
+and the host's copy always wins.
 
-**Not done, and not missing:** two of sixteen pages are editable; the repository has not been split
-into frontend and backend yet; field-measured LCP/CLS/INP against the live host is outstanding.
+**Not done, and not missing:** field-measured LCP/CLS/INP against the live host is outstanding.

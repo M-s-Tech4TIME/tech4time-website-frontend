@@ -10,7 +10,7 @@ runs on the server.
 ## Current status
 
 **The site is live at `https://tech4time.bd`**, on cPanel with LiteSpeed and PHP 8.2. The first
-deploy was done by hand through the File Manager; the admin sign-in is set up and working.
+deploy was done by hand through the File Manager; every deploy since has been a push to `main`.
 
 **Deploys now go through GitHub Actions** — push to `main`, checks run, rsync over SSH, and the
 site is asked afterwards whether its protections are still in place. See [ci-cd.md](ci-cd.md).
@@ -24,7 +24,7 @@ site is asked afterwards whether its protections are still in place. See [ci-cd.
 |---|---|
 | [first-deploy.md](first-deploy.md) | scratch → live website, in order |
 | [cpanel-host-setup.md](cpanel-host-setup.md) | the host: domains, SSL, PHP, mailboxes, DNS |
-| [admin-activation.md](admin-activation.md) | the setup key, the first account, the cutover order |
+| *admin-activation.md* (in tech4time-backend) | standing the admin host up: the setup key, the first account, the cutover order |
 | [ci-cd.md](ci-cd.md) | **the pipeline**: checks on every push, deploy on `main` |
 | [routine-deploys.md](routine-deploys.md) | pushing an update by hand, when the pipeline cannot |
 | [environments.md](environments.md) | document roots, `T4T_PRIVATE`, dev data vs production data |
@@ -38,17 +38,20 @@ Everything else is detail.
 ### 1. Never upload `content/`
 
 The host's `content/careers.json` and `content/contact.json` are the **real data**, written by people
-using `/admin/`. A deploy that includes them destroys live job posts and contact details.
+from the admin. A deploy that includes them destroys live job posts and contact details.
 
 ### 2. Never upload `tools/`
 
-It contains scripts that manipulate the site and two that can reset an admin password. `.htaccess`
+It contains scripts that manipulate the site and one that mints the key both halves sign with. `.htaccess`
 blocks the path as a backstop; the rule is that it is never uploaded at all.
 
-### 3. Never upload an `admin/.htaccess`
+### 3. There is no `admin/` here
 
 cPanel writes its own file there. Uploading over it silently removes whatever protection it was
-applying. There is no `.htaccess` in `admin/` in this repository, and there must never be one.
+The editor moved to `tech4time-backend` with the split, and with it the rule about cPanel writing
+its own `.htaccess` into a Directory-Privacy-protected folder. Nothing in this repository ships into
+an `admin/` directory, and `tools/build_deploy_set.py` lists `admin` among its forbidden trees so
+that a stray one could not.
 
 ---
 
@@ -60,9 +63,8 @@ UPLOAD                          DO NOT UPLOAD
   pages/                          docs/
   assets/                         references/
   lib/                            .git/
-  admin/                          *.md
   contact-handler.php             content/          ← after the first deploy
-  .htaccess                       admin/.htaccess   ← ever
+  .htaccess                       admin/            ← nothing, ever
   robots.txt  sitemap.xml
   site.webmanifest
 ```
@@ -73,7 +75,10 @@ UPLOAD                          DO NOT UPLOAD
 
 ## The order that matters
 
-Turning the admin on has a sequence, and the sequence *is* the safety property — it exists so the
-window in which somebody else could create the first admin account never opens.
+Standing the admin host up has a sequence, and the sequence *is* the safety property — it exists so
+the window in which somebody else could create the first admin account never opens. It is the other
+repository's procedure now, and it still matters here for one reason: **both private stores must
+hold the same `publish.key` before the first save**, or the editor will report every publish
+refused.
 
-[admin-activation.md](admin-activation.md) has it. Do not improvise it.
+*admin-activation.md* (in tech4time-backend) has it. Do not improvise it.

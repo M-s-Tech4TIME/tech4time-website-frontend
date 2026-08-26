@@ -7,8 +7,11 @@
  * which the frontend and the backend hold byte-identical. What is left here is
  * this side's own business with that shape.
  *
- *   backend    validation, and the save that publishes
- *   frontend   the JobPosting structured data the public page emits
+ * On THIS side that is: the JobPosting structured data the public page emits,
+ * and the sanitiser it renders through. Validation and saving are the
+ * backend's — nothing here writes a job post. The only thing on this host that
+ * writes content at all is api/publish.php, landing a document the backend
+ * signed, and tools/check_secrets.py asserts it stays that way.
  *
  * WHAT THE SHAPE IS
  *   {
@@ -40,25 +43,6 @@ function careers_load(): array
     return careers_normalise(store_read(CAREERS_FILE) ?? []);
 }
 
-/* ------------------------------------------------------------------ write */
-
-/**
- * Stamp the save time, take the next revision, and hand the file to
- * store_write().
- *
- * The revision is minted here rather than by the caller because every write
- * must have one — a save that forgot to advance it is a save the live site
- * will refuse as stale, and it would refuse it silently from the operator's
- * point of view.
- */
-function careers_save(array $data): bool
-{
-    $data['updated']  = gmdate('c');
-    $data['revision'] = contract_next_revision($data);
-
-    return store_write(CAREERS_FILE, $data);
-}
-
 /* ---------------------------------------------------------- HTML sanitising
 
    Everything the editor produces passes through careers_sanitise_html() before
@@ -83,44 +67,6 @@ function careers_sanitise_html(string $html): string
 function careers_safe_href(string $href): ?string
 {
     return rt_safe_href($href);
-}
-
-/* ------------------------------------------------------------- validation */
-
-/**
- * Validate one job. Returns a list of human-readable problems.
- *
- * Deliberately permissive about the body fields: an empty responsibilities
- * list is a thin job post, not an invalid one, and blocking a save over it
- * would just teach whoever is editing to type a placeholder.
- */
-function careers_validate(array $job): array
-{
-    $errors = [];
-
-    if (trim((string)($job['title'] ?? '')) === '') {
-        $errors[] = 'A job title is required.';
-    }
-
-    $url = trim((string)($job['apply_url'] ?? ''));
-    if ($url === '') {
-        $errors[] = 'An apply link is required — without one the post has no way to apply.';
-    } elseif (!filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url)) {
-        $errors[] = 'The apply link must be a full URL starting with https://';
-    }
-
-    foreach (['posted' => 'Posted date', 'closes' => 'Closing date'] as $key => $label) {
-        $value = trim((string)($job[$key] ?? ''));
-        if ($value !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            $errors[] = "$label must be written as YYYY-MM-DD.";
-        }
-    }
-
-    if (!in_array($job['status'] ?? 'open', ['open', 'draft'], true)) {
-        $errors[] = 'Status must be either open or draft.';
-    }
-
-    return $errors;
 }
 
 /* -------------------------------------------------------------- rendering */

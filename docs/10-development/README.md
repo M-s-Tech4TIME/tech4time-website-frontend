@@ -10,8 +10,8 @@ You have just been handed this project. This page is the first hour.
 
 1. **Ten minutes** — [00-orientation/README.md](../00-orientation/README.md). What this is and why
    it has no build step.
-2. **Twenty minutes** — [setup.md](setup.md). Install four things, clone, serve, create an admin
-   account. You will have the site running.
+2. **Twenty minutes** — [setup.md](setup.md). Install four things, clone, serve. You will have the
+   site running.
 3. **Ten minutes** — [00-orientation/architecture.md](../00-orientation/architecture.md). How a
    request is served and where the data lives.
 4. **Twenty minutes** — [where-to-change-things.md](where-to-change-things.md). Skim it. You do not
@@ -27,10 +27,11 @@ Then make a change and run [the checks](testing.md).
 **There is no build step.** Edit a file, refresh the browser. No watcher, no compile, no install.
 
 **`python3 -m http.server` is not enough.** Four things need PHP: the careers page, the contact page,
-the admin, and the contact form's handler. Use `python3 tools/serve.py`.
+the contact form's handler, and `api/publish.php`. Use `python3 tools/serve.py`.
 
-**The admin sign-in is real, locally too.** Nothing is faked. Visit `/admin/setup.php` once, create
-an account, pair an authenticator app. See [running-locally.md](running-locally.md).
+**The editor is not in this repository.** It is `tech4time-backend`, serving `admin.tech4time.bd`.
+Clone it beside this one and run both servers to watch content actually travel —
+[running-locally.md](running-locally.md).
 
 **Your secrets live outside the repository**, at `../t4t-private`, beside your clone — the same
 shape as `/home/USER/t4t-private` on the host, so nothing about the layout differs in development.
@@ -50,7 +51,7 @@ shape as `/home/USER/t4t-private` on the host, so nothing about the layout diffe
 | [where-to-change-things.md](where-to-change-things.md) | **"I want to change X" → the file that owns it** |
 | [testing.md](testing.md) | every check, what it proves, how to read a failure |
 | [frontend/](frontend/) | CSS, JavaScript, motion, icons, shared markup, adding a page |
-| [backend/](backend/) | the libraries, the content model, editors, authentication |
+| [backend/](server-side/) | the libraries, the content model, editors, authentication |
 
 ---
 

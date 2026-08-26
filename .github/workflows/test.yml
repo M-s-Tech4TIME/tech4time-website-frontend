@@ -1,5 +1,9 @@
 # Every check this repository has, run on the machine rather than on a promise.
 #
+# THIS IS THE FRONTEND. The editor's round trips, the sign-in and the browser
+# run over the admin are in tech4time-backend's workflow of the same name.
+# Neither list is the whole suite any more, and neither pretends to be.
+#
 # The pre-commit list in docs/10-development/testing.md is what a person is
 # asked to run. This is the same list run by something that cannot forget, and
 # deploy.yml requires it: what gates a merge and what gates a release are the
@@ -51,6 +55,10 @@ jobs:
       - run: python3 tools/audit_pages.py
       - run: python3 tools/inject_icons.py --check
       - run: python3 tools/build_deploy_set.py --check
+      # The three files both repositories hold identically. Hygiene, not a
+      # guarantee -- the guarantee is CONTRACT_VERSION, checked at run time by
+      # api/publish.php against what it was actually sent.
+      - run: python3 tools/check_shared_lib.py
 
   server:
     name: php
@@ -58,15 +66,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # These drive a real PHP server and a real sign-in, and the private
-      # store lands beside the checkout the same way it lands beside the
-      # document root on the host.
+      # These drive a real PHP server, and the private store lands beside the
+      # checkout the same way it lands beside the document root on the host.
       - run: php -v | head -1
       - run: python3 tools/test_store.py
-      - run: python3 tools/test_admin_auth.py
       - run: python3 tools/test_contact_handler.py
-      - run: python3 tools/test_careers_admin.py
-      - run: python3 tools/test_contact_admin.py
+      # The one endpoint on this site that writes anything: the happy path,
+      # and every way past it that does not involve holding the key.
+      - run: python3 tools/test_publish.py
 
   browser:
     name: firefox
@@ -98,8 +105,8 @@ jobs:
 
       # Every browser suite calls shutil.which("firefox") — that exact name —
       # and exits 0 with a notice when it is missing. That is right on a laptop
-      # and wrong here, where a failed install would turn eight suites into
-      # eight silent passes. So the three names they look for are required to
+      # and wrong here, where a failed install would turn seven suites into
+      # seven silent passes. So the three names they look for are required to
       # be present before any of them runs.
       - name: the browser is really here
         run: |
@@ -110,7 +117,7 @@ jobs:
           firefox --version
           geckodriver --version | head -1
 
-      # All eight, then a verdict — not eight steps that stop at the first
+      # All seven, then a verdict — not seven steps that stop at the first
       # failure. A step-per-suite hides everything behind the earliest
       # problem: test_motion failed on its third check and the five suites
       # after it had never run in CI at all, so each fix would have revealed
@@ -122,7 +129,7 @@ jobs:
         run: |
           set -uo pipefail
           failed=""
-          for s in test_nav test_theme test_motion test_editor \
+          for s in test_nav test_theme test_motion \
                    check_hover check_dark_mode check_responsive check_focus; do
             echo "::group::$s"
             if python3 "tools/$s.py"; then
@@ -137,7 +144,7 @@ jobs:
             echo "::error::failing suites:$failed"
             exit 1
           fi
-          echo "all eight browser suites passed"
+          echo "all seven browser suites passed"
 
       # These leave processes behind when a step is cancelled, and a runner
       # that hangs on to Firefox never finishes.

@@ -23,7 +23,7 @@ Only the first is safe by default. The other two exist in exactly one place.
 > **`t4t-private/` lives at `/home/USER/`, not inside `public_html/`.**
 
 A backup scoped to `public_html` therefore restores your entire website **except the ability to log
-into it**. Everything looks fine until the day you need to sign in.
+into it**. Everything looks fine until the day you need it.
 
 **cPanel → Backup**, and confirm you are taking one of:
 
@@ -49,7 +49,7 @@ Check this now rather than discovering it during a restore.
 cat ~/t4t-private/secret.key
 ```
 
-Put the line in a password manager. It is a secret — anyone holding it plus `admins.json` can attack
+Put the line in a password manager. It is a secret — anyone holding it plus the backend's `admins.json` can attack
 your password offline — so treat it like one. Not in email, not in a note file, not in the
 repository.
 
@@ -83,7 +83,7 @@ wrong.
 # on the host
 cd ~/public_html/content
 cp careers.json careers.json.proof
-# edit a job title through /admin/, confirm the page changes
+# edit a job title in the admin, confirm this page changes
 cp careers.json.proof careers.json
 # confirm the page changes back
 rm careers.json.proof
@@ -99,7 +99,7 @@ for "I just deleted the wrong post", not for anything older.
 mkdir -p /tmp/restore-test
 tar xzf backup.tar.gz -C /tmp/restore-test --strip-components=1 t4t-private
 
-T4T_PRIVATE=/tmp/restore-test/t4t-private php ~/admin-cli.php list
+python3 tools/verify_live.py https://tech4time.bd
 ```
 
 If that prints your account, the backup is real. Then `rm -rf /tmp/restore-test` — it contains
@@ -117,19 +117,30 @@ content/*.json.bak
 ```
 
 A `secret.key` in a commit is in the history forever, and rotating it means resetting every
-password. If it happens, treat it as [rung 8](secrets-recovery.md#8-suspected-compromise) — rotate
+password. If it happens, treat it as *rung 8* (in tech4time-backend) — rotate
 rather than just removing the file.
 
 ---
 
-## When the repository splits
+## Now that the repository is split
 
-`admin.tech4time.bd` will hold the content of record, and the frontend a replica. That changes the
-priority: the **backend's** store becomes the thing whose loss matters, and the frontend's copy is
-reconstructible by re-publishing.
+`admin.tech4time.bd` holds the content of record; this site holds a replica. That changes the
+priority in two ways.
 
-It also raises the question of whether the two share one private store or hold one each —
-[environments.md](../20-deployment/environments.md). Not decided.
+**The backend's store is the one whose loss matters.** This side's holds three files, and two of
+them are reconstructible: `secret.key` peppers nothing but the throttle's keys, and losing it costs
+a cleared rate-limit counter. `throttle.json` is a counter.
+
+**`publish.key` is the exception, and it is shared.** Losing this side's copy is recoverable by
+copying the backend's; losing *both* means minting a new one and placing it on both hosts, during
+which every publish is refused as `unknown-key`. Back it up with `secret.key`, in the same place.
+
+**`content/` here is reconstructible by re-publishing** — `tech4time-backend/tools/reconcile.py`
+sends anything this site is behind on. It is still worth backing up, because "reconstructible" means
+"if the backend still has it".
+
+The two stores are separate and neither can read the other's:
+[0017](../90-decisions/0017-two-private-stores.md).
 
 ---
 
@@ -137,7 +148,9 @@ It also raises the question of whether the two share one private store or hold o
 
 ```
 [ ] cPanel backup covers the HOME DIRECTORY, not just public_html
+    — which is also the only way BOTH private stores are covered
 [ ] secret.key saved in a password manager
+[ ] publish.key saved with it — losing both halves' copies stops publishing
 [ ] content/*.json downloaded before any deploy
 [ ] A restore has actually been tested at least once
 [ ] Recovery codes stored somewhere that is not this server

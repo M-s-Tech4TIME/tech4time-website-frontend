@@ -10,30 +10,32 @@ Development tool. NOT deployed to the web server (see tools/README.md).
 Requires the PHP CLI:  sudo apt install php-cli
 
 WHY NOT python3 -m http.server
-Four pages need PHP now: the careers page renders job posts, the contact page
-renders its addresses and numbers, the admin edits both, and the contact form
-posts to a handler. A static file server shows you their source instead of
-their output.
+Four things need PHP here: the careers page renders job posts, the contact page
+renders its addresses and numbers, the contact form posts to a handler, and
+api/publish.php receives content from the admin host. A static file server
+shows you their source instead of their output.
 
-NOTHING IS FAKED ANY MORE
-/admin used to be waved through here, because on the host cPanel's Directory
-Privacy made Apache ask for a password before any PHP ran and there is no
-Apache locally. The admin has its own accounts now, so the local sign-in is the
-real one: visit /admin/setup.php once to create an account and pair an
-authenticator app, then sign in as you would on the host.
+THE EDITOR IS NOT HERE
+The admin moved to tech4time-backend with the split. This serves the public
+site: sixteen pages, the two that render from content/, and api/publish.php.
 
-The accounts, sessions and audit log go in ../t4t-private — beside this
+To watch content actually arrive, run the backend's serve.py beside this one
+and point it here:
+
+    T4T_PUBLISH_URL=http://localhost:8000/api/publish.php python3 tools/serve.py
+
+Both halves need the SAME publish.key in their private stores, or every publish
+is refused as unknown-key — which is the intended failure, and
+tools/make_publish_key.py is how you avoid it.
+
+The throttle counters and this side's keys go in ../t4t-private — beside this
 repository, never inside it, the same shape as /home/USER/t4t-private on the
 server. Delete that directory to start over.
 
-It binds to localhost only, but it is still a real sign-in on a real port: do
-not run it on a public interface.
-
 WHAT STILL WILL NOT WORK LOCALLY
 mail(). The contact form validates and answers correctly, then reports that it
-could not send, because there is no mail server here — and a password reset
-code has nowhere to go for the same reason. Both paths are verified on the host
-with tools/host-probe.php. Locally, use a recovery code from setup instead.
+could not send, because there is no mail server here. That path is verified on
+the host with tools/host-probe.php.
 """
 
 import os
@@ -49,12 +51,6 @@ ROUTER = ROOT / "tools" / "dev-router.php"
 
 PAGES = [
     ("Home", "/"),
-    ("Admin — sign in", "/admin/login.php"),
-    ("Admin — first-run setup", "/admin/setup.php"),
-    ("Admin — overview", "/admin/"),
-    ("Admin — job posts", "/admin/?s=careers"),
-    ("Admin — contact page", "/admin/?s=contact"),
-    ("Admin — your account", "/admin/?s=account"),
     ("Careers  (renders content/careers.json)", "/pages/careers/"),
     ("Contact  (renders content/contact.json)", "/pages/contact/"),
     ("Resource Certifications", "/pages/resource-certifications/"),

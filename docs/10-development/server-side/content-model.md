@@ -2,6 +2,15 @@
 
 **Applies to:** both
 
+> **This page describes both halves, and you are in the frontend.** The model —
+> `lib/contract.php` — is byte-identical in both repositories, which is what makes the two halves add
+> up to one guarantee. The **form** is `tech4time-backend/sections/`; the **renderer** is
+> `pages/contact/index.php`, here.
+>
+> So adding a field is a change in two repositories, and `check_shared_lib.py` will tell you when you
+> have changed the shared file. `check_content_model.py` checks whichever half it is run in and says
+> which one, rather than quietly checking less than it used to.
+
 How a piece of editable content stays consistent across the three places it lives. Read this before
 adding or changing a field on the careers or contact page.
 
@@ -17,7 +26,8 @@ Every editable field exists in three places, and all three must agree:
            │
            ├──────────────────────────────────┐
            ▼                                  ▼
-    admin/sections/contact.php          pages/contact/index.php
+    tech4time-backend/sections/           pages/contact/index.php
+      contact.php
     the FORM                            the RENDERER
     what an editor can type             what a visitor sees
            │                                  ▲
@@ -65,7 +75,7 @@ function contact_office_defaults(): array
 
 Add validation to `contact_validate()` if the value has rules.
 
-### 2. The form — `admin/sections/contact.php`
+### 2. The form — `tech4time-backend/sections/contact.php`
 
 Add the input. Match the surrounding markup exactly — the editors' fields carry classes the CSS and
 `editor.js` both rely on.
@@ -150,7 +160,7 @@ they find `h` and `field`, not `about` and `offers`. Adding a `SUBJECTS` entry w
 failures for fields that work perfectly, and the only way to quiet them would be to exempt the seven
 body fields — the ones most likely to drift — after which the check would announce that all is well.
 
-**What is done instead.** `tools/test_careers_admin.py` asks PHP for the model, posts a distinct
+**What is done instead.** `tech4time-backend/tools/test_careers_admin.py` asks PHP for the model, posts a distinct
 marker into every field it declares, saves through the real editor, then loads the public page and
 requires every marker to come out. A field added to `lib/careers.php` is covered the moment it
 exists, and covered strictly: the default is that it must come back verbatim, and a field that

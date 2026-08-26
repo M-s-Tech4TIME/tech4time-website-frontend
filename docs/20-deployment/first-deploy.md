@@ -2,7 +2,8 @@
 
 **Applies to:** both
 
-From a cPanel account with nothing on it to a working website with a working admin. Follow it in
+From a cPanel account with nothing on it to a working public site. Standing the admin host up is
+the other repository's procedure. Follow this in
 order — several steps exist to close a window that opens if you do them in a different sequence.
 
 Allow two hours, most of it waiting for DNS and SSL.
@@ -28,7 +29,7 @@ Full detail in [cpanel-host-setup.md](cpanel-host-setup.md). The short version:
 - [ ] The document root confirmed — normally `/home/USER/public_html`
 - [ ] AutoSSL issued for `tech4time.bd` and `www.tech4time.bd`
 - [ ] `info@tech4time.bd` exists as a mailbox
-- [ ] **`admin@tech4time.bd` exists as a mailbox you can open** — a password reset code goes there
+- [ ] **`info@tech4time.bd` exists** — enquiries from the contact form go there
       and nowhere else
 
 ## 2. Upload the site
@@ -36,7 +37,7 @@ Full detail in [cpanel-host-setup.md](cpanel-host-setup.md). The short version:
 ```
 public_html/
 ├── index.html   404.html
-├── pages/  assets/  lib/  admin/  content/
+├── pages/  assets/  lib/  api/  content/
 ├── contact-handler.php
 ├── .htaccess    robots.txt   sitemap.xml   site.webmanifest
 ```
@@ -50,11 +51,11 @@ Rather than pick those out by hand, build the upload set and check it:
 zip -r /tmp/tech4time-deploy.zip \
   index.html 404.html contact-handler.php \
   .htaccess robots.txt sitemap.xml site.webmanifest \
-  pages assets lib admin content \
+  pages assets lib api content \
   -x '*/.DS_Store' -x '*.bak'
 
 # Nothing on this list may appear. Every line should print 0.
-for bad in tools/ docs/ references/ .git/ .claude/ .md admin/.htaccess .key; do
+for bad in tools/ docs/ references/ .git/ .claude/ .md admin/ .key; do
   printf '%-18s %s\n' "$bad" "$(unzip -Z1 /tmp/tech4time-deploy.zip | grep -c -- "$bad")"
 done
 ```
@@ -105,10 +106,22 @@ private store resolves to and whether it is outside the web root, and whether `m
 - [ ] The test message arrives at `info@tech4time.bd`
 - [ ] **`host-probe.php` deleted**
 
-## 5. Turn the admin on
+## 5. Mint the publish key, and stand the admin up
 
 This has its own page because the **order** is the safety property:
-[admin-activation.md](admin-activation.md).
+Two things, in this order:
+
+1. **On this host**, create the key the two halves sign with and note the value:
+
+   ```bash
+   cd ~/public_html && python3 tools/make_publish_key.py     # or run it locally and copy the file
+   ```
+
+   It writes `~/t4t-private/publish.key`, 0600.
+
+2. **Then stand the backend up** — *admin-activation.md* (in tech4time-backend) — and put the **same
+   value** in its `~/t4t-private-admin/publish.key`. Until both hold it, every publish is refused,
+   which the editor reports as `not-configured` or `unknown-key`.
 
 In brief: read the setup key off the server → create the account → pair the authenticator → save the
 recovery codes → prove a full password reset works → only then remove Directory Privacy.
@@ -142,7 +155,7 @@ certificate.
 ## 8. Search engines
 
 - [ ] Submit `sitemap.xml` in Google Search Console
-- [ ] Confirm `/admin/` is **not** indexed — it is covered by an `X-Robots-Tag` rule in `.htaccess`
+- [ ] Confirm `/api/publish.php` answers **405** to a GET, and carries `X-Robots-Tag: noindex`
       rather than by `robots.txt`, deliberately: listing it in `robots.txt` advertises it
 
 ## 9. Write down what you did
@@ -157,12 +170,12 @@ That file is the record of the live host, and it is only useful if it is current
 
 ```
 HOST
-[ ] PHP 8.1+          [ ] SSL issued        [ ] info@ mailbox
-[ ] docroot confirmed [ ] admin@ mailbox you can open
+[ ] PHP 8.1+          [ ] SSL issued        [ ] SSH access
+[ ] docroot confirmed [ ] info@ mailbox you can open
 
 UPLOAD
 [ ] Site files        [ ] .htaccess         [ ] content/ (this once only)
-[ ] NOT tools/        [ ] NOT docs/         [ ] NO admin/.htaccess
+[ ] NOT tools/        [ ] NOT docs/         [ ] NO admin/ at all
 
 VERIFY
 [ ] Pages load        [ ] Clean URLs        [ ] 404 works
@@ -173,14 +186,14 @@ PROBE
 [ ] argon2id          [ ] store outside web root
 [ ] mail() works      [ ] host-probe.php DELETED
 
-ADMIN
-[ ] Account created   [ ] Authenticator paired
-[ ] Recovery codes saved                    [ ] Full reset proven
-[ ] Directory Privacy removed (last)
+PUBLISHING
+[ ] publish.key created here  [ ] SAME value in the backend's store
+[ ] /api/publish.php answers 405 to a GET
+[ ] a save in the admin reaches /pages/careers/
 
 FINISH
 [ ] Contact form, both ways                 [ ] HSTS enabled
-[ ] Sitemap submitted [ ] /admin not indexed
+[ ] Sitemap submitted [ ] /api not indexed
 [ ] host-facts.md updated
 ```
 
@@ -190,5 +203,8 @@ FINISH
 
 [troubleshooting.md](../30-operations/troubleshooting.md) is indexed by what you actually see.
 
-The one genuinely dangerous state is **being unable to sign in to the admin**, and there is a floor
-under it: [secrets-recovery.md](../30-operations/secrets-recovery.md).
+The one genuinely dangerous state on this half is **`.htaccess` not arriving** — every page still
+renders and nothing announces that `lib/` and `content/` have stopped answering 403.
+`tools/verify_live.py` is the check that catches it. Being unable to sign in to the admin is the
+other repository's dangerous state, and there is a floor
+under it: *secrets-recovery.md* (in tech4time-backend).

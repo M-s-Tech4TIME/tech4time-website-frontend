@@ -205,7 +205,7 @@ side that knows what its own footers say is the side that answers.
 
 ## The sign-in
 
-Full design: [authentication.md](authentication.md).
+Full design: *authentication.md* (in tech4time-backend).
 
 ### `private.php`
 
@@ -308,7 +308,7 @@ by hand in three places.
 setup. They exist because `admin_head()` fatals on a section that is not in the registry, and those
 pages are not sections.
 
-[adding-an-editor.md](adding-an-editor.md)
+*adding-an-editor.md* (in tech4time-backend)
 
 ---
 

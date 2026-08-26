@@ -7,9 +7,11 @@
  * lib/contract.php, which the frontend and the backend hold byte-identical.
  * What is left here is this side's own business with that shape.
  *
- *   backend    validation, the flag picker, and the save that publishes
- *   frontend   the ContactPage structured data, the flag <picture>, and how a
- *              reach row turns into a link
+ * On THIS side that is: the ContactPage structured data, the flag <picture>,
+ * and how a reach row turns into a link. Validation, the flag picker and
+ * saving are the backend's — nothing here writes the contact page. The only
+ * thing on this host that writes content at all is api/publish.php, landing a
+ * document the backend signed.
  *
  * WHAT THE SHAPE IS
  *   {
@@ -53,25 +55,6 @@ function contact_load(): array
     return contact_normalise(store_read(CONTACT_FILE) ?? []);
 }
 
-/* ------------------------------------------------------------------ write */
-
-/**
- * Stamp the save time, take the next revision, and hand the file to
- * store_write().
- *
- * The revision is minted here rather than by the caller because every write
- * must have one — a save that forgot to advance it is a save the live site
- * will refuse as stale, and it would refuse it silently from the operator's
- * point of view.
- */
-function contact_save(array $data): bool
-{
-    $data['updated']  = gmdate('c');
-    $data['revision'] = contract_next_revision($data);
-
-    return store_write(CONTACT_FILE, $data);
-}
-
 /* -------------------------------------------------------------- rendering */
 
 /**
@@ -111,19 +94,6 @@ function contact_reach_text(array $item, string $value): string
 {
     $text = trim((string)($item['text'] ?? ''));
     return ($text !== '' && count($item['values'] ?? []) === 1) ? $text : trim($value);
-}
-
-/** The flag images available to choose from, by basename. */
-function contact_flags(): array
-{
-    $found = [];
-    foreach (CONTACT_FLAG_FORMATS as $ext) {
-        foreach (glob(CONTACT_FLAG_DIR . '/*.' . $ext) ?: [] as $path) {
-            $found[pathinfo($path, PATHINFO_FILENAME)] = true;
-        }
-    }
-    ksort($found);
-    return array_keys($found);
 }
 
 /**
@@ -258,75 +228,4 @@ function contact_page_schema(array $data): array
         'name'       => 'Contact Tech4TIME',
         'mainEntity' => $entity,
     ];
-}
-
-/* ------------------------------------------------------------- validation */
-
-/**
- * Validate the whole document. Returns a list of human-readable problems.
- *
- * Deliberately permissive about prose: an empty lead is a plainer page, not an
- * invalid one. What it does insist on is anything that would render as a
- * broken link or an address a search engine will reject, because those fail
- * silently rather than visibly.
- */
-function contact_validate(array $data): array
-{
-    $errors = [];
-
-    if (trim((string)$data['hero']['title']) === '') {
-        $errors[] = 'The page title in the banner is required.';
-    }
-    if (trim((string)$data['meta']['title']) === '') {
-        $errors[] = 'The browser tab title is required.';
-    }
-    if (strlen(trim((string)$data['meta']['description'])) > 320) {
-        $errors[] = 'The search description is longer than 320 characters; Google will cut it off.';
-    }
-
-    foreach ($data['reach']['items'] as $i => $item) {
-        $where = 'Reach row ' . ($i + 1);
-        $type = (string)($item['type'] ?? '');
-
-        if (!isset(CONTACT_REACH_TYPES[$type])) {
-            $errors[] = "$where has no valid kind.";
-        }
-        if (trim((string)($item['label'] ?? '')) === '') {
-            $errors[] = "$where needs a label.";
-        }
-        if (($item['icon'] ?? '') !== '' && !isset(CONTACT_ICONS[$item['icon']])) {
-            $errors[] = "$where has an icon that is not in the list.";
-        }
-        if (!$item['values']) {
-            $errors[] = "$where needs at least one value.";
-            continue;
-        }
-
-        /* Every line, not just the first: a row of four numbers with a typo in
-           the third is a row with a dead link in it. */
-        foreach ($item['values'] as $value) {
-            if ($type === 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = "$where is marked as an email address but “$value” is not one.";
-            }
-            if ($type === 'url' && rt_safe_href($value) === null) {
-                $errors[] = "$where: “$value” must be a full web address starting with https://";
-            }
-        }
-    }
-
-    foreach ($data['offices']['items'] as $i => $office) {
-        $where = 'Office ' . ($i + 1);
-        if (trim((string)$office['name']) === '') {
-            $errors[] = "$where needs a name.";
-        }
-        $country = trim((string)$office['schema']['country']);
-        if ($country !== '' && !preg_match('/^[A-Za-z]{2}$/', $country)) {
-            $errors[] = "$where: the country code must be two letters, like BD or MY.";
-        }
-        if (!in_array($office['status'], ['shown', 'hidden'], true)) {
-            $errors[] = "$where must be either shown or hidden.";
-        }
-    }
-
-    return $errors;
 }

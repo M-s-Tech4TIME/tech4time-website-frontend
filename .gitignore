@@ -39,6 +39,7 @@ content/*.tmp
 # should ever reach a commit, and a leaked master key means every stored
 # password can be attacked offline.
 t4t-private/
+t4t-private-admin/
 .dev-private/
 *.key
 setup-token.txt

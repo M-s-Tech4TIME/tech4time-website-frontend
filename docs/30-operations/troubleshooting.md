@@ -4,7 +4,7 @@
 
 Indexed by what you actually see, not by what is actually wrong.
 
-Cannot sign in to the admin? → [secrets-recovery.md](secrets-recovery.md).
+Cannot sign in to the admin? → *secrets-recovery.md* (in tech4time-backend).
 
 ---
 
@@ -100,140 +100,75 @@ address.
 
 ---
 
-## The admin
+## Content saved in the admin has not appeared here
 
-### It refuses to load and shows a message about the private directory
+This is the publish path, and it fails in a way that is meant to be visible: the editor says so, in
+words, with a **Publish again** control. If nobody saw that, start here.
 
-Working as designed. The admin refuses rather than running without its store — an editor that
-quietly works without a password is worse than one that visibly does not work.
+### The editor said the live site refused it
 
-The message names the path. Usually:
+The message names the reason. The ones that mean something is genuinely wrong:
 
-| | |
+| the editor said | what it means |
 |---|---|
-| Not writable | `chmod 700 ~/t4t-private` |
-| Cannot be created | the directory **above** the document root is not writable |
-| "inside the document root" | it is in the wrong place — [environments.md](../20-deployment/environments.md) |
+| *…holds a different publish key…* | the two private stores have parted. `publish.key` must be **the same bytes** on both hosts |
+| *…disagree about the time by more than five minutes…* | one of the two clocks is wrong |
+| *…implements a different content shape…* | the halves are out of step. Deploy both |
+| *…could not be reached…* | this site was down, or DNS/TLS failed from the admin host |
+| *…answered … with something that was not JSON* | `api/publish.php` is not deployed here. `python3 tools/verify_live.py https://tech4time.bd` |
 
-### "That setup key does not match"
+Full table: [publish-api.md](../10-development/server-side/publish-api.md).
 
-Retype rather than paste. It is compared case- and punctuation-insensitively, so the usual cause is
-an invisible character.
+### Nobody saw the message, and the two have disagreed since
 
-```bash
-cat ~/t4t-private/setup-token.txt
-```
-
-**If `cat` shows a different key each time you run it**, the file is not being recognised on
-re-reading and a fresh one is minted on every call — so the key you are shown is never the key you
-are checked against, and no amount of careful typing will work. The length a stored key must have is
-derived from `AUTH_SETUP_BYTES` in `lib/auth.php`; if the format is ever changed, that is where the
-two must stay in step. `test_admin_auth.py` covers this.
-
-### `setup.php` redirects to `login.php`
-
-An account already exists. If it is not yours, treat it as a compromise:
+On the admin host:
 
 ```bash
-php ~/admin-cli.php list
-php ~/admin-cli.php log 100
+python3 tools/reconcile.py          # sends anything this site is behind on
 ```
 
-[Rung 8](secrets-recovery.md#8-suspected-compromise).
+It reports one of four things per document. **Stop at "the live site is ahead"** — that means this
+site holds a revision the admin does not, so something published from elsewhere or the admin's
+record was restored from an older backup. Do not force it; compare the two first.
 
-### The admin refuses: "The account file is present but cannot be read"
+### The page renders old content and the file on disk is new
 
-`admins.json` is corrupted, not missing. The admin stops rather than continue, because from there a
-damaged file is indistinguishable from a site nobody has set up — and going through setup would
-copy the damage over `admins.json.bak`, which may be the only intact copy left.
+Nothing here caches content — `careers_load()` and `contact_load()` are a filesystem read on every
+request. If the JSON is right and the page is wrong, it is a cache in front: LiteSpeed's, or the
+browser's. Reload with cache disabled before looking any further.
 
-A good backup is sitting beside the broken file. Restore it:
+### The endpoint answers 403, or does not answer at all
+
+`.htaccess` did not arrive, or arrived damaged. Everything else on the site still works, which is
+exactly why this is easy to miss.
 
 ```bash
-cd ~/t4t-private
-cp admins.json admins.json.broken        # keep the evidence
-cp admins.json.bak admins.json
+python3 tools/verify_live.py https://tech4time.bd
 ```
 
-[Rung 6](secrets-recovery.md#6-adminsjson-corrupted).
+A GET of `/api/publish.php` must answer **405**. A 404 means it did not deploy; a 403 means a
+blocking rule is matching more than it should.
 
-> **If you are on a version that offers setup instead of refusing**, do not go through it — restore
-> the `.bak` as above. That was the behaviour before the refusal existed.
+### A banner in the admin says the footer is out of step
 
-### The authenticator code is always wrong
-
-- **Clock drift.** `TOTP_DRIFT` allows one 30-second step either side. More than that needs the
-  server's clock corrected.
-- **A code works only once.** Wait for the next one rather than retyping the same digits.
-- **Wrong account** in the app, if you have several paired.
-
-### Recovery codes do not work, but `admin-cli list` says there are ten
-
-`secret.key` was lost or replaced. The codes were hashed under a key derived from it.
+The contact details in the data and the ones in this site's page footers disagree. Expected after
+editing contact details — the footer is markup, not content, and lives here.
 
 ```bash
-php ~/admin-cli.php codes
+# in tech4time-frontend, with content/contact.json as this site now holds it
+python3 tools/sync_site_contact.py     # rewrites the footers and lib/footer-fingerprint.php
+python3 tools/check_shared_markup.py   # proves the sixteen still agree
+git commit && git push                 # the deploy carries it
 ```
 
-[Rung 5](secrets-recovery.md#5-secretkey-lost-or-corrupted).
+The banner clears on the next save in the admin, which is when the backend is told the new
+fingerprint. It is not stored in `content/contact.json` any more: that file is a replica, and the
+next publish would overwrite it.
 
-### "Try again in …"
+### Anything about signing in
 
-The lockout. Five failures are free, then each attempt waits longer, up to an hour.
-
-```bash
-php ~/admin-cli.php unlock
-```
-
-### `login-failed` in the audit log — what it does and does not tell you
-
-**It means "that combination did not work". It never means "that user does not exist."**
-
-`auth_attempt()` returns `null` for a wrong password and for an unknown username alike, and
-`admin/login.php` logs one `login-failed` event for both, carrying only what was typed. The sign-in
-answers the browser identically too — *"That username and password do not match"* — which is the
-point: an error that distinguished the two would let anyone with the login page enumerate which
-accounts exist, one guess at a time. `test_admin_auth.py` proves the two answers stay identical.
-
-So a run of `login-failed` against an address you do not recognise is **not** evidence that somebody
-tried an account you do not have. It is equally consistent with you mistyping your own password.
-
-Two things that look alarming and are not:
-
-- **The sign-in accepts a username *or* the account's email address.** `login-failed who=you@example.com`
-  may well be your own account, found correctly, with the password fumbled.
-- **Every password fails immediately after `secret.key` is rotated.** The stored hash was made under
-  a key the server no longer has, so it cannot be verified and the attempt is refused — correctly, and
-  indistinguishably from a wrong password. Expect exactly one of these per person who had not yet been
-  told. [secrets-recovery.md rung 9](secrets-recovery.md#9-the-master-key-was-exposed-and-nothing-else-was)
-
-What the log *can* tell you is the address it came from. A failure from an IP you do not recognise is
-worth attention; the same failure from your own is worth none.
-
-### Signed out constantly
-
-`AUTH_IDLE` is one hour, `AUTH_ABSOLUTE` twelve. If it is faster than that, the session directory is
-not writable, so no session is persisting:
-
-```bash
-ls -la ~/t4t-private/sessions/
-```
-
-### The reset code never arrives
-
-`mail()` — as above. Check the spam folder, confirm the mailbox on the account is one you can open,
-and confirm SPF/DKIM/DMARC. A recovery code will sign you in meanwhile.
-
-### A banner says the footer is out of step
-
-The contact details in the JSON and the ones in the pages' footers disagree. Expected after editing
-contact details — the footer is markup, not content.
-
-```bash
-# download the server's contact.json FIRST — it is the real one
-python3 tools/sync_site_contact.py
-# then deploy the pages, and not content/
-```
+Lockouts, setup keys, recovery codes, the authenticator, the audit log and the reset email are the
+admin's, and so is the troubleshooting for them — see the same page in **tech4time-backend**.
 
 ---
 
@@ -252,7 +187,7 @@ pkill firefox geckodriver
 Firefox or geckodriver is missing. By design — they exit 0 rather than fail, so a machine without a
 browser can still run everything else.
 
-### `test_admin_auth.py` hangs
+### A test hangs after an interrupted run
 
 A leaked PHP server holding the port.
 
@@ -263,7 +198,7 @@ pkill -f 'php -S'
 ### `check_content_model.py` fails after adding a field
 
 You changed the shape in one of the three places it lives. The message names the field and the
-missing layer. [content-model.md](../10-development/backend/content-model.md)
+missing layer. [content-model.md](../10-development/server-side/content-model.md)
 
 ### `check_secrets.py` fails
 
@@ -352,7 +287,7 @@ AutoSSL needs), archives and dumps join the extension rule, `references/` is blo
 `verify_live.py` asserts all of it against the running site after every deploy. The deploy set is
 built from an allow list, so none of it can be uploaded again.
 
-**Fixed 2026-08-23** — the setup token outlived setup. `admin/setup.php` promises the bootstrap
+**Fixed 2026-08-23** — the setup token outlived setup. `tech4time-backend/public/setup.php` promises the bootstrap
 window is *"shut by the code rather than by a step somebody has to remember"*, and on the live host
 `setup-token.txt` sat in the private store beside a working account.
 
@@ -397,18 +332,18 @@ ever measured a narrower one. `tools/check_responsive.py` now does, in a frame.
 
 **Fixed 2026-08-23** — a careers field drifting between model, form and renderer unnoticed.
 `check_content_model.py` could never have caught it: both sides of that page are loops, so its
-regexes read the loop variable rather than the fields. `tools/test_careers_admin.py` proves it by
+regexes read the loop variable rather than the fields. `tech4time-backend/tools/test_careers_admin.py` proves it by
 round trip instead — a marker through every field the model declares, editor to visitor — and
 `check_content_model.py` now fails if an editor is in neither `SUBJECTS` nor `COVERED_ELSEWHERE`.
 
 **Fixed 2026-08-23** — recovery codes dying silently with `secret.key`. Stored codes carry the
 fingerprint of the key that made them, so `admin-cli list` prints `10 DEAD` and says what to run
-instead of counting entries. Covered by `tools/test_admin_auth.py`.
+instead of counting entries. Covered by `tech4time-backend/tools/test_admin_auth.py`.
 
 **Fixed 2026-08-23** — `store_read()` answering `null` for both a missing and a corrupt file. They
 are told apart by `store_state()` now: the admin refuses to start on a damaged account file instead
 of offering setup, and `store_write()` will not let a damaged file become the `.bak`. Covered by
-`tools/test_store.py` and `tools/test_admin_auth.py`.
+`tools/test_store.py` and `tech4time-backend/tools/test_admin_auth.py`.
 
 ---
 

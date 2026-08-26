@@ -51,7 +51,7 @@ safely:
 | ignore list | it ships | a stranger finds it |
 | **allow list** | it does not ship | a visitor finds a 404 |
 
-`DENY` then removes things carried along by a directory that is otherwise wanted — `admin/.htaccess`
+`DENY` then removes things carried along by a directory that is otherwise wanted — `*.md`
 above all, because cPanel writes its own there and ours would fight it.
 
 `REQUIRED` is the other direction: files whose *absence* is a broken site rather than a missing
@@ -61,7 +61,7 @@ leaving a site that looks completely normal.
 
 ### Content is not in the set
 
-`content/` holds the client's data: job posts and contact details typed into `/admin/` on the live
+`content/` holds the client's data: job posts and contact details published from the admin to the live
 server. The repository's copy is test data. It is **never** synced.
 
 But a brand-new host has nothing there and the two dynamic pages need something to render, so the
@@ -84,7 +84,7 @@ parallel:
 | Job | What runs | Needs |
 |---|---|---|
 | `checks` | the seven static checks, plus `build_deploy_set.py --check` | python, php |
-| `php` | the five suites that drive a real PHP server and a real sign-in | php |
+| `php` | the three suites that drive a real PHP server, including the publish endpoint | php |
 | `firefox` | the eight browser suites, all of them, then a verdict | firefox, geckodriver, Pillow |
 
 It is deliberately the **same list** as the pre-commit set in
@@ -139,7 +139,7 @@ Transport is **rsync over SSH**, using a deploy-only key. The host key is pinned
 ### The protect list, and why the gate is not redundant
 
 `rsync --delete` into a cPanel document root is destructive by default, and what it would destroy
-is not in the repository: `content/`, `admin/.htaccess`, `.well-known/`, `cgi-bin/`, `error_log`,
+is not in the repository: `content/`, `.well-known/`, `cgi-bin/`, `error_log`,
 the MultiPHP ini files. The full list and its reasoning is
 [ADR 0016](../90-decisions/0016-a-deploy-protects-what-the-panel-owns.md).
 

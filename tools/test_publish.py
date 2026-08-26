@@ -7,12 +7,22 @@ Run from the repo root:  python3 tools/test_publish.py
 Requires the PHP CLI:    sudo apt install php-cli
 
 WHY THIS EXISTS
-After the split, api/publish.php is the ONLY route by which content reaches the
-live site, and it is the only endpoint on the public site that writes anything
-at all. Everything the two repositories do separately meets here.
+api/publish.php is the ONLY route by which content reaches this site, and the
+only endpoint on it that writes anything at all. Everything the two
+repositories do separately meets here.
 
 So this drives the real endpoint over real HTTP with real signatures, and then
 tries every way of getting past it that does not involve holding the key:
+
+The signing below is written in PYTHON, deliberately. A test that asked
+lib/publish.php to sign what api/publish.php then verifies would prove the two
+agree with each other and nothing about whether either is right. This is a
+second implementation of the format from its written description, so the
+backend's PHP and this must both match the same third thing.
+
+tech4time-backend has the mirror of this: its client posts to a stub endpoint
+written in Python that verifies the signature. Neither side is ever checked
+against its own counterpart.
 
     no signature            a stranger who found the URL
     a signature from
@@ -176,7 +186,7 @@ def job(revision: int, about: str = f"<p>{MARK}-about</p>") -> dict:
     }
 
 
-def run(base: str, key: bytes, private: Path, r: Results) -> None:
+def run(base: str, key: bytes, r: Results) -> None:
     other = bytes.fromhex("11" * 32)
 
     print("\nthe happy path")
@@ -317,60 +327,6 @@ def run(base: str, key: bytes, private: Path, r: Results) -> None:
     _, page = get(base, "/pages/contact/")
     r.check("and a visitor sees the change", f"{MARK} Contact" in page)
 
-    print("\nthe backend's own client")
-
-    out = subprocess.run(
-        ["php", "-r",
-         "require 'lib/publish_client.php'; require 'lib/careers.php';"
-         "$d = careers_load(); $d['revision'] = 20;"
-         "$d['jobs'][0]['title'] = 'CLIENT-" + MARK + "';"
-         "echo json_encode(publish_push('careers', $d));"],
-        cwd=str(ROOT), capture_output=True, text=True,
-        env=dict(os.environ, T4T_PRIVATE=str(private),
-                 T4T_PUBLISH_URL=base + ENDPOINT),
-    )
-    try:
-        result = json.loads(out.stdout.strip() or "{}")
-    except ValueError:
-        result = {"raw": (out.stdout + out.stderr)[:300]}
-
-    r.check("publish_push() reaches the endpoint and is accepted",
-            result.get("ok") is True, str(result) + (out.stderr[:200] if out.stderr else ""))
-    r.check("and hands the editor the revision that now stands",
-            result.get("revision") == 20, str(result))
-    r.check("and the footer fingerprint it was told",
-            len(str(result.get("footer_synced", ""))) == 64, str(result))
-
-    out = subprocess.run(
-        ["php", "-r",
-         "require 'lib/publish_client.php'; require 'lib/careers.php';"
-         "$d = careers_load(); $d['revision'] = 2;"
-         "echo json_encode(publish_push('careers', $d));"],
-        cwd=str(ROOT), capture_output=True, text=True,
-        env=dict(os.environ, T4T_PRIVATE=str(private),
-                 T4T_PUBLISH_URL=base + ENDPOINT),
-    )
-    result = json.loads(out.stdout.strip() or "{}")
-    r.check("a stale push comes back as a refusal the editor can show",
-            result.get("ok") is False and result.get("code") == "not-newer",
-            str(result))
-    r.check("with a sentence rather than a code",
-            "already holds" in str(result.get("error", "")), str(result))
-
-    out = subprocess.run(
-        ["php", "-r",
-         "require 'lib/publish_client.php'; require 'lib/careers.php';"
-         "$d = careers_load(); $d['revision'] = 30;"
-         "echo json_encode(publish_push('careers', $d));"],
-        cwd=str(ROOT), capture_output=True, text=True,
-        env=dict(os.environ, T4T_PRIVATE=str(private),
-                 T4T_PUBLISH_URL="http://127.0.0.1:1/api/publish.php"),
-    )
-    result = json.loads(out.stdout.strip() or "{}")
-    r.check("an unreachable site is reported, not thrown",
-            result.get("ok") is False and result.get("code") == "unreachable",
-            str(result))
-
 
 # --------------------------------------------------------------------- main
 
@@ -416,7 +372,7 @@ def main() -> None:
             else:
                 raise SystemExit("the test server never came up")
 
-            run(base, key, private, r)
+            run(base, key, r)
         finally:
             os.killpg(os.getpgid(server.pid), signal.SIGTERM)
             server.wait(timeout=10)
