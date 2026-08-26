@@ -62,7 +62,21 @@ EXPECT = [
     ("/tech4time-website.zip",    (403, 404),  "an archive left in the web root"),
     ("/error_log",                (403, 404),  "the server's own log names paths"),
 
-    ("/admin/",                   (200, 302),  "the admin answers, signed in or not"),
+    # THERE IS NO EDITOR HERE ANY MORE. The split moved it to
+    # admin.tech4time.bd, and the deploy removes admin/ along with
+    # lib/auth.php and everything else that could sign somebody in.
+    #
+    # 403 is what the live host answers, because cPanel's Directory Privacy
+    # owns admin/.htaccess and the deploy protects it (ADR 0016) — so the
+    # directory survives holding that one file, and LiteSpeed refuses a
+    # request with no password. 404 is what a host without Directory Privacy
+    # would answer. Either is right.
+    #
+    # **200 would be the finding.** It would mean a working editor had
+    # reappeared on the public site, which is the one thing this half is
+    # supposed to no longer be able to do.
+    ("/admin/",                   (403, 404),  "no editor on the public site — it is at admin.tech4time.bd"),
+    ("/admin/login.php",          (403, 404),  "and nothing inside it either"),
 
     # The one route content takes to this site. A GET must be refused with
     # 405, which is the endpoint answering — a 404 here means it did not
@@ -77,7 +91,6 @@ HEADERS = [
     ("/",        "x-content-type-options",    "nosniff"),
     ("/",        "referrer-policy",           ""),
     ("/",        "strict-transport-security", "max-age="),
-    ("/admin/",  "x-robots-tag",              "noindex"),
     ("/api/publish.php", "x-robots-tag",      "noindex"),
 ]
 
