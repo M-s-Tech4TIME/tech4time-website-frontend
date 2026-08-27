@@ -129,7 +129,7 @@ both directions. Nothing renders them and the form does not write them.
 
 ## On the host, these files are the real data
 
-Written by people through `/admin/`. **Never upload them to a live server** —
+Written by people through `https://admin.tech4time.bd/`. **Never upload them to a live server** —
 [routine-deploys.md](../20-deployment/routine-deploys.md).
 
 The repository's copies are development data, kept deliberately rich because an empty file exercises

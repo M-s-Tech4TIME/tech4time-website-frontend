@@ -37,7 +37,7 @@ which has its own copy of this documentation covering that half. Entries below t
 | The header or footer | [10-development/frontend/shared-markup.md](10-development/frontend/shared-markup.md) |
 | Add a whole new page | [10-development/frontend/adding-a-page.md](10-development/frontend/adding-a-page.md) |
 | Server-side code | [10-development/server-side/libraries.md](10-development/server-side/libraries.md) |
-| Make a page editable in `/admin` | *10-development/server-side/adding-an-editor.md* (in tech4time-website-backend) |
+| Make a page editable in the admin | *10-development/server-side/adding-an-editor.md* (in tech4time-website-backend) |
 | The sign-in, sessions, passwords | *10-development/server-side/authentication.md* (in tech4time-website-backend) |
 | Run the tests | [10-development/testing.md](10-development/testing.md) |
 

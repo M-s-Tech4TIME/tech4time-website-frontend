@@ -65,17 +65,23 @@ most often searched for by name.
 ### Never commit anything from the private store
 
 `secret.key`, `publish.key`, and on the backend the accounts and sessions too. `.gitignore` covers
-both store names as a backstop, and
-`check_secrets.py` fails the build if one appears.
+both store names as a backstop, and `check_secrets.py` fails the build if one appears.
 
 **Why:** a leaked master key means every stored password can be attacked offline, and a leaked
-`tech4time-website-backend/`'s `admins.json` hands over the authenticator secrets, which cannot be hashed and so cannot be
-protected any other way.
+`admins.json` — which lives in the backend's store, never this one — hands over the authenticator
+secrets, which cannot be hashed and so cannot be protected any other way.
 
-### Never add an `.htaccess` to `admin/`
+This half holds three things and has no *name* for a fourth: `t4t_private_path()` throws on a key it
+does not know, so there is no path on this host for a password hash to be written to at all.
+[0017](../90-decisions/0017-two-private-stores.md)
 
-**Why:** cPanel writes its own file there when Directory Privacy is used. Uploading over it silently
-removes whatever protection it was applying.
+### Never let a deploy overwrite an `.htaccess` cPanel wrote
+
+**Why:** cPanel's Directory Privacy writes its own `.htaccess` into whatever directory it protects.
+Uploading over it silently removes the password, and nothing in the output says so. There is no
+`admin/` on this host any more — the editor is `admin.tech4time.bd`, a document root of its own, and
+that is where the question actually arises today. *admin-activation.md* (in
+tech4time-website-backend)
 
 ### Never overwrite `content/` on a live server
 

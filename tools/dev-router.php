@@ -11,22 +11,22 @@
  * "index.html index.php"; this resolves a directory request the same way, so
  * /pages/careers/ finds its .php and every other page finds its .html.
  *
- * IT NO LONGER FAKES A SIGN-IN
+ * IT NO LONGER FAKES A SIGN-IN, AND THERE IS NOTHING HERE TO SIGN IN TO
  * It used to set REMOTE_USER, because /admin was protected by cPanel Directory
- * Privacy and admin/index.php would otherwise have refused to load. The admin
- * has its own accounts now, so there is nothing to stand in for: run
- * /admin/setup.php once to create a local account, then sign in for real.
+ * Privacy and admin/index.php would otherwise have refused to load. Both are
+ * gone from this repository: the editor is tech4time-website-backend, with its
+ * own accounts and its own serve.py. Nothing this router serves has a session.
  *
- * Working on the editor against the real sign-in is the point. A fake one hides
- * exactly the bugs that matter — a session that does not survive a redirect, a
- * token that does not match, a form that posts to the wrong place.
+ * To work on the editor, run that repository's server; to watch content travel
+ * between them, run both, as the docstring above describes.
  *
  * WHERE THE LOCAL SECRETS GO
  * lib/private.php puts them beside the document root, which here is the repo,
  * so they land in ../t4t-private — outside the tree, never committed, and the
  * same shape as /home/USER/t4t-private on the host. Set T4T_PRIVATE to put
- * them somewhere else; the test harnesses do, so a test run cannot disturb
- * whatever account you signed in with.
+ * them somewhere else; the test harnesses do, so a test run cannot disturb the
+ * contact form's throttle counters, which are the only thing this half keeps
+ * there — along with publish.key, and the master key that peppers the counters.
  *
  * Start it with tools/serve.py rather than by hand.
  */

@@ -94,7 +94,7 @@ way. Prefer not to.
 The footer repeats the company's phone number, email and address. **The admin cannot reach them** —
 they are markup, not content, and the editor writes `content/contact.json`.
 
-So after changing contact details in `/admin/?s=contact`:
+So after changing contact details at `https://admin.tech4time.bd/?s=contact`:
 
 ```bash
 python3 tools/sync_site_contact.py     # push them from the JSON into every page
