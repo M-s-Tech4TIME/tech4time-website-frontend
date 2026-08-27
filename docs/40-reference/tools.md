@@ -26,6 +26,7 @@ browser tests speak to geckodriver over its wire protocol — there is no Seleni
 | Script | Proves |
 |---|---|
 | `check_contrast.py` | the palette meets WCAG 2.1 AA in both modes |
+| `check_css.py` | every stylesheet's comments and braces balance, and no shorthand (`outline`, `border`) is handed a bare colour token — which parses, computes to a colour and a width, and draws nothing, because the shorthand reset the style to `none` |
 | `check_shared_markup.py` | the header, footer and script blocks have not drifted between pages |
 | `check_content_model.py` | the editor, the data and the page still describe the same thing, and no editor is unchecked |
 | `check_secrets.py` | nothing protecting the admin has quietly stopped protecting it |
