@@ -22,7 +22,8 @@ python3 tools/check_secrets.py         # nothing secret committed; no protection
 python3 tools/check_docs.py            # the docs still describe the code
 python3 tools/audit_pages.py           # SEO, accessibility, structure, internal links
 python3 tools/build_deploy_set.py --check   # nothing secret or local is bound for the server
-python3 tools/check_shared_lib.py      # the three files both halves hold identically
+python3 tools/check_shared_lib.py
+python3 tools/check_shared_repos.py      # the three files both halves hold identically
 ```
 
 > **Half the suite is in the other repository.** The editor's round trips, the sign-in and the

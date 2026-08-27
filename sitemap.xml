@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/assets/xsl/sitemap.xsl"?>
 <!--
   Tech4TIME sitemap.
-  Seeded in Phase 1 with the full route list; each entry's lastmod is updated as
-  that page is actually built. Regenerate with tools/build_sitemap.py.
+  Seeded in Phase 1 with the full route list; each entry's lastmod is updated by
+  hand as that page is actually built. There is no generator for this file, and
+  an earlier version of this comment claimed one: adding a page means adding its
+  <url> here, and docs/10-development/frontend/adding-a-page.md says so.
+
+  The xml-stylesheet line above is what a BROWSER uses to render this as a
+  readable table — assets/xsl/sitemap.xsl. Crawlers ignore it and read the
+  <urlset> below, so it changes nothing about how the site is indexed.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 

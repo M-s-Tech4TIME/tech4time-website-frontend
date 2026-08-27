@@ -6,6 +6,7 @@ The live state of the hosting account. **This file is a record, not a design** �
 something on the host changes, or it stops being useful.
 
 Last confirmed: **2026-08-23**, from `tools/host-probe.php` run on the live host.
+Last reviewed against the repository: **2026-08-27**.
 
 ---
 
@@ -114,7 +115,7 @@ allowance up, which would stop the genuine reset from being delivered at the mom
 |---|---|
 | AutoSSL | for `tech4time.bd` and `www.tech4time.bd` |
 | HTTPS redirect | **active** in `.htaccess` |
-| HSTS | **staged, commented out** — enable after the site is live |
+| HSTS | **active** — `max-age=31536000`, set in `.htaccess` and asserted by `tools/check_secrets.py`. No `preload`, deliberately |
 | `includeSubDomains` | **off**, and must stay off until `admin.tech4time.bd` has its own certificate |
 
 ---
@@ -133,24 +134,31 @@ its own sign-in is being proven — *admin-activation.md* (in tech4time-website-
 
 1. **Prove `admin@tech4time.bd` receives** what the backend sends it — the mailbox exists as of
    2026-08-23; delivery is confirmed at activation step 6
-2. **Run `tools/host-probe.php`** — upload, set the token, load once, read, **delete** — and record
-   the PHP version, argon2id availability and hash time here
-3. **Submit the real contact form twice**, once with JavaScript and once without; confirm both
-   arrive and that replying reaches the visitor rather than `no-reply@`
-4. **Enable HSTS** once the site has served over HTTPS a few times
-5. **Consider `p=quarantine`** for DMARC once mail is proven
-6. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
+2. **Prove a reply reaches the visitor.** Both submission paths were confirmed arriving at
+   `info@tech4time.bd` on 2026-08-23, with JavaScript and without. What has *not* been checked is
+   pressing Reply on one of those mails and seeing it addressed to the visitor rather than to
+   `no-reply@`
+3. **Consider `p=quarantine`** for DMARC once reset delivery is proven — not before, because at
+   `p=none` a failure is visible and at `p=quarantine` it is silently binned
+4. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
    not more `mail()` retries
+
+Two items that stood here are done and are recorded above rather than pending: `tools/host-probe.php`
+ran on 2026-08-23 (its figures are the PHP and signing rows at the top of this file, and the probe
+itself was deleted), and HSTS is active.
 
 ---
 
-## Planned
+## Built since this file first named them as planned
 
 | | |
 |---|---|
-| `admin.tech4time.bd` | the backend, its own document root **outside `public_html`** — [environments.md](../20-deployment/environments.md) |
-| Deploy key | for rsync over SSH from GitHub Actions |
-| Pinned `known_hosts` | for the same |
+| `admin.tech4time.bd` | the backend, serving from its own document root — [environments.md](../20-deployment/environments.md) · *0018* (in tech4time-website-backend) |
+| Deploy key | rsync over SSH from GitHub Actions, in place for both halves — [ci-cd.md](../20-deployment/ci-cd.md) |
+| Pinned `known_hosts` | the host key comes from a secret rather than `ssh-keyscan` on each run |
+
+Nothing on the host is planned-but-absent today. What is left is the list above this one — things
+to *prove*, not things to build.
 
 ---
 

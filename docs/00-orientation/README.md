@@ -89,12 +89,18 @@ Honest status, so you do not go looking for things that are not there.
 - **Two of sixteen pages are editable.** The other fourteen are hand-edited HTML. Making them
   manageable is planned work, not missing work — see
   *adding-an-editor.md* (in tech4time-website-backend).
-- **The repository has not been split yet.** The plan is `tech4time-website-frontend` and
-  `tech4time-website-backend` on `tech4time.bd` and `admin.tech4time.bd`, talking over a signed
-  publish API. Not built. See [0011-two-repositories.md](../90-decisions/0011-two-repositories.md).
-- **There is no CI/CD.** Deploys are manual uploads today. GitHub Actions over rsync/SSH is planned.
-- **The site is not live yet.** It has never been deployed to production. The accessibility, Core
-  Web Vitals and responsiveness audit is still outstanding and should run before it is.
+- **The split is done and built.** This repository is `tech4time-website-frontend` on
+  `tech4time.bd`; the editor is `tech4time-website-backend` on `admin.tech4time.bd`, and the two
+  talk over a signed publish API. The sequence in [architecture.md](architecture.md) is running
+  code, not a plan. [0011](../90-decisions/0011-two-repositories.md) ·
+  [0017](../90-decisions/0017-two-private-stores.md) ·
+  [0018](../90-decisions/0018-the-backend-serves-from-a-subdirectory.md)
+- **A push to `main` deploys.** Checks run, rsync over SSH, and the running site is then asked
+  whether the rules that protect it are still there. [ci-cd.md](../20-deployment/ci-cd.md)
+- **Field-measured LCP, CLS and INP are outstanding.** The site is live, and the accessibility,
+  dark-mode and responsiveness crawlers all pass — but every number so far comes from a
+  development machine or a CI runner, both of which software-rasterise in headless Firefox. Real
+  numbers need a real throttled load against `tech4time.bd`.
 
 ---
 

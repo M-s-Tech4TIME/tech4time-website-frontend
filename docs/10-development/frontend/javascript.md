@@ -92,13 +92,21 @@ Everything else is deferred, at the end of `<body>`.
 | `terminal.js` | the typed terminal session on the homepage |
 | `tech-sphere.js` | the draggable technology sphere on Company Profile |
 | `forms.js` | contact form convenience validation |
+| `dashboard.js` | the tabbed panels on the service detail pages |
 | `main.js` | bootstrap; runs each module's `init()` |
-| `admin-init.js` | the admin's pre-paint work |
-| `admin-nav.js` | the admin's icon rail |
-| `editor.js` | the editors' controls — repeatable rows, reordering, previews |
-| `dashboard.js` | the admin overview |
 
-The last four load only under `/admin/`.
+**None of the admin's scripts are here.** They moved with the editor:
+
+- `tech4time-website-backend/public/assets/js/admin-init.js` — its pre-paint work
+- `tech4time-website-backend/public/assets/js/admin-nav.js` — its icon rail
+- `tech4time-website-backend/public/assets/js/editor.js` — repeatable rows, reordering, previews
+
+Nothing in this repository loads under `/admin/`, because there is no `/admin/` on this host.
+`check_docs.py` requires those full paths: naming a file that is not here is allowed only when some
+document says where it went, which is what stops a dead name from living in the prose forever.
+
+> `dashboard.js` is named for the NextJS build's dashboards, whose Proactive/Reactive style switches
+> the service pages port to static markup. It has never had anything to do with the admin.
 
 ---
 

@@ -166,9 +166,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 
 /* A field positioned off-screen and marked aria-hidden. Nobody using the site
    can see it or tab to it, so anything in it came from something automated.
-   Answer as though it worked: telling a bot it failed only helps it. */
+   Answer as though it worked: telling a bot it failed only helps it, so this
+   is the same sentence the genuine path ends with, character for character. */
 if (field('company') !== '') {
-    respond(true, 'Thank you — your message has been sent.');
+    respond(true, 'Thank you — your message has been sent. We will get back to you soon!');
 }
 
 /* ---------------------------------------------------------------- how often */
@@ -302,4 +303,4 @@ if (!$sent) {
     respond(false, 'We could not send your message just now. Please email ' . MAIL_TO . ' directly.', 500);
 }
 
-respond(true, 'Thank you — your message has been sent. We will reply within one working day.');
+respond(true, 'Thank you — your message has been sent. We will get back to you soon!');
