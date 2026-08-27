@@ -108,6 +108,34 @@ which is the worst way to discover a mail problem.
 > policy stays `p=none`. It is the step that has to come before `p=quarantine`, and it is the one
 > that was missing.
 
+### Performance — lab, measured 2026-08-27
+
+Lighthouse 12.8.2 against `https://tech4time.bd/`, mobile form factor, simulated Slow 4G. INP is
+not a load metric and Lighthouse does not report it, so it was measured separately: a real Chrome
+at 390×844 under Slow 4G **and 4× CPU throttling**, with the navigation toggle and the theme toggle
+actually clicked and the page scrolled.
+
+| | Measured | Google's "good" bar | |
+|---|---|---|---|
+| **LCP** | **1.5 s** | ≤ 2.5 s | |
+| **CLS** | **0** | ≤ 0.1 | not 0.02 — zero |
+| **INP** | **24 ms** | ≤ 200 ms | worst event of any kind was 32 ms |
+| FCP | 1.4 s | ≤ 1.8 s | |
+| TBT | 40 ms | ≤ 200 ms | the lab stand-in for INP |
+| Performance score | **99 / 100** | | |
+
+**These are lab numbers and must not be quoted as field numbers.** Simulated throttling is a model
+of a slow phone, not a slow phone; and one run from one place is not a distribution. What they do
+establish is that the site has no structural performance problem to find — Lighthouse's entire list
+of opportunities came to 13 KiB of offscreen images and 2 KiB of unminified JavaScript.
+
+Why the numbers are what they are, so a future change can be judged against it: HTTP/2, **brotli on
+both HTML and CSS**, assets cached for a year, HTML at `max-age=0, must-revalidate`, every script
+`defer` except `theme-init.js` — which blocks deliberately, because that is what stops the theme
+flashing. The home page is 74.8 KB of HTML compressing to 17.0 KB, of which 21.9 KB uncompressed is
+the inlined icon sprite. That inlining is [0004](../90-decisions/0004-self-hosted-strict-csp.md)
+and the CSP, paid for in bytes that brotli mostly gives back.
+
 ### Quotas
 
 cPanel enforces an **hourly outbound mail limit**. The reset throttle is sized to stay under it:
@@ -141,14 +169,39 @@ its own sign-in is being proven — *admin-activation.md* (in tech4time-website-
 
 ## Outstanding on the host
 
-1. **Publish a `rua=` address on the DMARC record**, staying at `p=none`. Nothing is currently
+1. **Delete the pre-split leftovers from `~/t4t-private/`.** Found on the live host 2026-08-27,
+   and it is the one item here that is a *finding* rather than a task:
+
+   ```
+   ~/t4t-private/  admins.json  admins.json.bak  audit.log  resets.json  sessions/ (19 files)
+   ```
+
+   None of those belong to this half. This side's store has three files —
+   [0017](../90-decisions/0017-two-private-stores.md) — and `T4T_PRIVATE_FILES` in `lib/private.php`
+   names only those three, so `t4t_private_path()` throws on any of the above. **Nothing here can
+   read them, and nothing writes them:** this side calls `session_start()` nowhere, and PHP's own
+   `session.save_path` on the host is `/var/cpanel/php/sessions/ea-php82`.
+
+   They are the monolith's, from before the split. `admins.json` holds account `tech4time-admin`
+   with a real **password hash, a real authenticator secret and ten recovery-code hashes**, last
+   touched 2026-08-24; the audit log runs 2026-08-23 to 2026-08-24. It is *not* a copy of the live
+   backend's account — the two files have different digests, so this is a second, forgotten set of
+   admin credentials.
+
+   Unreachable is not the same as gone. This documentation says the public host holds no password
+   hash, and until these are removed that sentence is false. Nothing on either site reads them, so
+   deleting them costs nothing and can be done at any time.
+
+2. **Publish a `rua=` address on the DMARC record**, staying at `p=none`. Nothing is currently
    reporting, so nothing is currently known. See the DNS section above
-2. **Then consider `p=quarantine`**, once a week or two of those reports show every legitimate
+3. **Then consider `p=quarantine`**, once a week or two of those reports show every legitimate
    sender passing — not before, because at `p=none` a failure is visible and at `p=quarantine` it
    is silently binned
-3. **Field-measured LCP, CLS and INP** against the live host. Lab figures can be taken today; field
-   figures need real visitors, and the site went live this month
-4. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
+4. **FIELD-measured** LCP, CLS and INP. Lab figures against the live host were taken on
+   2026-08-27 and are below; field figures come from CrUX, which needs 28 days of real traffic and
+   therefore cannot exist yet. Re-check `pagespeed.web.dev` once the site has been visited for a
+   month
+5. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
    not more `mail()` retries
 
 Items that stood here and are done, recorded above rather than pending: `tools/host-probe.php` ran
