@@ -188,13 +188,15 @@ its own sign-in is being proven — *admin-activation.md* (in tech4time-website-
    backend's account — the two files have different digests, so this is a second, forgotten set of
    admin credentials.
 
-   Unreachable is not the same as gone. This documentation says the public host holds no password
-   hash, and until these are removed that sentence is false. Nothing on either site reads them, so
-   deleting them costs nothing and can be done at any time.
+   Unreachable is not the same as gone, and this documentation said the public host holds no
+   password hash — which was false while they sat there. Removed on 2026-08-27 by name, not by
+   glob; the three ADR 0017 files were digest-checked before and after and are unchanged, and
+   `verify_live.py` passed 28/28 afterwards with the contact and careers pages still rendering.
 
-2. **Publish a `rua=` address on the DMARC record**, staying at `p=none`. Nothing is currently
-   reporting, so nothing is currently known. See the DNS section above
-3. **Then consider `p=quarantine`**, once a week or two of those reports show every legitimate
+2. ~~**Publish a `rua=` address on the DMARC record.**~~ **Done 2026-08-27** — see the DNS section
+   above.
+
+3. **Consider `p=quarantine`**, once a week or two of those reports show every legitimate
    sender passing — not before, because at `p=none` a failure is visible and at `p=quarantine` it
    is silently binned
 4. **FIELD-measured** LCP, CLS and INP. Lab figures against the live host were taken on
