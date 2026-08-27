@@ -93,11 +93,20 @@ hostname in that secret would not match it.
 | **MX** | `0 tech4time.bd` | mail for the domain is handled by **the web server itself** and never leaves the box |
 | **SPF** | `v=spf1 +a +mx +ip4:103.138.189.25 include:spf.mysecurecloudhost.com ~all` | authorises this server to send as the domain |
 | **DKIM** | cPanel `default` selector | outbound mail is signed |
-| **DMARC** | `v=DMARC1; p=none;` | **monitoring only** |
+| **DMARC** | `v=DMARC1; p=none;` | **monitoring only — and reporting nothing** |
 
 **DMARC is deliberately at `p=none`.** Worth tightening to `p=quarantine` once reset delivery is
 proven — not before. At `p=none` a failure is visible; at `p=quarantine` it is silently binned,
 which is the worst way to discover a mail problem.
+
+> **The record carries no `rua=`.** Checked against live DNS on 2026-08-27: the whole value is
+> `v=DMARC1; p=none;`. `p=none` means "do not enforce, tell me what you saw" — and with no `rua=`
+> address there is nowhere to tell. So this is not monitoring; it is the absence of a policy
+> wearing a policy's clothes, and a week of it produces no evidence that tightening would be safe.
+>
+> **Adding `rua=mailto:admin@tech4time.bd` costs nothing and changes no delivery**, because the
+> policy stays `p=none`. It is the step that has to come before `p=quarantine`, and it is the one
+> that was missing.
 
 ### Quotas
 
@@ -132,20 +141,22 @@ its own sign-in is being proven — *admin-activation.md* (in tech4time-website-
 
 ## Outstanding on the host
 
-1. **Prove `admin@tech4time.bd` receives** what the backend sends it — the mailbox exists as of
-   2026-08-23; delivery is confirmed at activation step 6
-2. **Prove a reply reaches the visitor.** Both submission paths were confirmed arriving at
-   `info@tech4time.bd` on 2026-08-23, with JavaScript and without. What has *not* been checked is
-   pressing Reply on one of those mails and seeing it addressed to the visitor rather than to
-   `no-reply@`
-3. **Consider `p=quarantine`** for DMARC once reset delivery is proven — not before, because at
-   `p=none` a failure is visible and at `p=quarantine` it is silently binned
+1. **Publish a `rua=` address on the DMARC record**, staying at `p=none`. Nothing is currently
+   reporting, so nothing is currently known. See the DNS section above
+2. **Then consider `p=quarantine`**, once a week or two of those reports show every legitimate
+   sender passing — not before, because at `p=none` a failure is visible and at `p=quarantine` it
+   is silently binned
+3. **Field-measured LCP, CLS and INP** against the live host. Lab figures can be taken today; field
+   figures need real visitors, and the site went live this month
 4. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
    not more `mail()` retries
 
-Two items that stood here are done and are recorded above rather than pending: `tools/host-probe.php`
-ran on 2026-08-23 (its figures are the PHP and signing rows at the top of this file, and the probe
-itself was deleted), and HSTS is active.
+Items that stood here and are done, recorded above rather than pending: `tools/host-probe.php` ran
+on 2026-08-23 (its figures are the PHP and signing rows at the top of this file, and the probe
+itself was deleted); HSTS is active; **`admin@tech4time.bd` was proven to receive on 2026-08-27**,
+by a password reset run end to end with the emailed code read out of that mailbox; and **pressing
+Reply on a contact-form mail was confirmed on 2026-08-27** to address the visitor rather than
+`no-reply@`, which is what `Reply-To` is there for.
 
 ---
 

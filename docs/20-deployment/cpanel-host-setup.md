@@ -76,10 +76,15 @@ The reset code and every enquiry are only useful if they arrive.
 | **MX** | mail for the domain must be handled somewhere you can read |
 | **SPF** | must authorise this server to send as the domain |
 | **DKIM** | cPanel signs outbound mail; confirm the selector is published |
-| **DMARC** | start at `p=none` — monitoring only |
+| **DMARC** | start at `p=none` **with a `rua=` address** — monitoring only, but actually monitoring |
 
 > Leave DMARC at `p=none` until reset delivery is proven. At `p=none` a failure is visible; at
 > `p=quarantine` it is silently binned, which is the worst way to discover a mail problem.
+>
+> **`p=none` without `rua=` reports to nobody.** The whole point of the monitoring phase is the
+> aggregate reports it produces; a record with no address to send them to spends the phase learning
+> nothing, and the decision to tighten then rests on no evidence. Write it as
+> `v=DMARC1; p=none; rua=mailto:admin@tech4time.bd;` from the start.
 
 Current values: [host-facts.md](../40-reference/host-facts.md).
 
