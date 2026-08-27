@@ -29,12 +29,13 @@ browser tests speak to geckodriver over its wire protocol — there is no Seleni
 | `check_shared_markup.py` | the header, footer and script blocks have not drifted between pages |
 | `check_content_model.py` | the editor, the data and the page still describe the same thing, and no editor is unchecked |
 | `check_secrets.py` | nothing protecting the admin has quietly stopped protecting it |
-| `check_docs.py` | the documentation still describes the code |
+| `check_docs.py` | the documentation still describes the code: undocumented tools, libraries and **assets**; dead links; cited paths that have gone; constants whose documented values drifted. The asset and tool checks run **both** ways — a stylesheet or script named in the prose but absent from disk fails too, unless some document says in full which repository it moved to |
 | `audit_pages.py` | every page: SEO, accessibility and structural correctness |
 | `inject_icons.py --check` | every page's inlined icon block is current |
 | `build_deploy_set.py --check` | the set of files bound for the server holds nothing it must not, and nothing is missing |
 | `verify_live.py <url>` | a deployed site still returns 403 for `lib/`, `content/` and dotted paths, still carries its headers, and still answers on `/api/publish.php` |
 | `check_shared_lib.py` | the three files both repositories hold identically have not been edited here |
+| `check_shared_repos.py` | the same files, compared against **the other repository** rather than a local digest — plus every same-named tool, which must match unless `DIVERGENT` says why not. This is the only check anywhere that can see the two halves drift apart; `check_shared_lib.py` structurally cannot. Needs both repos present, or `--clone` |
 
 ## Checks that need a browser
 
