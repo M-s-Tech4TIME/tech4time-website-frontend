@@ -181,6 +181,11 @@ Options -Indexes
     AddType image/svg+xml                   .svg
     AddType application/manifest+json       .webmanifest
     AddType application/ld+json             .jsonld
+
+    # The browser-facing view of sitemap.xml. This is NOT cosmetic wiring: the
+    # site sends X-Content-Type-Options: nosniff, so a stylesheet served as
+    # text/plain is refused and the sitemap falls back to raw XML.
+    AddType text/xsl                        .xsl
 </IfModule>
 
 # --------------------------------------------------------------------------

@@ -16,8 +16,15 @@ layout.css      page scaffolding — containers, grids, sections
 components.css  buttons, cards, forms, navigation, the shared furniture
 animations.css  keyframes and reveal states
 pages/<name>.css   optional, one page only
-admin.css       the editor UI — loaded only under /admin/
+sitemap.css     the browser-facing view of sitemap.xml, and nothing else
 ```
+
+There is no `admin.css` here. The editor's stylesheet moved with the editor —
+`tech4time-website-backend/public/assets/css/admin.css`.
+
+`sitemap.css` is the one file no page links: its only consumer is
+`assets/xsl/sitemap.xsl`, which needs a stylesheet of its own because the CSP is `style-src 'self'`
+and an XSLT cannot carry a `<style>` block.
 
 Every page links them in that order. Later files depend on earlier ones, so the order is not
 negotiable: `theme.css` defines the tokens `components.css` consumes.

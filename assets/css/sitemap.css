@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Tech4TIME — sitemap.css
+   The only consumer is assets/xsl/sitemap.xsl, the browser-facing view of
+   sitemap.xml. It is a separate file for one reason: the CSP is
+   style-src 'self', so the XSLT cannot carry a <style> block, and this is
+   where that markup's rules have to live instead.
+
+   It loads after base.css and theme.css and uses their tokens only — no
+   colour is written here, in keeping with theme.css owning every one.
+   check_contrast.py therefore still covers this page: every pair below is a
+   pair it already checks.
+   ========================================================================== */
+
+.sitemap-page {
+  background-color: var(--bg-base);
+}
+
+.sitemap {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding: var(--space-xl) var(--space-md) var(--space-2xl);
+}
+
+/* -------------------------------------------------------------------- head */
+
+.sitemap__head {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.sitemap__eyebrow {
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2xs);
+}
+
+.sitemap__title {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.sitemap__lede {
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+  max-width: 60ch;
+  margin: 0 0 var(--space-xs);
+}
+
+.sitemap__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------- table */
+
+/* A table of URLs is the one thing on this site that genuinely cannot be made
+   narrow enough for a 320px screen — the cells hold absolute URLs. It scrolls
+   inside this box so the page itself never does, which is the rule
+   check_responsive.py enforces everywhere else. */
+.sitemap__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background-color: var(--bg-elevated);
+}
+
+.sitemap__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.sitemap__caption {
+  /* Named for screen readers; the visible heading above already says it. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sitemap__table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.sitemap__table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.sitemap__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.sitemap__loc a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  word-break: break-word;
+}
+
+.sitemap__loc a:hover {
+  color: var(--text-primary);
+}
+
+.sitemap__meta {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------- foot */
+
+.sitemap__foot {
+  margin-top: var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.sitemap__foot a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.sitemap__foot a:hover {
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------------- focus */
+
+/* base.css sets the site's focus ring on :focus-visible. This page is reached
+   by keyboard like any other, and its links sit on --bg-elevated rather than
+   --bg-base, so the ring is restated here against the surface it lands on. */
+.sitemap a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
