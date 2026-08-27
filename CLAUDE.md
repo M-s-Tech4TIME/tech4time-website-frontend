@@ -103,10 +103,10 @@ Both halves need the **same** `publish.key` in their private stores — `tools/m
 
 ```bash
 python3 tools/check_contrast.py        python3 tools/check_content_model.py
+python3 tools/check_css.py             python3 tools/check_shared_repos.py
 python3 tools/inject_icons.py --check  python3 tools/check_secrets.py
 python3 tools/check_shared_markup.py   python3 tools/check_docs.py
 python3 tools/audit_pages.py           python3 tools/check_shared_lib.py
-python3 tools/check_shared_repos.py
 ```
 
 Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and
@@ -147,4 +147,7 @@ paths still answer 403 and `/api/publish.php` still answers 405 —
 [ci-cd.md](docs/20-deployment/ci-cd.md). Never sync `content/`; it is seeded with `--ignore-existing`
 and the host's copy always wins.
 
-**Not done, and not missing:** field-measured LCP/CLS/INP against the live host is outstanding.
+**Not done, and not missing:** LCP/CLS/INP were measured in the lab against the live host on
+2026-08-27 — 1.5 s / 0 / 24 ms, Lighthouse 99 —
+[host-facts.md](docs/40-reference/host-facts.md). **Field** figures come from CrUX and need a
+month of real traffic, so they cannot exist yet. Do not quote the lab numbers as field numbers.
