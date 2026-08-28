@@ -22,9 +22,19 @@
  *     "meta":    { title, description, share_title }
  *     "hero":    { title, subtitle }
  *     "form":    { title, lead, subject_hint, note, service_types[] }
- *     "reach":   { title, items[ { icon, label, type, values[], text } ] }
- *     "offices": { eyebrow, title, lead, items[ { name, flag, address,
- *                  phones[], hours, languages[], status, schema{} } ] }
+ *     "reach":   { status, title,
+ *                  items[ { icon, label, type, values[], text, status } ] }
+ *     "offices": { status, eyebrow, title, lead,
+ *                  items[ { name, flag, image{}, address, phones[], hours,
+ *                  languages[], status, schema{} } ] }
+ *
+ *   A band's status and a row's are separate switches and both are honoured:
+ *   contact_shown_reach() and contact_shown_offices() answer for both, so the
+ *   structured data cannot advertise a band the page does not draw.
+ *
+ *   An office has a flag TWICE: 'flag' is a slug naming a file that ships with
+ *   the public site, and 'image' is an uploaded picture. The upload wins when
+ *   it is set; the slug is what the three original offices still use.
  *   }
  */
 
@@ -109,6 +119,28 @@ function contact_reach_text(array $item, string $value): string
  */
 function contact_flag_picture(array $office): string
 {
+    /* AN UPLOADED FLAG WINS. It is the only kind an editor can add: the slug
+       below names a file that ships with this repository, so a fourth country
+       needed a developer and a deploy until this existed. The slug still
+       renders for the three offices that have one, which is why both are here
+       rather than one replacing the other. */
+    $image = is_array($office['image'] ?? null) ? $office['image'] : [];
+    $src = trim((string)($image['src'] ?? ''));
+
+    if ($src !== '') {
+        $alt = 'Flag of ' . trim((string)($office['name'] ?? ''));
+        $webp = trim((string)($image['webp'] ?? ''));
+        $size = ((int)($image['width'] ?? 0) > 0 && (int)($image['height'] ?? 0) > 0)
+            ? ' width="' . (int)$image['width'] . '" height="' . (int)$image['height'] . '"'
+            : '';
+
+        return '<picture class="office__flag-wrap">'
+             . ($webp !== '' ? '<source srcset="' . h($webp) . '" type="image/webp">' : '')
+             . '<img class="office__flag" src="' . h($src) . '"'
+             . ' alt="' . h($alt) . '"' . $size
+             . ' loading="lazy" decoding="async"></picture>';
+    }
+
     $flag = trim((string)($office['flag'] ?? ''));
     if ($flag === '' || !preg_match('/^[a-z0-9-]+$/', $flag)) {
         return '';
@@ -143,6 +175,35 @@ function contact_flag_picture(array $office): string
 }
 
 /* -------------------------------------------------------- structured data */
+
+/**
+ * A JSON value, encoded to sit inside hand-written JSON at a given depth.
+ *
+ * The Organization graph on the contact page is a literal object with two
+ * arrays spliced into it. json_encode() indents from column zero, so without
+ * this the generated arrays start flush left inside an object indented six
+ * spaces — valid JSON, and unreadable next to the lines around it, which is
+ * how a hand-edited block acquires its first mistake.
+ *
+ * An empty array encodes as [] and that is the right answer: a band switched
+ * off has no addresses, and "address": [] says so without inventing one.
+ */
+function contact_ld_indent(array $value, int $spaces): string
+{
+    $json = json_encode(
+        $value,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    );
+
+    if ($json === false) {
+        return '[]';
+    }
+
+    $pad = str_repeat(' ', $spaces);
+
+    /* Every line but the first, which is already sitting after the key. */
+    return str_replace("\n", "\n" . $pad, $json);
+}
 
 /** One schema.org PostalAddress per shown office that has enough to make one. */
 function contact_addresses(array $data): array
@@ -179,24 +240,30 @@ function contact_points(array $data): array
     $email = contact_email($data);
     $out = [];
 
+    /* ONE PER NUMBER, NOT ONE PER OFFICE. It was the office's first phone and
+       the rest were not advertised at all — an office listing three numbers
+       had two of them reachable on the page and invisible to a search engine.
+       areaServed and the languages come from the office either way, so a
+       second number from the same office is the same point with a different
+       line on it. */
     foreach (contact_shown_offices($data) as $office) {
-        if (!$office['phones']) {
-            continue;
-        }
-        $point = [
-            '@type'       => 'ContactPoint',
-            'telephone'   => contact_tel((string)$office['phones'][0]),
-            'contactType' => 'customer service',
-        ];
-        if ($email !== '') {
-            $point['email'] = $email;
-        }
         $country = strtoupper(trim((string)$office['schema']['country']));
-        if ($country !== '') {
-            $point['areaServed'] = $country;
+
+        foreach ($office['phones'] as $phone) {
+            $point = [
+                '@type'       => 'ContactPoint',
+                'telephone'   => contact_tel((string)$phone),
+                'contactType' => 'customer service',
+            ];
+            if ($email !== '') {
+                $point['email'] = $email;
+            }
+            if ($country !== '') {
+                $point['areaServed'] = $country;
+            }
+            $point['availableLanguage'] = $office['languages'] ?: ['English'];
+            $out[] = $point;
         }
-        $point['availableLanguage'] = $office['languages'] ?: ['English'];
-        $out[] = $point;
     }
 
     return $out;
