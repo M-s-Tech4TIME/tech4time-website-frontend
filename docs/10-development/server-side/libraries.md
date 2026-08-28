@@ -88,9 +88,16 @@ damage is recovered from. `tools/test_store.py` covers both.
 
 **Shared — byte-identical in `tech4time-website-frontend` and `tech4time-website-backend`.**
 
-`CONTRACT_VERSION` · `CONTRACT_DOCUMENTS` · `CONTRACT_BOOKKEEPING` · `careers_normalise()` ·
-`contact_normalise()` · `contact_defaults()` · `contact_fingerprint()` · `contract_sanitise()` ·
-`contract_next_revision()` · …
+`CONTRACT_VERSION` · `CONTRACT_DOCUMENTS` · `CONTRACT_BOOKKEEPING` · `contract_path()` ·
+`careers_normalise()` · `contact_normalise()` · `contact_defaults()` · `contact_fingerprint()` ·
+`contract_sanitise()` · `contract_next_revision()` · …
+
+`contract_path()` gives a document's record path — `content/<name>.json`, the same rule on both
+hosts. It exists for the things that have to work over *all* the documents without knowing their
+names in advance: the deploy's seed, built by looping over `CONTRACT_DOCUMENTS`, and the editor's
+warning when a host has no record for the page being edited. A list of documents kept anywhere but
+here is a list that goes out of step, and it did — see
+[ci-cd.md](../../20-deployment/ci-cd.md#it-was-a-list-and-the-list-went-out-of-step).
 
 **The shape of a document, and nothing else.** Field lists, the defaults a missing key falls back
 to, the normalising that turns whatever arrived into that shape, and the queries that read it. Both
