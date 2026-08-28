@@ -18,7 +18,7 @@ name without re-serialising the document, so nothing else on the page moves and
 the diff stays readable.
 
 Re-serialising was the alternative and it is the wrong one here: it would
-reformat all fifteen pages, bury the real change in whitespace noise, and put
+reformat all sixteen pages, bury the real change in whitespace noise, and put
 the shared header/footer blocks at risk of drifting out of byte-identity with
 tools/templates/ (see tools/check_shared_markup.py).
 

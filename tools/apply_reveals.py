@@ -10,7 +10,7 @@ Build tool. NOT deployed to the web server (see tools/README.md).
 
 WHY A TOOL AND NOT FIFTEEN HAND EDITS
 The reveal targets are a structural rule ("each section's header, then its
-body"), not fifteen independent decisions. Written by hand the rule survives
+body"), not sixteen independent decisions. Written by hand the rule survives
 only as long as my patience does, and the pages drift. Here the rule is stated
 once, and --strip makes the whole pass reversible, which is what lets it be
 tuned rather than argued about.
