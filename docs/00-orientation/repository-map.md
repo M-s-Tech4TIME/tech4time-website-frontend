@@ -20,7 +20,7 @@ tech4time-website/
 ├── .gitattributes          line endings and diff behaviour
 ├── .gitignore              includes the private store, as a backstop
 │
-├── pages/                  the other fifteen pages
+├── pages/                  the other fifteen pages; three are .php
 ├── assets/                 css, js, fonts, icons, images — all self-hosted
 ├── lib/                    server-side PHP
 ├── api/publish.php         where the backend's content arrives
@@ -48,7 +48,7 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 | — HR solutions | `pages/services/hr-solutions/index.html` | |
 | — IT consultancy & training | `pages/services/it-consultancy-training/index.html` | |
 | — IT equipment supply | `pages/services/it-equipment-supply/index.html` | |
-| Company profile | `pages/company-profile/index.html` | |
+| Company profile | `pages/company-profile/index.php` | **dynamic** — renders `content/company.json` |
 | Careers | `pages/careers/index.php` | **dynamic** — renders `content/careers.json` |
 | Contact | `pages/contact/index.php` | **dynamic** — renders `content/contact.json` |
 | Resource certifications | `pages/resource-certifications/index.html` | |

@@ -62,6 +62,7 @@ ENDPOINT = "/api/publish.php"
 
 CAREERS = ROOT / "content" / "careers.json"
 CONTACT = ROOT / "content" / "contact.json"
+COMPANY = ROOT / "content" / "company.json"
 
 MARK = "PUBLISHMARK"
 
@@ -327,6 +328,143 @@ def run(base: str, key: bytes, r: Results) -> None:
     _, page = get(base, "/pages/contact/")
     r.check("and a visitor sees the change", f"{MARK} Contact" in page)
 
+    company_round_trip(base, key, r)
+
+
+def company_round_trip(base: str, key: bytes, r: Results) -> None:
+    """Every field the company model declares, set and then read off the page.
+
+    THIS IS WHAT check_content_model.py POINTS AT. That check compares the
+    model, the form and the renderer by reading their source, and it cannot do
+    it for this page: the editor names its inputs with a loop variable and the
+    renderer walks six lists with foreach, so a regex over either finds the
+    loop and not the fields. So the agreement is proved the only other way
+    there is — put a distinguishable value in every field, publish it, and
+    look for it in the HTML a visitor would get.
+
+    A field that stops being rendered fails here. A field renamed on one side
+    fails here. Neither is visible to source-reading, and both are the whole
+    reason the check exists.
+    """
+    print("\nthe company profile travels the same road")
+
+    data = json.loads(COMPANY.read_text())
+    data["revision"] = 3
+
+    # One marker per scalar the page renders, so a missing one names itself.
+    data["meta"]["title"] = f"{MARK}-tab"
+    data["meta"]["description"] = f"{MARK}-desc"
+    data["meta"]["share_title"] = f"{MARK}-share"
+    data["hero"]["title"] = f"{MARK}-hero"
+    data["hero"]["subtitle"] = f"{MARK}-sub"
+    data["milestones"]["eyebrow"] = f"{MARK}-m-eyebrow"
+    data["milestones"]["title"] = f"{MARK}-m-title"
+    data["milestones"]["lead"] = f"<p>{MARK}-m-lead</p>"
+    data["background"]["eyebrow"] = f"{MARK}-b-eyebrow"
+    data["background"]["title"] = f"{MARK}-b-title"
+    data["experience"]["title"] = f"{MARK}-x-title"
+    data["clients"]["title"] = f"{MARK}-c-title"
+    data["journey"]["title"] = f"{MARK}-j-title"
+    data["journey"]["lead"] = f"<p>{MARK}-j-lead</p>"
+    data["journey"]["interval"] = 9500
+    data["excellence"]["eyebrow"] = f"{MARK}-e-eyebrow"
+    data["excellence"]["title"] = f"{MARK}-e-title"
+    data["excellence"]["lead"] = f"<p>{MARK}-e-lead</p>"
+    data["technology"]["title"] = f"{MARK}-t-title"
+    data["principles"]["title"] = f"{MARK}-p-title"
+    data["cta"]["title"] = f"{MARK}-cta-title"
+    data["cta"]["text"] = f"<p>{MARK}-cta-text</p>"
+    data["cta"]["label"] = f"{MARK}-cta-label"
+
+    # One row per list, every field of it marked.
+    data["milestones"]["items"] = [{
+        "id": "mark", "year": "2031", "title": f"{MARK}-m-row",
+        "text": f"{MARK}-m-text", "status": "shown"}]
+    data["experience"]["items"] = [{
+        "id": "mark", "figure": "42+", "label": f"{MARK}-x-label", "status": "shown"}]
+    data["clients"]["items"] = [{
+        "id": "mark", "name": f"{MARK}-c-name", "status": "shown",
+        "image": {"src": "/assets/images/clients/cca.jpg",
+                  "webp": "/assets/images/clients/cca.webp",
+                  "width": 320, "height": 167}}]
+    data["journey"]["items"] = [{
+        "id": "mark", "alt": f"{MARK}-j-alt", "status": "shown",
+        "image": {"src": "/assets/images/photos/celebration-1.jpg",
+                  "webp": "/assets/images/photos/celebration-1.webp",
+                  "width": 1024, "height": 768}}]
+    data["technology"]["items"] = [{
+        "id": "mark", "name": f"{MARK}-t-name", "status": "shown",
+        "image": {"src": "/assets/images/tech/metasploit.svg", "webp": "",
+                  "width": 1000, "height": 222}}]
+    data["principles"]["items"] = [{
+        "id": "mark", "icon": "lightbulb", "title": f"{MARK}-p-title-row",
+        "text": f"{MARK}-p-text", "status": "shown"}]
+
+    status, answer = publish(base, key, "company", data)
+    r.check("the company profile publishes", status == 200 and answer.get("ok") is True,
+            f"{status} {answer}")
+
+    _, page = get(base, "/pages/company-profile/")
+
+    missing = [k for k in (
+        "tab", "desc", "share", "hero", "sub",
+        "m-eyebrow", "m-title", "m-lead", "m-row", "m-text",
+        "b-eyebrow", "b-title", "x-title", "x-label",
+        "c-title", "c-name", "j-title", "j-lead", "j-alt",
+        "e-eyebrow", "e-title", "e-lead", "t-title", "t-name",
+        "p-title", "p-title-row", "p-text",
+        "cta-title", "cta-text", "cta-label",
+    ) if f"{MARK}-{k}" not in page]
+    r.check("every field the model declares reaches the page",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    r.check("the figure keeps its count-up hook", 'data-count-up>42+<' in page)
+    r.check("the slideshow carries the interval it was given",
+            'data-slider-interval="9500"' in page, "9500")
+    r.check("a logo with a WebP sibling gets a <picture>",
+            '<source srcset="/assets/images/clients/cca.webp"' in page)
+    r.check("and one without gets a bare <img> and no wrapper",
+            '<picture><source srcset="/assets/images/tech/metasploit' not in page
+            and 'src="/assets/images/tech/metasploit.svg"' in page,
+            "an SVG has no WebP version, and a <picture> with one <img> and no "
+            "<source> says a choice is being made when none is")
+    r.check("every picture carries the size that keeps the page still",
+            'width="320" height="167"' in page and 'width="1024" height="768"' in page)
+    r.check("the principle's icon is drawn", '<use href="#lightbulb">' in page)
+    r.check("the slideshow has one dot per photograph",
+            page.count('data-slider-to=') == 1, str(page.count('data-slider-to=')))
+
+    print("\nwhat the page does with hidden things")
+    data["revision"] = 4
+    data["clients"]["items"][0]["status"] = "hidden"
+    data["cta"]["status"] = "hidden"
+    publish(base, key, "company", data)
+    _, page = get(base, "/pages/company-profile/")
+
+    r.check("a hidden row is not rendered", f"{MARK}-c-name" not in page)
+    r.check("but the band around it still is", f"{MARK}-c-title" in page)
+    r.check("a hidden band is gone entirely", f"{MARK}-cta-title" not in page)
+    r.check("and the rest of the page is untouched", f"{MARK}-t-name" in page)
+
+    print("\na signature is not a promise about what is inside")
+    data["revision"] = 5
+    data["clients"]["items"][0]["status"] = "shown"
+    data["cta"]["status"] = "shown"
+    data["cta"]["text"] = '<p onclick="steal()">hi</p><script>steal()</script>'
+    data["clients"]["items"][0]["image"]["src"] = "https://evil.example/logo.png"
+    status, _ = publish(base, key, "company", data)
+    r.check("a validly signed payload is accepted", status == 200, str(status))
+
+    stored = json.loads(COMPANY.read_text())
+    _, page = get(base, "/pages/company-profile/")
+    r.check("but the script is gone", "steal()" not in page and "onclick" not in page)
+    r.check("and the text around it survives", ">hi<" in page)
+    r.check("a picture pointing at another origin is dropped on receipt",
+            stored["clients"]["items"][0]["image"]["src"] == "",
+            "a signature proves where a document came from, not what is in it — "
+            "an <img src> elsewhere would put a third party in every page load")
+    r.check("and nothing on the page points there", "evil.example" not in page)
+
 
 # --------------------------------------------------------------------- main
 
@@ -349,6 +487,7 @@ def main() -> None:
 
         careers_backup = CAREERS.read_text() if CAREERS.is_file() else None
         contact_backup = CONTACT.read_text() if CONTACT.is_file() else None
+        company_backup = COMPANY.read_text() if COMPANY.is_file() else None
 
         server = subprocess.Popen(
             ["php", "-S", f"127.0.0.1:{port}", "-t", str(ROOT),
@@ -377,7 +516,8 @@ def main() -> None:
             os.killpg(os.getpgid(server.pid), signal.SIGTERM)
             server.wait(timeout=10)
 
-            for path, backup in ((CAREERS, careers_backup), (CONTACT, contact_backup)):
+            for path, backup in ((CAREERS, careers_backup), (CONTACT, contact_backup),
+                                 (COMPANY, company_backup)):
                 if backup is not None:
                     path.write_text(backup)
                 bak = path.with_suffix(".json.bak")

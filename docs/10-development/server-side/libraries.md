@@ -18,6 +18,7 @@ store they read from is outside the document root entirely.
 | [`contract.php`](#contractphp) **shared** | the shape of every editable document | `html` |
 | [`careers.php`](#careersphp) | what this side does with a job post | `contract`, `store` |
 | [`contact.php`](#contactphp) | what this side does with the contact page | `contract`, `store` |
+| [`company.php`](#companyphp) | what this side does with the company profile | `contract`, `store` |
 | [`publish.php`](#publishphp) **shared** | how a document is signed and checked on the wire | `private`, `contract` |
 | [`publish_client.php`](#publish_clientphp) *(backend)* | sending one | `publish` |
 | [`footer-fingerprint.php`](#footer-fingerprintphp) *(frontend, generated)* | what this site's footers currently say | — |
@@ -147,6 +148,27 @@ The footer-drift banner is powered by `contact_footer_in_step()` in `contract.ph
 details now held against `footer_synced` — which after the split is **what the frontend reported in
 the last publish response**, not something this side computed. See
 [`footer-fingerprint.php`](#footer-fingerprintphp).
+
+### `company.php`
+
+`company_load()` · `company_save()` · `company_validate()` *(backend)* ·
+`company_page_schema()` · `company_picture()` *(frontend)*
+
+The same division again, for the company profile. The shape itself is the largest of the three and
+lives entirely in `contract.php`: six repeatable lists — milestones, figures, clients,
+photographs, technology, principles — plus the copy around them.
+
+Two things here are worth knowing before changing either half:
+
+**`company_picture()` decides between `<picture>` and a bare `<img>`,** on whether the row carries
+a WebP sibling. An SVG or an AVIF has none, and a `<picture>` holding one `<img>` and no `<source>`
+is markup claiming a choice is being made when none is. It is emitted on one line with no
+whitespace between the tags, because those elements are inline and a newline between them is a
+space the browser renders.
+
+**`company_validate()` refuses a figure that does not start with a digit.** `animations.js` counts
+it up by reading the number off the front, so `"Over 100"` silently never animates. That is the
+kind of thing an editor should say out loud rather than let somebody discover.
 
 ### `publish.php`
 

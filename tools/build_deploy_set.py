@@ -92,13 +92,14 @@ REQUIRED = [
     "lib/publish.php",    # and the format they agree it travels in
     "pages/careers/index.php",
     "pages/contact/index.php",
+    "pages/company-profile/index.php",
     "api/publish.php",    # the only route content takes to the live site
 ]
 
 # Never in the set, whatever else changes. Stated separately from "not in
 # UPLOAD" because that is the claim worth failing on out loud.
 FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude",
-                   "admin", "deploy"]
+                   "admin", "deploy", "uploads"]
 
 SEED = ROOT / "deploy" / "seed"
 
@@ -154,6 +155,10 @@ def build(out_dir: Path) -> list[str]:
     # contact is the real thing already, and is the same file the footers were
     # built from. Seeding it from anywhere else would make the two disagree.
     shutil.copy2(ROOT / "content" / "contact.json", seed / "contact.json")
+    # the company profile likewise: the repository's copy IS the page as it was
+    # written, so a fresh host renders what this one renders. Seeding it empty
+    # would give a new host a page of headings with nothing under them.
+    shutil.copy2(ROOT / "content" / "company.json", seed / "company.json")
 
     return paths
 

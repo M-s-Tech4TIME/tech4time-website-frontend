@@ -8,9 +8,12 @@ Build tool. NOT deployed to the web server (see tools/README.md).
     python3 tools/apply_reveals.py --write    # apply
     python3 tools/apply_reveals.py --strip    # remove every marker again
 
+A page that builds part of itself with a PHP loop is reported and left alone,
+by all three. See renders_a_list().
+
 WHY A TOOL AND NOT FIFTEEN HAND EDITS
 The reveal targets are a structural rule ("each section's header, then its
-body"), not fifteen independent decisions. Written by hand the rule survives
+body"), not sixteen independent decisions. Written by hand the rule survives
 only as long as my patience does, and the pages drift. Here the rule is stated
 once, and --strip makes the whole pass reversible, which is what lets it be
 tuned rather than argued about.
@@ -204,19 +207,37 @@ def targets_for(page: htmltree.Node) -> list[tuple[htmltree.Node, bool]]:
 
 
 def pages() -> list[Path]:
-    """
-    Every page, including the one that is PHP.
-
-    Careers is index.php because its listings come from content/careers.json.
-    Missing it was a silent gap: the page simply had no reveals while every
-    check reported a pass, because a page with nothing marked has nothing that
-    can fail. Its PHP conditionals wrap whole <section> elements, so the tag
-    tree is balanced whichever branch runs, and both branches get marked.
-    """
+    """Every page, static or rendered."""
     found = [ROOT / "index.html", ROOT / "404.html"]
     for name in ("index.html", "index.php"):
         found += sorted((ROOT / "pages").rglob(name))
     return [p for p in found if p.exists()]
+
+
+LOOP = re.compile(r"<\?php\s+(?:foreach|for|while)\b")
+
+
+def renders_a_list(path: Path) -> bool:
+    """Whether this page builds part of itself with a loop.
+
+    THIS TOOL CANNOT MARK SUCH A PAGE, AND MUST NOT TRY.
+
+    It reads the source and reasons about the tag tree it finds. On a page with
+    a PHP loop that tree is a lie about the page: the source holds ONE <li>
+    where the visitor will see seven, or fifty. And the count is exactly what
+    the rule turns on -- a run of 2..MAX_STAGGER cards is skipped in favour of
+    its children, and a longer run is collapsed to one target. Reading one
+    child, the tool marks the container instead of the cards, which is the
+    opposite of what the rendered page needs.
+
+    That was live and unnoticed. Running --strip and then --write would have
+    re-marked all three dynamic pages wrongly, and nothing would have said so:
+    the markers would still be present, still parse, and simply reveal the
+    wrong things. So the pages are reported and skipped, and their markers are
+    maintained by hand in the template -- against this same rule, which is
+    written out in each of those files beside the markup it explains.
+    """
+    return path.suffix == ".php" and LOOP.search(path.read_text()) is not None
 
 
 # Matched with a boundary, not as a prefix. A plain replace of " data-reveal"
@@ -262,13 +283,18 @@ def main() -> None:
     write = "--write" in sys.argv
     verbose = "-v" in sys.argv or "--verbose" in sys.argv
 
+    every = pages()
+    mine = [p for p in every if not renders_a_list(p)]
+    theirs = [p for p in every if renders_a_list(p)]
+
     if "--strip" in sys.argv:
-        total = sum(strip(p) for p in pages())
+        total = sum(strip(p) for p in mine)
         print(f"removed {total} data-reveal markers")
+        report_skipped(theirs)
         return
 
     grand = 0
-    for path in pages():
+    for path in mine:
         count, staggered, notes = apply(path, write)
         grand += count
         rel = path.relative_to(ROOT)
@@ -278,9 +304,21 @@ def main() -> None:
                 print(f"    {note}")
 
     verb = "marked" if write else "would mark"
-    print(f"\n{verb} {grand} elements across {len(pages())} pages")
+    print(f"\n{verb} {grand} elements across {len(mine)} pages")
+    report_skipped(theirs)
     if not write:
         print("dry run — pass --write to apply")
+
+
+def report_skipped(skipped: list[Path]) -> None:
+    if not skipped:
+        return
+
+    print(f"\n{len(skipped)} page(s) build a list at render time and are left alone:")
+    for path in skipped:
+        print(f"  {path.relative_to(ROOT)}")
+    print("  Their markers are written by hand, against the same rule — see")
+    print("  renders_a_list() for why this tool cannot do it for them.")
 
 
 if __name__ == "__main__":

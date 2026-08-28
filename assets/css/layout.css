@@ -67,7 +67,7 @@
 }
 
 /* Banner every inner page opens with: the page name in the silver gradient over
-   a tagline. Shared rather than per-page, so all twelve read as one family. */
+   a tagline. Shared rather than per-page, so all fourteen read as one family. */
 .page-hero {
   padding-block: clamp(3rem, 8vw, 6rem) clamp(2.5rem, 6vw, 4rem);
   text-align: center;

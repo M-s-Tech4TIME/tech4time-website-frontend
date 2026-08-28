@@ -254,6 +254,22 @@ Options -Indexes
     RewriteRule ^lib/ - [F,L]
     RewriteRule ^content/ - [F,L]
 
+    # uploads/ is the opposite case: it must be SERVED, and it holds files that
+    # arrived over the network. So it gets an allow-list rather than a block —
+    # sixteen hex characters, a dot, and one of three raster extensions, which
+    # is exactly the shape api/publish-asset.php computes from the bytes. A
+    # request for anything else under uploads/ is refused before any handler
+    # sees it, so a .php there could not be run even if one existed.
+    #
+    # This is the THIRD of three independent layers, and the only one that
+    # holds if the other two are wrong. The first is that the bytes were
+    # re-encoded through gd on the admin host, so they are that library's
+    # output and not an uploader's file. The second is that the name is
+    # computed here from those bytes and never sent, so nothing an uploader
+    # chose reaches a filesystem call. See ADR 0019.
+    RewriteCond %{REQUEST_URI} !^/uploads/[0-9a-f]{16}\.(webp|jpe?g|png)$
+    RewriteRule ^uploads/. - [F,L]
+
     # The private store — password hashes, the master key, sessions, the audit
     # log — belongs BESIDE the document root, at /home/USER/t4t-private, and
     # lib/private.php refuses to run if it finds itself anywhere inside this

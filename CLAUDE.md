@@ -107,6 +107,7 @@ python3 tools/check_css.py             python3 tools/check_shared_repos.py
 python3 tools/inject_icons.py --check  python3 tools/check_secrets.py
 python3 tools/check_shared_markup.py   python3 tools/check_docs.py
 python3 tools/audit_pages.py           python3 tools/check_shared_lib.py
+python3 tools/build_deploy_set.py --check
 ```
 
 Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and

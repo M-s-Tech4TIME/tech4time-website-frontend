@@ -79,10 +79,17 @@ jobs:
       # Everything the panel owns and the repository does not. None of it is in
       # _deploy/site, so --delete would remove all of it. 'P' is 'protect':
       # do not delete this on the receiver. See docs/90-decisions/0016.
+      #
+      # /uploads/ is on this list for the same reason /content/ is, and it is
+      # the more dangerous of the two to get wrong: it holds every picture the
+      # editor has ever added, none of them in the repository, and a deploy
+      # without this line would delete the lot on the first run and report
+      # success. ADR 0019.
       - name: the protect list
         run: |
           cat > /tmp/protect.rules <<'RULES'
           P /content/
+          P /uploads/
           P /admin/.htaccess
           P /.well-known/
           P /cgi-bin/

@@ -222,11 +222,18 @@ def check_one_writer() -> None:
         if "store_write(" in text or "file_put_contents(" in text:
             writers.append(path.relative_to(ROOT).as_posix())
 
-    if writers == ["api/publish.php"]:
-        ok("api/publish.php is the only writer outside lib/")
+    # EXACTLY TWO, and the equality is the point. A third writer appearing on
+    # this host is the single change most worth noticing, whatever it is for:
+    # everything else here only reads.
+    ALLOWED_WRITERS = ["api/publish-asset.php", "api/publish.php"]
+
+    if sorted(writers) == ALLOWED_WRITERS:
+        ok("the two publish endpoints are the only writers outside lib/")
     else:
-        bad("api/publish.php is the only writer outside lib/",
-            f"also writing: {[w for w in writers if w != 'api/publish.php']}")
+        bad("the two publish endpoints are the only writers outside lib/",
+            f"also writing: {sorted(set(writers) - set(ALLOWED_WRITERS))}"
+            if set(writers) - set(ALLOWED_WRITERS)
+            else f"one is missing: {sorted(set(ALLOWED_WRITERS) - set(writers))}")
 
     api = (ROOT / "api" / "publish.php").read_text()
 
@@ -240,6 +247,32 @@ def check_one_writer() -> None:
             ok(label)
         else:
             bad(label, f"api/publish.php no longer calls {needle}")
+
+    # The asset endpoint writes a file the web server SERVES, which is a
+    # sharper edge than content/ -- so what it must do is asserted separately
+    # rather than assumed to be the same.
+    asset = (ROOT / "api" / "publish-asset.php").read_text()
+
+    for needle, label in (
+        ("publish_verify(", "the asset endpoint verifies the signature too"),
+        ("publish_asset_type(", "and decides what a file is from its own header"),
+        ("publish_asset_name(", "and names it from the bytes, never from the sender"),
+    ):
+        if needle in asset:
+            ok(label)
+        else:
+            bad(label, f"api/publish-asset.php no longer calls {needle}")
+
+    # The name it writes must be computed, never taken from the request. This
+    # looks for the shape of the mistake rather than its absence: any $_SERVER,
+    # $_GET, $_POST or $_FILES value reaching the path it opens.
+    import re as _re
+    tainted = _re.findall(r"PUBLISH_ASSET_DIR\s*\.\s*'/'\s*\.\s*(\$\w+)", asset)
+    if tainted and all(v == "$name" for v in tainted):
+        ok("and the path it opens is built from that name and nothing else")
+    else:
+        bad("and the path it opens is built from that name and nothing else",
+            f"built from: {tainted}")
 
 
 # ------------------------------------------------------ the rules still exist
@@ -260,6 +293,14 @@ def check_htaccess_blocks() -> None:
         (r"!\^/\\\.well-known/",      "and .well-known is exempt, so AutoSSL still renews"),
         (r"Strict-Transport-Security", "HSTS is set"),
         (r"Content-Security-Policy",  "the CSP is set"),
+        # An ALLOW-list, not a block: uploads/ has to be served. It is the one
+        # directory that is both written over the network and fetched by the
+        # public, and this rule is the third of ADR 0019's three layers -- the
+        # only one that still holds if the bytes were not re-encoded and the
+        # name was not computed. Removing it is silent until somebody notices
+        # /uploads/x.php answering 200.
+        (r"\^/uploads/\[0-9a-f\]\{16\}",
+         "uploads/ serves the shape it mints, and nothing else"),
     ):
         if re.search(pattern, htaccess):
             ok(label)

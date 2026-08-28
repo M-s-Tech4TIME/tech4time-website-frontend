@@ -42,6 +42,27 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/publish.php';
 require_once __DIR__ . '/../lib/careers.php';
 require_once __DIR__ . '/../lib/contact.php';
+require_once __DIR__ . '/../lib/company.php';
+
+/**
+ * Where each document lands, by name.
+ *
+ * A TABLE AND NOT A TERNARY. What stood here was
+ *
+ *     $document === 'careers' ? CAREERS_FILE : CONTACT_FILE
+ *
+ * three times over, and its default was contact. Every check above would have
+ * passed a third document -- signature, timestamp, revision, contract version
+ * -- and then written it over the contact page. publish_check_envelope() only
+ * proves the name is in CONTRACT_DOCUMENTS; it cannot know this file has a
+ * place to put it. So the two lists are compared below, at boot, and a name
+ * that has no home here is a 500 rather than a silent overwrite.
+ */
+const PUBLISH_FILES = [
+    'careers' => CAREERS_FILE,
+    'contact' => CONTACT_FILE,
+    'company' => COMPANY_FILE,
+];
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -116,9 +137,17 @@ if ($fault !== '') {
 }
 
 $document = (string)$envelope['document'];
-$file     = $document === 'careers' ? CAREERS_FILE : CONTACT_FILE;
-$current  = $document === 'careers' ? careers_load() : contact_load();
-$held     = (int)($current['revision'] ?? 0);
+
+/* CONTRACT_DOCUMENTS said this name is one we implement. This says we have
+   somewhere to put it. They are separate facts and only one of them lives in
+   the shared contract. */
+if (!isset(PUBLISH_FILES[$document])) {
+    publish_refuse(500, 'no-destination');
+}
+
+$file    = PUBLISH_FILES[$document];
+$current = contract_normalise($document, store_read($file) ?? []);
+$held    = (int)($current['revision'] ?? 0);
 
 /* Strictly newer. A replayed request inside the five-minute window is signed
    perfectly well and carries a revision this side already holds — so it stops
@@ -129,9 +158,7 @@ if ((int)$envelope['revision'] <= $held) {
 
 /* ------------------------------------------------------------- the write */
 
-$incoming = $document === 'careers'
-    ? careers_normalise($envelope['data'])
-    : contact_normalise($envelope['data']);
+$incoming = contract_normalise($document, $envelope['data']);
 
 $incoming = contract_sanitise($document, $incoming);
 

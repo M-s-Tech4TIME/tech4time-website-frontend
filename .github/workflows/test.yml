@@ -82,6 +82,7 @@ jobs:
       # The one endpoint on this site that writes anything: the happy path,
       # and every way past it that does not involve holding the key.
       - run: python3 tools/test_publish.py
+      - run: python3 tools/test_publish_asset.py
 
   browser:
     name: firefox

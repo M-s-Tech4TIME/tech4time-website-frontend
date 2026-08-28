@@ -19,6 +19,7 @@ Checks, per page:
   - every external link carries rel="noopener noreferrer"
   - internal links resolve to a file that exists
   - every <use href="#icon"> has a matching inlined <symbol>
+  - the markup nests: every container opened is closed, and nothing else is
 
 Exits non-zero if anything fails, so it can gate the Phase 5 audit.
 """
@@ -151,6 +152,75 @@ class PageParser(HTMLParser):
             frame[2].append(data)
 
 
+# Elements whose end tag HTML makes optional, plus the void elements. A page
+# may legitimately leave these unclosed, so they are not tracked -- tracking
+# them would report correct markup as broken.
+VOID_ELEMENTS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+    "meta", "param", "source", "track", "wbr",
+}
+OPTIONAL_END_TAGS = {
+    "p", "li", "td", "th", "tr", "thead", "tbody", "tfoot", "option",
+    "optgroup", "dt", "dd", "rt", "rp", "caption", "colgroup",
+}
+UNTRACKED_ELEMENTS = VOID_ELEMENTS | OPTIONAL_END_TAGS
+
+
+class BalanceParser(HTMLParser):
+    """Every container element that is opened is closed, and nothing else is.
+
+    WHY THIS IS WORTH CHECKING
+    A browser recovers from an extra </div> silently and renders the page it
+    was going to render anyway, so nothing tells you. But the markup no longer
+    says what it means: an editor that round-trips the section through a DOM
+    drops the stray tag and changes the file's bytes, and a person reading the
+    indentation is being told a lie about the nesting.
+
+    This is the markup counterpart of check_css.py, which exists because a CSS
+    comment that closed early ate a whole rule and nothing said so. Same class
+    of fault, same answer: parse it the way the machine does, and report.
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack: list[tuple[str, int]] = []
+        self.problems: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in UNTRACKED_ELEMENTS:
+            self.stack.append((tag, self.getpos()[0]))
+
+    def handle_startendtag(self, tag, attrs):
+        """<path/> and friends open and close in one go -- nothing to track."""
+
+    def handle_endtag(self, tag):
+        if tag in UNTRACKED_ELEMENTS:
+            return
+
+        if self.stack and self.stack[-1][0] == tag:
+            self.stack.pop()
+            return
+
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                still_open = ", ".join(f"<{t}> from line {ln}"
+                                       for t, ln in self.stack[i + 1:])
+                self.problems.append(
+                    f"line {self.getpos()[0]}: </{tag}> closes an element that "
+                    f"still has {still_open} open")
+                del self.stack[i:]
+                return
+
+        self.problems.append(
+            f"line {self.getpos()[0]}: </{tag}> closes nothing that was opened")
+
+    def report(self) -> list[str]:
+        return self.problems + [
+            f"<{tag}> opened at line {line} is never closed"
+            for tag, line in self.stack
+        ]
+
+
 def pages() -> list[Path]:
     found = []
     for pattern in PAGE_GLOBS:
@@ -212,6 +282,13 @@ def audit_page(path: Path, seen_titles: dict, seen_descriptions: dict) -> list[s
 
     def fail(msg):
         problems.append(f"{rel}: {msg}")
+
+    # --- the markup nests ------------------------------------------------
+    balance = BalanceParser()
+    balance.feed(html)
+    balance.close()
+    for problem in balance.report():
+        fail(problem)
 
     # --- head essentials -------------------------------------------------
     if parser.lang != "en":

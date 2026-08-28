@@ -6,8 +6,8 @@ Build/audit tool. NOT deployed to the web server (see tools/README.md).
 Run from the repo root:  python3 tools/check_shared_markup.py
 
 The project forbids runtime fetch()-based partials, so the header, footer and
-script tags are pasted into all thirteen pages. That is the right call for
-reliability, but it means the same markup exists in thirteen places and is free
+script tags are pasted into all sixteen pages. That is the right call for
+reliability, but it means the same markup exists in sixteen places and is free
 to drift. This script is the safeguard: it asserts every page still matches the
 canonical copies in tools/templates/.
 

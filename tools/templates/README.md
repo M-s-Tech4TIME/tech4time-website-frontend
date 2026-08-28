@@ -8,7 +8,7 @@ The project rules forbid runtime `fetch()`-based partials — every page must be
 complete, self-contained `.html` file — so this markup is pasted directly into
 each page rather than included at runtime.
 
-That creates a real maintenance risk: thirteen copies of the same header, free to
+That creates a real maintenance risk: sixteen copies of the same header, free to
 drift apart. `tools/check_shared_markup.py` closes it by asserting that every
 page in the site still contains these blocks verbatim. Run it after touching any
 page, and as part of the Phase 5 audit.

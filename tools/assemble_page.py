@@ -8,7 +8,7 @@ Build tool. NOT deployed to the web server (see tools/README.md).
 
 WHY
 The project forbids runtime partials, so the head, header, footer and script
-tags are pasted into all thirteen pages. Pasting by hand is what makes them
+tags are pasted into all sixteen pages. Pasting by hand is what makes them
 drift; this composes them from tools/templates/ so they are byte-identical by
 construction and tools/check_shared_markup.py passes on the first try.
 
