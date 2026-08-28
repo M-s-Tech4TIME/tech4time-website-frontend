@@ -6,7 +6,8 @@ The live state of the hosting account. **This file is a record, not a design** �
 something on the host changes, or it stops being useful.
 
 Last confirmed: **2026-08-23**, from `tools/host-probe.php` run on the live host.
-Last reviewed against the repository: **2026-08-27**.
+Last reviewed against the repository: **2026-08-28** — the PHP table and the uploads section were
+re-checked directly on the host that day.
 
 ---
 
@@ -35,6 +36,10 @@ Last reviewed against the repository: **2026-08-27**.
 | argon2id | **available** — this is what is used; bcrypt is not needed |
 | One hash costs | **80 ms** — the deliberate expense that makes an offline attack slow |
 | `mbstring`, `dom` | both present |
+| **`gd`** | **present** — bundled 2.1.0, with WebP, JPEG, PNG and AVIF. This is what re-encodes an uploaded picture, and the admin refuses uploads without it |
+| `exif` | present |
+| `upload_max_filesize` / `post_max_size` | 512M each; `memory_limit` 512M |
+| `max_input_vars` | **10000** — the default is 1000, and the company profile form posts around 550. See `ADMIN_TAIL_FIELD` (in tech4time-website-backend) |
 | `random_bytes`, sessions | both present |
 | `mail()` | available; `sendmail_path` is `/usr/sbin/sendmail -t -i` |
 
@@ -145,6 +150,22 @@ That global cap is not about this site. Somebody hammering the admin's forgot-pa
 allowance up, which would stop the genuine reset from being delivered at the moment it was wanted.
 
 ---
+
+## Uploaded pictures
+
+`~/public_html/uploads/` on this host, `~/admin.tech4time.bd/public/uploads/` on the other. Neither
+is in a repository, both are on the deploy **protect list**, and both are served by an `.htaccess`
+allow-list of sixteen hex characters and three raster extensions —
+[0019](../90-decisions/0019-uploaded-images-travel-their-own-channel.md).
+
+Proven end to end on **2026-08-28**: a picture re-encoded on the admin host, signed, posted to
+`/api/publish-asset.php`, and served from `https://tech4time.bd/uploads/` with the right
+`Content-Type` — while the same basename with `.php` and `.svg` answered 403, and the directory
+itself answered 403. The test files were removed from both hosts afterwards and both now answer 404.
+
+**Neither directory ships.** They are created on first use by `upload_write()` and by the endpoint.
+That was found the hard way: the first attempt answered "The picture could not be saved on this
+server", because only `upload_accept()` had been creating it.
 
 ## SSL
 

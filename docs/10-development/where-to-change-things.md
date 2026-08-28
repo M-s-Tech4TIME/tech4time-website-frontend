@@ -25,9 +25,14 @@ that name the admin name the other repository too.
 | An office address, phone number, email | `https://admin.tech4time.bd/?s=contact` |
 | The contact page's headings and copy | `https://admin.tech4time.bd/?s=contact` |
 | What the enquiry form says | `https://admin.tech4time.bd/?s=contact` |
+| A milestone, a figure, a client logo, a photograph | `https://admin.tech4time.bd/?s=company` |
+| The technology list, or the principles | `https://admin.tech4time.bd/?s=company` |
+| The company profile's headings and copy | `https://admin.tech4time.bd/?s=company` |
 
 Saving there writes the backend's own record, then pushes a signed copy to `api/publish.php` here,
-which verifies it, re-sanitises it and writes `content/careers.json` or `content/contact.json`. This
+which verifies it, re-sanitises it and writes `content/careers.json`, `content/contact.json` or
+`content/company.json`. Pictures travel a second endpoint of their own, `api/publish-asset.php`,
+and land in `uploads/` — [0019](../90-decisions/0019-uploaded-images-travel-their-own-channel.md). This
 site's copy is a **replica** — never edit it by hand, on the server or anywhere else: the next
 publish overwrites it. [publish-api.md](server-side/publish-api.md)
 *content-runbook.md* (in tech4time-website-backend) ·
