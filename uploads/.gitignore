@@ -1,0 +1,6 @@
+# Everything here is written by api/publish-asset.php, on this host, by the
+# backend. None of it is committed and none of it is deployed — a deploy that
+# synced this directory would delete the site's pictures. See
+# docs/90-decisions/0019-uploaded-images-travel-their-own-channel.md.
+*
+!.gitignore

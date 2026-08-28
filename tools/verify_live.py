@@ -110,6 +110,20 @@ EXPECT = [
     # deploy, and the first anyone would know is a save in the admin that
     # never appears on the site.
     ("/api/publish.php",          (405,),      "the publish endpoint is deployed and refusing GET"),
+    ("/api/publish-asset.php",    (405,),      "and so is the one pictures arrive on"),
+
+    # uploads/ is the one directory on this host that is BOTH written over the
+    # network and served to the public, so it is the one worth asserting hardest
+    # about. .htaccess serves exactly sixteen hex characters and three raster
+    # extensions there and refuses everything else — the third of the three
+    # layers in ADR 0019, and the only one that still holds if the other two are
+    # wrong. None of this is testable against the dev server, which does not
+    # read .htaccess, so here is the only place it is ever checked.
+    ("/uploads/",                 (403, 404),  "uploads/ does not list its contents"),
+    ("/uploads/x.php",            (403, 404),  "and a .php there is refused before any handler sees it"),
+    ("/uploads/../lib/contract.php", (400, 403, 404), "nor does a path climb out of it"),
+    ("/uploads/notahexname.webp", (403, 404),  "a name this site did not mint is refused"),
+    ("/uploads/0123456789abcdef.svg", (403, 404), "and so is an extension it does not serve"),
 ]
 
 # (path, header, what must be in its value)
@@ -119,6 +133,7 @@ HEADERS = [
     ("/",        "referrer-policy",           ""),
     ("/",        "strict-transport-security", "max-age="),
     ("/api/publish.php", "x-robots-tag",      "noindex"),
+    ("/api/publish-asset.php", "x-robots-tag", "noindex"),
 ]
 
 

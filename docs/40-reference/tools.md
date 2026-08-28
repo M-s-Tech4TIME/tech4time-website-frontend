@@ -64,6 +64,7 @@ that writes to it.
 | `test_contact_handler.py` | `contact-handler.php`, including header injection and the captured message |
 | `test_store.py` | `lib/store.php`: reading, writing, and the rule that a damaged file never becomes the backup |
 | `test_publish.py` | `api/publish.php` and `publish_push()` over real HTTP: the happy path, and every way past it that does not involve holding the key |
+| `test_publish_asset.py` | the endpoint pictures arrive on: a signed picture accepted, everything else refused — a PHP script, an SVG, a GIF, a script wearing a PNG header, and a header claiming a picture nobody could hold. Also that the name is always this side's and never the sender's |
 
 ### In a real browser
 

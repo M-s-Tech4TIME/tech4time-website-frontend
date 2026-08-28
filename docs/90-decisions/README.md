@@ -40,3 +40,4 @@ record went. A gap is not a missing decision; it is a decision that belongs to t
 | [0016](0016-a-deploy-protects-what-the-panel-owns.md) | A deploy protects what the panel owns | accepted |
 | [0017](0017-two-private-stores.md) | Two private stores, one per half | accepted |
 | [0018](0018-the-backend-serves-from-a-subdirectory.md) | The backend serves from a subdirectory | accepted |
+| [0019](0019-uploaded-images-travel-their-own-channel.md) | Uploaded images travel their own signed channel | accepted |

@@ -99,7 +99,7 @@ REQUIRED = [
 # Never in the set, whatever else changes. Stated separately from "not in
 # UPLOAD" because that is the claim worth failing on out loud.
 FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude",
-                   "admin", "deploy"]
+                   "admin", "deploy", "uploads"]
 
 SEED = ROOT / "deploy" / "seed"
 
