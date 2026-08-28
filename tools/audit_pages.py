@@ -266,6 +266,11 @@ def render_php(path: Path) -> tuple[str, str | None]:
     return result.stdout, None
 
 
+INLINE_ATTR = re.compile(
+    r"<[a-zA-Z][^>]*?\s(style|on(?:click|submit|change|input|load|error|focus"
+    r"|blur|keydown|keyup|mouseover|mouseout))\s*=", re.S | re.I)
+
+
 def audit_page(path: Path, seen_titles: dict, seen_descriptions: dict) -> list[str]:
     rel = path.relative_to(ROOT)
     problems = []
@@ -289,6 +294,19 @@ def audit_page(path: Path, seen_titles: dict, seen_descriptions: dict) -> list[s
     balance.close()
     for problem in balance.report():
         fail(problem)
+
+    # --- nothing the CSP will silently refuse ----------------------------
+    # style-src 'self'; script-src 'self', with no 'unsafe-inline' on either.
+    # A browser does not warn about an attribute it will not honour: it drops
+    # the handler and carries on, so the page looks right and one behaviour is
+    # simply gone. That is how the admin's "Delete this post permanently?"
+    # confirmation stopped being asked without anything appearing to break —
+    # tech4time-website-backend/tools/check_secrets.py is the guard on that
+    # half; this is the guard on this one. It reads the RENDERED page, so a
+    # handler echoed out of PHP is caught with the rest.
+    for match in INLINE_ATTR.finditer(html):
+        line = html.count("\n", 0, match.start()) + 1
+        fail(f"line {line}: {match.group(1)}= is inline; the CSP refuses it")
 
     # --- head essentials -------------------------------------------------
     if parser.lang != "en":
