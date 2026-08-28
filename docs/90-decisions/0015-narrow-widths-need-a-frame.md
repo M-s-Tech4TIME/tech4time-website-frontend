@@ -1,14 +1,17 @@
 # 0015 — Narrow widths are tested in a frame, not in the window
 
-**Status:** accepted · **Applies to:** frontend
+**Status:** accepted · **Applies to:** both
 
 ## Decision
 
-`tools/check_responsive.py` loads each page into an `<iframe>` of the width being tested, inside a
+`tech4time-website-frontend/tools/check_responsive.py` loads each page into an `<iframe>` of the width being tested, inside a
 window that stays wide. It never resizes the browser window to the width under test.
 
 Every run prints the viewport it actually measured, and fails if that number is not the width it
 asked for.
+
+**The backend's `check_admin_a11y.py` follows the same rule**, and was written before it did — see
+*It happened again*, below.
 
 ## Context
 
@@ -29,6 +32,31 @@ Both bugs it was written to find live below 488px:
 
 An iframe establishes its own viewport. Media queries, `100vw` and `clientWidth` all resolve against
 the frame, so 320 means 320. It is same-origin, so the document inside can be measured directly.
+
+## It happened again
+
+The backend's `check_admin_a11y.py` was written months later, and resized the window to
+320 exactly as the first version of this check did. It reported "320px" on five admin screens and
+measured 500 every time.
+
+It did not stay a false pass. Once the rail grew past 500px the same check began *failing* — at a
+width it had not tested either — so the number was wrong in both directions and the label was wrong
+throughout.
+
+Behind it was a real defect that had never been visible: the rail is a horizontal strip below 60em
+with `overflow-x: auto` on its list, and that could not work, because a flex item's `min-width`
+defaults to `auto`. The rail was 649px wide inside a 320px viewport. **The admin scrolled sideways
+on every screen, on every phone, since the day it was built.** Three `min-width: 0` declarations fix
+it; nothing would have found it without a check that reached 320.
+
+The admin cannot be framed in production — `frame-ancestors 'none'`, deliberately — but that header
+comes from `public/.htaccess`, which the PHP development server does not read. The frame works
+there, and the real header is asserted where it belongs, by `check_secrets.py` and by
+`verify_live.py` against the live host.
+
+**The lesson is the general one:** a check that cannot reach the condition it names should say so
+loudly, not quietly measure something else. Both checks now print the viewport they measured on
+every run.
 
 ## Consequences
 
