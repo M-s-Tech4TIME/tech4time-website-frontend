@@ -328,7 +328,81 @@ def run(base: str, key: bytes, r: Results) -> None:
     _, page = get(base, "/pages/contact/")
     r.check("and a visitor sees the change", f"{MARK} Contact" in page)
 
+    contact_switches(base, key, r)
     company_round_trip(base, key, r)
+
+
+def contact_switches(base: str, key: bytes, r: Results) -> None:
+    """What the contact page does with the things that can be switched off.
+
+    Both bands and every row in them can be hidden from the admin, and hidden
+    has to mean hidden: not merely undrawn, but absent from the JSON-LD as
+    well. A band that disappears visually and goes on telling a search engine
+    where the offices are has not been hidden, it has been made invisible,
+    which is a different and worse thing.
+    """
+    print("\nwhat the contact page does with hidden things")
+
+    contact = json.loads(CONTACT.read_text())
+    contact["revision"] = 10
+    contact["reach"]["items"][0]["label"] = f"{MARK}-reach-one"
+    contact["reach"]["items"][0]["status"] = "hidden"
+    publish(base, key, "contact", contact)
+    _, page = get(base, "/pages/contact/")
+
+    r.check("a hidden reach row is not rendered", f"{MARK}-reach-one" not in page)
+    r.check("but the band around it still is", 'id="reach-heading"' in page)
+
+    contact["revision"] = 11
+    contact["reach"]["items"][0]["status"] = "shown"
+    contact["reach"]["status"] = "hidden"
+    publish(base, key, "contact", contact)
+    _, page = get(base, "/pages/contact/")
+
+    r.check("a hidden reach band takes its rows with it",
+            f"{MARK}-reach-one" not in page and 'id="reach-heading"' not in page)
+    r.check("and the enquiry form is untouched", 'id="contact-heading"' in page,
+            "the form is the page -- it has no switch, and must not vanish")
+
+    contact["revision"] = 12
+    contact["reach"]["status"] = "shown"
+    contact["offices"]["status"] = "hidden"
+    publish(base, key, "contact", contact)
+    _, page = get(base, "/pages/contact/")
+
+    r.check("a hidden offices band is gone entirely",
+            'id="offices-heading"' not in page)
+    r.check("and it is gone from the structured data too",
+            "PostalAddress" not in page,
+            "the addresses were still being advertised for a band nobody can see")
+
+    # -------------------------------------------------- the uploaded flag
+    contact["revision"] = 13
+    contact["offices"]["status"] = "shown"
+    office = contact["offices"]["items"][0]
+    office["flag"] = "bangladesh"
+    office["image"] = {"src": "/uploads/00112233445566aa.png",
+                       "webp": "/uploads/00112233445566aa.webp",
+                       "width": 120, "height": 80}
+    publish(base, key, "contact", contact)
+    _, page = get(base, "/pages/contact/")
+
+    r.check("an uploaded flag is what gets drawn",
+            '/uploads/00112233445566aa.png' in page)
+    r.check("with its WebP sibling offered first",
+            '<source srcset="/uploads/00112233445566aa.webp"' in page)
+    r.check("and the size that keeps the card still",
+            'width="120" height="80"' in page)
+    r.check("the bundled flag it would otherwise have used is not drawn as well",
+            '/assets/images/flags/bangladesh' not in page,
+            "two flags for one office")
+
+    contact["revision"] = 14
+    office["image"] = {"src": "", "webp": "", "width": 0, "height": 0}
+    publish(base, key, "contact", contact)
+    _, page = get(base, "/pages/contact/")
+    r.check("removing it falls back to the bundled flag",
+            '/assets/images/flags/bangladesh' in page)
 
 
 def company_round_trip(base: str, key: bytes, r: Results) -> None:

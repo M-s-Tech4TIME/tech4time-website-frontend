@@ -32,7 +32,7 @@
  *     "cta":        { status, title, text, label, href, icon }
  *   }
  *
- * and an image{} is { src, webp, width, height } — see company_image_defaults().
+ * and an image{} is { src, webp, width, height } — see contract_image_defaults().
  */
 
 declare(strict_types=1);

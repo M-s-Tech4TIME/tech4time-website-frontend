@@ -22,6 +22,7 @@ require __DIR__ . '/../../lib/contact.php';
 
 $data    = contact_load();
 $offices = contact_shown_offices($data);
+$reach   = contact_shown_reach($data);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -123,72 +124,25 @@ $offices = contact_shown_offices($data);
       "email": "info@tech4time.bd",
       "areaServed": "Worldwide",
       "knowsLanguage": "en",
-      "address": [
-        {
-          "@type": "PostalAddress",
-          "streetAddress": "278/3, Manikdi",
-          "addressLocality": "Dhaka",
-          "postalCode": "1206",
-          "addressCountry": "BD"
-        },
-        {
-          "@type": "PostalAddress",
-          "streetAddress": "68100 Batu Caves",
-          "addressRegion": "Selangor",
-          "addressCountry": "MY"
-        },
-        {
-          "@type": "PostalAddress",
-          "streetAddress": "367, Avenue Louise",
-          "addressLocality": "Brussels",
-          "addressCountry": "BE"
-        }
-      ],
-      "contactPoint": [
-        {
-          "@type": "ContactPoint",
-          "telephone": "+8801320571562",
-          "email": "info@tech4time.bd",
-          "contactType": "customer service",
-          "areaServed": "BD",
-          "availableLanguage": [
-            "English",
-            "Bengali"
-          ]
-        },
-        {
-          "@type": "ContactPoint",
-          "telephone": "+8801881873463",
-          "email": "info@tech4time.bd",
-          "contactType": "customer service",
-          "areaServed": "BD",
-          "availableLanguage": [
-            "English",
-            "Bengali"
-          ]
-        },
-        {
-          "@type": "ContactPoint",
-          "telephone": "+8801847313835",
-          "email": "info@tech4time.bd",
-          "contactType": "customer service",
-          "areaServed": "BD",
-          "availableLanguage": [
-            "English",
-            "Bengali"
-          ]
-        },
-        {
-          "@type": "ContactPoint",
-          "telephone": "+60198527096",
-          "email": "info@tech4time.bd",
-          "contactType": "customer service",
-          "areaServed": "MY",
-          "availableLanguage": [
-            "English"
-          ]
-        }
-      ],
+<?php /* THE OFFICES, FROM THE RECORD RATHER THAN FROM THIS FILE.
+
+         These two arrays were written out by hand, which meant the contact
+         page carried the addresses twice: once in the cards a visitor reads,
+         which the editor writes, and once here, which nothing did. Hiding an
+         office in the admin took its card off the page and left its address
+         being advertised to Google — and adding an office never reached this
+         block at all. A wrong address in structured data is wrong in a
+         knowledge panel, where nobody on this end ever sees it.
+
+         contact_addresses() and contact_points() answer for the band's switch
+         as well as each office's, so a hidden band is absent from both.
+
+         json_encode with the same flags as the graph below, and indented to
+         sit inside this object — it is being spliced into hand-written JSON,
+         so the comma placement is the caller's problem and is why each line
+         ends the way it does. */ ?>
+      "address": <?= contact_ld_indent(contact_addresses($data), 6) ?>,
+      "contactPoint": <?= contact_ld_indent(contact_points($data), 6) ?>,
       "sameAs": [
         "https://www.linkedin.com/company/tech4time-bd/",
         "https://github.com/M-s-Tech4TIME"
@@ -696,7 +650,12 @@ $offices = contact_shown_offices($data);
         </form>
       </div>
 
-      <!-- ---------------------------- Quick contact ---------------------------- -->
+      <!-- ---------------------------- Quick contact ----------------------------
+           The band and every row in it can be switched off in the admin.
+           contact_shown_reach() answers for both, so an empty list here means
+           "nothing to show" whichever switch produced it, and the heading goes
+           with the list rather than standing over nothing. -->
+<?php if ($reach): ?>
       <aside class="contact__aside" aria-labelledby="reach-heading">
         <h2 data-reveal data-reveal-delay class="contact__title" id="reach-heading"><?= h($data['reach']['title']) ?></h2>
 
@@ -714,7 +673,7 @@ $offices = contact_shown_offices($data);
          <use href="#info-circle"> <use href="#linkedin"> <use href="#github">
       */ ?>
         <ul class="reach" role="list">
-<?php foreach ($data['reach']['items'] as $item): ?>
+<?php foreach ($reach as $item): ?>
           <li data-reveal data-reveal-delay class="reach__item">
 <?php if (isset(CONTACT_ICONS[$item['icon'] ?? ''])): ?>
             <span class="reach__icon">
@@ -752,10 +711,12 @@ $offices = contact_shown_offices($data);
 <?php endforeach; ?>
         </ul>
       </aside>
+<?php endif; ?>
     </div>
   </section>
 
   <!-- ============================= Our offices ============================= -->
+<?php if ($offices): ?>
   <section class="section section--surface offices" aria-labelledby="offices-heading">
     <div class="container">
 <?php if (trim((string)$data['offices']['title']) !== '' || trim((string)$data['offices']['lead']) !== ''): ?>
@@ -804,6 +765,7 @@ $offices = contact_shown_offices($data);
       </ul>
     </div>
   </section>
+<?php endif; ?>
 
 </main>
 
