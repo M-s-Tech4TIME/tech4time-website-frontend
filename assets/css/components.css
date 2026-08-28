@@ -564,6 +564,88 @@ textarea.field__control {
 }
 
 /* --------------------------------------------------------------------------
+   Containers holding text written in the admin
+
+   Each of these is a WRAPPER around one or more <p> rather than a paragraph
+   itself, because what it holds is sanitised HTML from the rich-text editor.
+   The global reset zeroes every margin -- right everywhere else, and here it
+   would run two paragraphs into one. These give the elements inside their
+   spacing back.
+
+   THE LIST IS HERE, IN THE SHEET EVERY PAGE LOADS, AND NOT BESIDE EACH CLASS.
+   These rules lived in pages/contact.css, which only the contact page loads --
+   and .section__lead is a SHARED class from layout.css. The moment a second
+   page gained an edited lead, that page got the wrapper and none of the rules,
+   and the only symptom was slightly wrong spacing. Nothing would have said so.
+
+   Add a class here when a page gains a field the admin writes. Kept in step
+   with .job__body in pages/careers.css and .rte__surface in the backend's
+   admin.css: they all render what the same editor writes, so what the admin
+   shows is what the page shows.
+   -------------------------------------------------------------------------- */
+
+.contact__lead > :first-child,
+.section__lead > :first-child,
+.background__lead > :first-child,
+.cta-band__text > :first-child { margin-block-start: 0; }
+
+.contact__lead > :last-child,
+.section__lead > :last-child,
+.background__lead > :last-child,
+.cta-band__text > :last-child { margin-block-end: 0; }
+
+.contact__lead p,
+.section__lead p,
+.background__lead p,
+.cta-band__text p {
+  margin-block: var(--space-2xs);
+  font-size: inherit;
+  color: inherit;
+}
+
+.contact__lead ul,
+.contact__lead ol,
+.section__lead ul,
+.section__lead ol,
+.background__lead ul,
+.background__lead ol,
+.cta-band__text ul,
+.cta-band__text ol {
+  display: grid;
+  gap: var(--space-2xs);
+  padding-inline-start: var(--space-md);
+  margin-block: var(--space-2xs);
+  text-align: start;
+}
+
+.contact__lead li::marker,
+.section__lead li::marker,
+.background__lead li::marker,
+.cta-band__text li::marker { color: var(--silver-accent-mid); }
+
+.contact__lead strong,
+.section__lead strong,
+.background__lead strong,
+.cta-band__text strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.contact__lead em,
+.section__lead em,
+.background__lead em,
+.cta-band__text em { font-style: italic; }
+
+.contact__lead u,
+.section__lead u,
+.background__lead u,
+.cta-band__text u {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+/* --------------------------------------------------------------------------
    Checkbox field
    A consent box reads differently from a text field: the control comes first
    and the label wraps beside it, rather than sitting above.
