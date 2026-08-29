@@ -39,6 +39,17 @@ python3 tools/apply_reveals.py --write    # apply
 python3 tools/apply_reveals.py --strip    # remove every marker
 ```
 
+**The four dynamic pages are the exception, and the tool says so.** `pages/about/`,
+`pages/careers/`, `pages/contact/` and `pages/company-profile/` build part of themselves with a
+`foreach`, so the markers on a repeated row live in the template rather than in the emitted
+markup. All three modes report those pages and leave them alone. Their markers are maintained by
+hand, in the renderer, and the rule they follow is the same one — the section header, then its
+content.
+
+On the about page the per-paragraph markers inside a story section are put back at render time by
+`about_reveal_paragraphs()`, because the prose is one rich-text field and the number of paragraphs
+is a property of the content. See [libraries.md](../server-side/libraries.md#aboutphp).
+
 ### The failure that had to be designed out
 
 `animations.js` hides elements so it can reveal them on scroll. If that file never arrives — a

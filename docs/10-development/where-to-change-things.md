@@ -28,6 +28,7 @@ that name the admin name the other repository too.
 | A milestone, a figure, a client logo, a photograph | `https://admin.tech4time.bd/?s=company` |
 | The technology list, or the principles | `https://admin.tech4time.bd/?s=company` |
 | The company profile's headings and copy | `https://admin.tech4time.bd/?s=company` |
+| The about page's sections, specialities and why-us cards | `https://admin.tech4time.bd/?s=about` |
 
 Saving there writes the backend's own record, then pushes a signed copy to `api/publish.php` here,
 which verifies it, re-sanitises it and writes `content/careers.json`, `content/contact.json` or

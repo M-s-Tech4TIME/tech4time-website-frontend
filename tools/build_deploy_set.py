@@ -91,16 +91,18 @@ REQUIRED = [
     "lib/private.php",
     "lib/contract.php",   # the shape both halves agree on
     "lib/publish.php",    # and the format they agree it travels in
+    "lib/about.php",      # the about page renders from this, on every request
     "pages/careers/index.php",
     "pages/contact/index.php",
     "pages/company-profile/index.php",
+    "pages/about/index.php",
     "api/publish.php",    # the only route content takes to the live site
 ]
 
 # Never in the set, whatever else changes. Stated separately from "not in
 # UPLOAD" because that is the claim worth failing on out loud.
 FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude",
-                   "admin", "deploy", "uploads"]
+                   "admin", "deploy", "uploads", "plans"]
 
 SEED = ROOT / "deploy" / "seed"
 CONTRACT = ROOT / "lib" / "contract.php"

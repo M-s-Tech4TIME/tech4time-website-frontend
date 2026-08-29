@@ -43,13 +43,14 @@ its record before acting.
 
 | | |
 |---|---|
-| `pages/` `index.html` | the sixteen pages — two are `.php` and render from `content/` |
+| `pages/` `index.html` | the sixteen pages — four are `.php` and render from `content/` |
 | `assets/` | css, js, fonts, icons, images — all self-hosted |
 | `lib/` | server-side PHP: rendering, the contract, the publish format |
 | `api/publish.php` | where the backend's content arrives. The only thing here that writes |
-| `content/` | the replica the two dynamic pages render from |
+| `content/` | the replica the four dynamic pages render from |
 | `tools/` | build, audit and test scripts — never deployed |
 | `docs/` | the documentation |
+| `plans/` | parked designs — not deployed, and not yet true. `docs/` is for what is |
 | `../t4t-private/` | **outside the repo** — `secret.key`, `throttle.json`, `publish.key`. Never committed |
 
 There is no `admin/`, no `lib/auth.php` and no password hash on this host. The private store has no
@@ -69,7 +70,7 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 | Browser behaviour | `assets/js/` — modules register on `window.Tech4Time` |
 | Header / footer | `tools/templates/` → `propagate_shared.py` |
 | An icon | the markup, then `python3 tools/inject_icons.py` |
-| A job post or contact detail | **`https://admin.tech4time.bd/`** — not a file, and not here |
+| A job post, a contact detail, the about page's copy | **`https://admin.tech4time.bd/`** — not a file, and not here |
 | The shape of editable content | `lib/contract.php` — **and the same file in the backend** |
 | How a document is signed | `lib/publish.php` — likewise byte-identical |
 | Add a page | [adding-a-page.md](docs/10-development/frontend/adding-a-page.md) |

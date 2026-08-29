@@ -63,6 +63,7 @@ ENDPOINT = "/api/publish.php"
 CAREERS = ROOT / "content" / "careers.json"
 CONTACT = ROOT / "content" / "contact.json"
 COMPANY = ROOT / "content" / "company.json"
+ABOUT = ROOT / "content" / "about.json"
 
 MARK = "PUBLISHMARK"
 
@@ -330,6 +331,7 @@ def run(base: str, key: bytes, r: Results) -> None:
 
     contact_switches(base, key, r)
     company_round_trip(base, key, r)
+    about_round_trip(base, key, r)
 
 
 def contact_switches(base: str, key: bytes, r: Results) -> None:
@@ -543,6 +545,125 @@ def company_round_trip(base: str, key: bytes, r: Results) -> None:
 # --------------------------------------------------------------------- main
 
 
+
+def about_round_trip(base: str, key: bytes, r: Results) -> None:
+    """Every field the about model declares, set and then read off the page.
+
+    THIS IS WHAT check_content_model.py POINTS AT, for the same reason
+    company_round_trip() is: the editor names its inputs with a loop variable
+    and the renderer walks three lists with foreach, so a regex over either
+    finds the loop and not the fields. Put a distinguishable value in every
+    field, publish it, and look for it in the HTML a visitor would get.
+    """
+    print("\nthe about page travels the same road")
+
+    data = json.loads(ABOUT.read_text())
+    data["revision"] = 3
+
+    data["meta"]["title"] = f"{MARK}-tab"
+    data["meta"]["description"] = f"{MARK}-desc"
+    data["meta"]["share_title"] = f"{MARK}-share"
+    data["hero"]["title"] = f"{MARK}-hero"
+    data["hero"]["subtitle"] = f"{MARK}-sub"
+    data["specialties"]["title"] = f"{MARK}-s-title"
+    data["specialties"]["interval"] = 7500
+    data["whyus"]["title"] = f"{MARK}-w-title"
+    data["cta"]["title"] = f"{MARK}-cta-title"
+    data["cta"]["label"] = f"{MARK}-cta-label"
+    data["cta"]["href"] = "/pages/services/"
+    data["cta"]["icon"] = "arrow-right"
+
+    # Two story rows: one photograph, one logo lockup, so both branches render.
+    data["story"]["items"] = [
+        {"id": "mark-photo", "heading": f"{MARK}-st-heading",
+         "body": f"<p>{MARK}-st-body-one</p><p>{MARK}-st-body-two</p>",
+         "layout": "photograph", "side": "right", "alt": f"{MARK}-st-alt",
+         "status": "shown",
+         "image": {"src": "/assets/images/sections/our-goal.jpg",
+                   "webp": "/assets/images/sections/our-goal.webp",
+                   "width": 818, "height": 810}},
+        {"id": "mark-logo", "heading": f"{MARK}-st-logo-heading",
+         "body": f"<p>{MARK}-st-logo-body</p>",
+         "layout": "logo", "side": "left", "alt": f"{MARK}-st-logo-alt",
+         "status": "shown",
+         "image": {"src": "", "webp": "", "width": 0, "height": 0}},
+    ]
+    data["specialties"]["items"] = [{
+        "id": "mark", "icon": "cloud", "title": f"{MARK}-sp-title",
+        "text": f"{MARK}-sp-text", "status": "shown"}]
+    data["whyus"]["items"] = [{
+        "id": "mark", "icon": "trophy", "title": f"{MARK}-w-row",
+        "text": f"{MARK}-w-text", "status": "shown"}]
+
+    status, answer = publish(base, key, "about", data)
+    r.check("the about page publishes", status == 200 and answer.get("ok") is True,
+            f"{status} {answer}")
+
+    _, page = get(base, "/pages/about/")
+
+    missing = [k for k in (
+        "tab", "desc", "share", "hero", "sub",
+        "st-heading", "st-body-one", "st-body-two", "st-alt",
+        "st-logo-heading", "st-logo-body", "st-logo-alt",
+        "s-title", "sp-title", "sp-text",
+        "w-title", "w-row", "w-text",
+        "cta-title", "cta-label",
+    ) if f"{MARK}-{k}" not in page]
+    r.check("every field the model declares reaches the page",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    r.check("each paragraph of a section gets its own reveal",
+            page.count(f'<p data-reveal data-reveal-delay>{MARK}-st-body') == 2,
+            "about_reveal_paragraphs() puts back what the editor cannot type")
+    r.check("the slideshow carries the interval it was given",
+            'data-slider-interval="7500"' in page)
+    r.check("the slideshow has one dot per speciality",
+            page.count('data-slider-to=') == 1, str(page.count('data-slider-to=')))
+    r.check("a photograph row gets a <picture> and its size",
+            '<source srcset="/assets/images/sections/our-goal.webp"' in page
+            and 'width="818" height="810"' in page)
+    r.check("a logo row draws the lockup instead",
+            'class="theme-swap--light"' in page and 'class="theme-swap--dark"' in page,
+            "layout=logo ignores the row's picture and uses the brand asset")
+    r.check("the side a picture sits on travels",
+            'class="about-split about-split--reverse"' in page)
+    r.check("the icons chosen at run time are drawn",
+            '<use href="#cloud">' in page and '<use href="#trophy">' in page)
+    r.check("each section's heading id matches what labels it",
+            'aria-labelledby="mark-photo-heading"' in page
+            and 'id="mark-photo-heading"' in page,
+            "a generated id must match the aria-labelledby generated beside it")
+
+    print("\nwhat the about page does with hidden things")
+    data["revision"] = 4
+    data["whyus"]["items"][0]["status"] = "hidden"
+    data["cta"]["status"] = "hidden"
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+
+    r.check("a hidden row is not rendered", f"{MARK}-w-row" not in page)
+    r.check("but the band around it still is", f"{MARK}-w-title" in page)
+    r.check("a hidden band is gone entirely", f"{MARK}-cta-title" not in page)
+    r.check("and the rest of the page is untouched", f"{MARK}-sp-title" in page)
+
+    print("\na signature is not a promise about what is inside")
+    data["revision"] = 5
+    data["whyus"]["items"][0]["status"] = "shown"
+    data["cta"]["status"] = "shown"
+    data["story"]["items"][0]["body"] = ('<p onclick="steal()">hi</p>'
+                                         '<script>steal()</script>')
+    data["story"]["items"][0]["image"]["src"] = "https://evil.example/photo.jpg"
+    status, _ = publish(base, key, "about", data)
+    r.check("a validly signed payload is accepted", status == 200, str(status))
+
+    stored = json.loads(ABOUT.read_text())
+    _, page = get(base, "/pages/about/")
+    r.check("but the script is gone", "steal()" not in page and "onclick" not in page)
+    r.check("and the text around it survives", ">hi<" in page)
+    r.check("a picture pointing at another origin is dropped on receipt",
+            stored["story"]["items"][0]["image"]["src"] == "",
+            str(stored["story"]["items"][0]["image"]))
+
 def main() -> None:
     if not shutil.which("php"):
         print("php not found — skipping. sudo apt install php-cli")
@@ -562,6 +683,7 @@ def main() -> None:
         careers_backup = CAREERS.read_text() if CAREERS.is_file() else None
         contact_backup = CONTACT.read_text() if CONTACT.is_file() else None
         company_backup = COMPANY.read_text() if COMPANY.is_file() else None
+        about_backup = ABOUT.read_text() if ABOUT.is_file() else None
 
         server = subprocess.Popen(
             ["php", "-S", f"127.0.0.1:{port}", "-t", str(ROOT),
@@ -591,7 +713,7 @@ def main() -> None:
             server.wait(timeout=10)
 
             for path, backup in ((CAREERS, careers_backup), (CONTACT, contact_backup),
-                                 (COMPANY, company_backup)):
+                                 (COMPANY, company_backup), (ABOUT, about_backup)):
                 if backup is not None:
                     path.write_text(backup)
                 bak = path.with_suffix(".json.bak")
