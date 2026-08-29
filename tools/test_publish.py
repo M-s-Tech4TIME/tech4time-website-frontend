@@ -634,8 +634,49 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
             and 'id="mark-photo-heading"' in page,
             "a generated id must match the aria-labelledby generated beside it")
 
+    print("\na logo section may carry a logo of its own")
+    data["revision"] = 6
+    data["story"]["items"][1]["image"] = {
+        "src": "/uploads/1111111111111111.webp", "webp": "",
+        "width": 540, "height": 192}
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    # Scoped to the story section: the header and the footer carry the logo
+    # too, so "the shipped file is absent from the page" is never true.
+    SHIPPED = 'about-split__image--contain" src="/assets/images/logo/'
+    r.check("an uploaded logo replaces the one that ships with the site",
+            "/uploads/1111111111111111.webp" in page and SHIPPED not in page,
+            "a company that changes its mark should not need a deploy")
+    r.check("and with only one uploaded it is used in both colour modes",
+            page.count("/uploads/1111111111111111.webp") == 2,
+            f"drawn {page.count('/uploads/1111111111111111.webp')} times — falling "
+            "back to the shipped dark logo would show the old mark beside the new one")
+
+    data["revision"] = 7
+    data["story"]["items"][1]["image_dark"] = {
+        "src": "/uploads/2222222222222222.webp", "webp": "",
+        "width": 540, "height": 192}
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    r.check("a dark half is used when it is given",
+            'class="theme-swap--dark"><img class="about-split__image about-split__image--contain" '
+            'src="/uploads/2222222222222222.webp"' in page,
+            "each colour mode gets its own")
+    r.check("and the light half is untouched",
+            'class="theme-swap--light"><img class="about-split__image about-split__image--contain" '
+            'src="/uploads/1111111111111111.webp"' in page)
+
+    data["revision"] = 8
+    data["story"]["items"][1]["image"] = {"src": "", "webp": "", "width": 0, "height": 0}
+    data["story"]["items"][1]["image_dark"] = {"src": "", "webp": "", "width": 0, "height": 0}
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    r.check("clearing both brings the shipped lockup back",
+            page.count(SHIPPED) == 2
+            and "/uploads/1111111111111111.webp" not in page)
+
     print("\nwhat the about page does with hidden things")
-    data["revision"] = 4
+    data["revision"] = 9
     data["whyus"]["items"][0]["status"] = "hidden"
     data["cta"]["status"] = "hidden"
     publish(base, key, "about", data)
@@ -647,7 +688,7 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
     r.check("and the rest of the page is untouched", f"{MARK}-sp-title" in page)
 
     print("\na signature is not a promise about what is inside")
-    data["revision"] = 5
+    data["revision"] = 10
     data["whyus"]["items"][0]["status"] = "shown"
     data["cta"]["status"] = "shown"
     data["story"]["items"][0]["body"] = ('<p onclick="steal()">hi</p>'
