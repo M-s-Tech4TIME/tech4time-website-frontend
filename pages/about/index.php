@@ -553,7 +553,7 @@ $data = about_load();
       <div class="about-split<?= $row['side'] === 'right' ? ' about-split--reverse' : '' ?>">
         <div data-reveal data-reveal-delay class="about-split__media">
           <?= $row['layout'] === 'logo'
-                ? about_logo_lockup('about-split__image about-split__image--contain', (string)$row['alt'])
+                ? about_logo_lockup($row, 'about-split__image about-split__image--contain')
                 : about_picture($row['image'], 'about-split__image', (string)$row['alt']) ?>
 
         </div>

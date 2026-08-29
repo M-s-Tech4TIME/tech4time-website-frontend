@@ -189,12 +189,12 @@ specialities and the why-us cards — plus the copy around them. The shape is in
 
 Three things here are worth knowing before changing either half:
 
-**A story row's `layout` chooses between a photograph and the logo lockup,** and `logo` ignores the
-row's picture record entirely. The wordmark is a brand asset that ships with the site and changes
-with a deploy, so it is a layout an editor may choose and not a file an editor may replace.
-`about_logo_lockup()` emits both colour variants with the same `alt`, because exactly one is
-displayed at a time and two different names for one logo is what a screen reader would otherwise
-announce.
+**A story row's `layout` chooses between a photograph and a logo pair.** `about_logo_lockup()`
+emits both colour variants, each falling back to the lockup that ships with the site — so the row
+works with nothing uploaded, and a new mark can be put there without a deploy. With only the light
+half given it is used in both modes, deliberately: the alternative is the old logo beside the new
+one. Both variants carry the same `alt`, because exactly one is displayed at a time and two
+different names for one logo is what a screen reader would otherwise announce.
 
 **`about_reveal_paragraphs()` puts the scroll markers back on each paragraph.** The prose is one
 rich-text field, so the markers cannot be typed into it, and how many paragraphs there are is a

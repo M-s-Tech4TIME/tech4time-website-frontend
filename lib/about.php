@@ -43,12 +43,10 @@ require_once __DIR__ . '/store.php';
 const ABOUT_FILE = __DIR__ . '/../content/about.json';
 
 /**
- * The logo lockup a story row laid out as 'logo' draws.
+ * The lockup that ships with the site, used when a row has uploaded none.
  *
  * Two pictures, one for each colour mode, swapped by CSS rather than by script
- * so the right one is there at first paint. These are brand assets that ship
- * with the site, which is why they are named here and not in the document:
- * the layout is a choice an editor makes, the file is not.
+ * so the right one is there at first paint.
  */
 const ABOUT_LOGO_LOCKUP = [
     ['class' => 'theme-swap--light', 'stem' => '/assets/images/logo/logo-light-540'],
@@ -110,23 +108,66 @@ function about_picture(array $image, string $class, string $alt): string
 /**
  * The light/dark wordmark pair, for a story row laid out as 'logo'.
  *
- * Both halves carry the same alt text. That is deliberate and not an
- * oversight: exactly one of them is displayed at a time, so a screen reader
- * that ignores CSS would otherwise announce the logo twice under two
- * different names.
+ * Each half is the row's own upload if it has one, and the lockup that ships
+ * with the site otherwise. The fallbacks are per-half and asymmetric on
+ * purpose:
+ *
+ *   nothing uploaded   both halves are the shipped lockup
+ *   light only         the uploaded one is used in BOTH modes
+ *   both               each mode gets its own
+ *
+ * The middle case is the one worth explaining. Falling back to the shipped
+ * DARK logo there would put the old mark beside the new one, which is the one
+ * outcome nobody wants from "we changed our logo". Using the new light logo on
+ * a dark background may read poorly; showing the previous brand does not read
+ * poorly, it is wrong. The editor says so and offers the second slot.
+ *
+ * Both halves carry the same alt text. That is deliberate: exactly one is
+ * displayed at a time, so a screen reader ignoring CSS would otherwise
+ * announce the logo twice under two different names.
  */
-function about_logo_lockup(string $class, string $alt): string
+function about_logo_lockup(array $row, string $class): string
 {
+    $alt   = (string)($row['alt'] ?? '');
+    $light = is_array($row['image'] ?? null) ? $row['image'] : [];
+    $dark  = is_array($row['image_dark'] ?? null) ? $row['image_dark'] : [];
+
+    if (trim((string)($light['src'] ?? '')) === '') {
+        $light = [];
+    }
+    if (trim((string)($dark['src'] ?? '')) === '') {
+        $dark = $light;
+    }
+
+    $halves = [
+        ['class' => 'theme-swap--light', 'image' => $light, 'stem' => ABOUT_LOGO_LOCKUP[0]['stem']],
+        ['class' => 'theme-swap--dark',  'image' => $dark,  'stem' => ABOUT_LOGO_LOCKUP[1]['stem']],
+    ];
+
     $out = '';
-    foreach (ABOUT_LOGO_LOCKUP as $side) {
-        $out .= '<picture class="' . h($side['class']) . '">'
-              . '<source srcset="' . h($side['stem']) . '.webp" type="image/webp">'
-              . '<img class="' . h($class) . '" src="' . h($side['stem']) . '.png"'
+    foreach ($halves as $half) {
+        if ($half['image'] !== []) {
+            /* An uploaded half is an ordinary picture, so it is emitted by the
+               ordinary picture function -- including the bare <img> when there
+               is no WebP sibling. The theme class has to go on the wrapper,
+               and about_picture() does not always emit one, so a row with no
+               WebP is wrapped here instead. */
+            $picture = about_picture($half['image'], $class, $alt);
+            $out .= str_starts_with($picture, '<picture>')
+                ? '<picture class="' . h($half['class']) . '">' . substr($picture, 9)
+                : '<picture class="' . h($half['class']) . '">' . $picture . '</picture>';
+            continue;
+        }
+
+        $out .= '<picture class="' . h($half['class']) . '">'
+              . '<source srcset="' . h($half['stem']) . '.webp" type="image/webp">'
+              . '<img class="' . h($class) . '" src="' . h($half['stem']) . '.png"'
               . ' alt="' . h($alt) . '"'
               . ' width="' . ABOUT_LOGO_WIDTH . '" height="' . ABOUT_LOGO_HEIGHT . '"'
               . ' loading="lazy" decoding="async">'
               . '</picture>';
     }
+
     return $out;
 }
 
