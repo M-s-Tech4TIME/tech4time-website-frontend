@@ -1,11 +1,37 @@
+<?php
+/**
+ * Tech4TIME — the about page.
+ *
+ * PHP, and not HTML, because its content is edited at admin.tech4time.bd and
+ * arrives here as content/about.json. Rendered on the server, on this request,
+ * from a file on this disk: no fetch, no framework, and the page works with
+ * JavaScript switched off. See ADR 0003 and ADR 0010.
+ *
+ * Everything editable goes through h(). The one exception is a story
+ * section's prose, which is sanitised HTML — printed bare, with the comment
+ * beside it that says why that is safe.
+ *
+ * The header, footer, dock and hero circuit are shared markup and stay
+ * literal; tools/check_shared_markup.py holds them byte-identical to
+ * tools/templates/. The scroll-reveal markers below are hand-maintained,
+ * because tools/apply_reveals.py reports and skips any page that builds part
+ * of itself with a loop, which this one now does.
+ */
+
+declare(strict_types=1);
+
+require __DIR__ . '/../../lib/about.php';
+
+$data = about_load();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>About Tech4TIME | Trusted IT & Cybersecurity Solutions</title>
-<meta name="description" content="Founded in 2018, Tech4TIME delivers cybersecurity, software development, cloud infrastructure, HRaaS and IT training — orchestrating technology with time.">
+<title><?= h($data['meta']['title']) ?></title>
+<meta name="description" content="<?= h($data['meta']['description']) ?>">
 <link rel="canonical" href="https://tech4time.bd/pages/about/">
 
 <!-- Crawling. Large image previews and full snippets are allowed so rich
@@ -23,8 +49,8 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Tech4TIME">
-<meta property="og:title" content="About Tech4TIME">
-<meta property="og:description" content="Founded in 2018, Tech4TIME delivers cybersecurity, software development, cloud infrastructure, HRaaS and IT training — orchestrating technology with time.">
+<meta property="og:title" content="<?= h($data['meta']['share_title']) ?>">
+<meta property="og:description" content="<?= h($data['meta']['description']) ?>">
 <meta property="og:url" content="https://tech4time.bd/pages/about/">
 <meta property="og:image" content="https://tech4time.bd/assets/images/og/tech4time-og.png">
 <meta property="og:image:width" content="1200">
@@ -33,8 +59,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="About Tech4TIME">
-<meta name="twitter:description" content="Founded in 2018, Tech4TIME delivers cybersecurity, software development, cloud infrastructure, HRaaS and IT training — orchestrating technology with time.">
+<meta name="twitter:title" content="<?= h($data['meta']['share_title']) ?>">
+<meta name="twitter:description" content="<?= h($data['meta']['description']) ?>">
 <meta name="twitter:image" content="https://tech4time.bd/assets/images/og/tech4time-og.png">
 <meta name="twitter:image:alt" content="Tech4TIME — Orchestrating Technology with Time">
 
@@ -239,23 +265,15 @@
   "@type": "BreadcrumbList",
   "itemListElement": [
     { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://tech4time.bd/" },
-    { "@type": "ListItem", "position": 2, "name": "About Us", "item": "https://tech4time.bd/pages/about/" }
+    { "@type": "ListItem", "position": 2, "name": <?= json_encode($data['hero']['title'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>, "item": "https://tech4time.bd/pages/about/" }
   ]
 }
 </script>
 
-<!-- Page type, tied to the Organization it describes. -->
+<!-- Page type, tied to the Organization it describes. Generated, so the
+     name and the description cannot drift from the <head> above. -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "AboutPage",
-  "@id": "https://tech4time.bd/pages/about/#webpage",
-  "url": "https://tech4time.bd/pages/about/",
-  "name": "About Tech4TIME",
-  "isPartOf": { "@id": "https://tech4time.bd/#website" },
-  "about": { "@id": "https://tech4time.bd/#organization" },
-  "inLanguage": "en"
-}
+<?= json_encode(about_page_schema($data), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 </head>
 
@@ -265,6 +283,7 @@
   <symbol id="arrow-right" viewBox="0 0 448 512"><path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></symbol>
   <symbol id="arrow-up" viewBox="0 0 384 512"><path d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"/></symbol>
   <symbol id="building" viewBox="0 0 384 512"><path d="M48 0C21.5 0 0 21.5 0 48V464c0 26.5 21.5 48 48 48h96V432c0-26.5 21.5-48 48-48s48 21.5 48 48v80h96c26.5 0 48-21.5 48-48V48c0-26.5-21.5-48-48-48H48zM64 240c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H80c-8.8 0-16-7.2-16-16V240zm112-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H176c-8.8 0-16-7.2-16-16V240c0-8.8 7.2-16 16-16zm80 16c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H272c-8.8 0-16-7.2-16-16V240zM80 96h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H80c-8.8 0-16-7.2-16-16V112c0-8.8 7.2-16 16-16zm80 16c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H176c-8.8 0-16-7.2-16-16V112zM272 96h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H272c-8.8 0-16-7.2-16-16V112c0-8.8 7.2-16 16-16z"/></symbol>
+  <symbol id="check-circle" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"/></symbol>
   <symbol id="chevron-left" viewBox="0 0 320 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l192 192c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 246.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-192 192z"/></symbol>
   <symbol id="chevron-right" viewBox="0 0 320 512"><path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"/></symbol>
   <symbol id="clock" viewBox="0 0 512 512"><path d="M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120V256c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2V120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/></symbol>
@@ -507,318 +526,83 @@
 <!--hero-circuit:end-->
 
 <div class="container page-hero__inner">
-      <h1 class="page-hero__title">About Us</h1>
-      <p class="page-hero__subtitle">Orchestrating Technology with Time</p>
+      <h1 class="page-hero__title"><?= h($data['hero']['title']) ?></h1>
+      <p class="page-hero__subtitle"><?= h($data['hero']['subtitle']) ?></p>
     </div>
   </section>
+<?php if (about_band_shown($data, 'story')): ?>
+<?php /* The five image-and-prose sections. One loop, so a sixth can be added
+         and Vision can move above Mission from the editor.
 
-  <!-- ========================== The Company ========================== -->
-  <section class="section" aria-labelledby="company-heading">
+         The surface alternates by POSITION, not by a stored field: it is a
+         rhythm down the page, so a reordered or added section keeps the
+         stripe rather than carrying a stale copy of it. Same argument for the
+         heading ids, which are minted from the row id and are what this
+         section's aria-labelledby points at. */ ?>
+<?php foreach (about_shown($data, 'story') as $i => $row): ?>
+<?php $anchor = $row['id'] . '-heading'; ?>
+
+  <!-- ============================ <?= h($row['heading']) ?> ============================ -->
+  <section class="section<?= $i % 2 ? ' section--surface' : '' ?>" aria-labelledby="<?= h($anchor) ?>">
     <div class="container">
       <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="company-heading">The Company</h2>
+        <h2 class="about-section__title" id="<?= h($anchor) ?>"><?= h($row['heading']) ?></h2>
         <div class="about-section__rule" aria-hidden="true"></div>
       </div>
 
-      <div data-reveal data-reveal-delay class="about-split">
-        <div class="about-split__media">
-          <picture class="theme-swap--light">
-            <source srcset="/assets/images/logo/logo-light-540.webp" type="image/webp">
-            <img class="about-split__image about-split__image--contain"
-                 src="/assets/images/logo/logo-light-540.png"
-                 alt="Tech4TIME wordmark and clock emblem"
-                 width="540" height="192" loading="lazy" decoding="async">
-          </picture>
-          <picture class="theme-swap--dark">
-            <source srcset="/assets/images/logo/logo-dark-540.webp" type="image/webp">
-            <img class="about-split__image about-split__image--contain"
-                 src="/assets/images/logo/logo-dark-540.png"
-                 alt="Tech4TIME wordmark and clock emblem"
-                 width="540" height="192" loading="lazy" decoding="async">
-          </picture>
-        </div>
-        <div class="about-split__text">
-          <p>
-            At Tech4TIME, we believe in “Orchestrating Technology with Time” to deliver
-            innovative and impactful solutions. Founded on 15 May 2018, our journey has been
-            defined by a relentless commitment to excellence and pioneering advancements in
-            the tech industry.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- =========================== Our Goal =========================== -->
-  <section class="section section--surface" aria-labelledby="goal-heading">
-    <div class="container">
-      <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="goal-heading">Our Goal</h2>
-        <div class="about-section__rule" aria-hidden="true"></div>
-      </div>
-
-      <div class="about-split about-split--reverse">
+      <div class="about-split<?= $row['side'] === 'right' ? ' about-split--reverse' : '' ?>">
         <div data-reveal data-reveal-delay class="about-split__media">
-          <picture>
-            <source srcset="/assets/images/sections/our-goal.webp" type="image/webp">
-            <img class="about-split__image"
-                 src="/assets/images/sections/our-goal.jpg"
-                 alt="Illustration representing Tech4TIME's goal of secure, visionary digital solutions"
-                 width="818" height="810" loading="lazy" decoding="async">
-          </picture>
+          <?= $row['layout'] === 'logo'
+                ? about_logo_lockup('about-split__image about-split__image--contain', (string)$row['alt'])
+                : about_picture($row['image'], 'about-split__image', (string)$row['alt']) ?>
+
         </div>
         <div class="about-split__text">
-          <p data-reveal data-reveal-delay>
-            Our goal is to reshape the digital landscape with visionary solutions that blend
-            innovation with unyielding security. We empower businesses to transcend boundaries
-            by delivering bespoke technological services tailored to their evolving needs. With
-            an unwavering commitment to excellence, we leverage our core strengths in
-            cybersecurity, software development, and IT training to drive transformative change.
-          </p>
-          <p data-reveal data-reveal-delay>
-            Guided by integrity, client satisfaction, and future-focused strategies, we aspire
-            to cultivate a secure, dynamic ecosystem where businesses thrive and communities
-            flourish. Through a holistic approach, we seamlessly integrate diverse technological
-            needs, ensuring our partners navigate the digital world with unmatched confidence
-            and security.
-          </p>
+<?php /* Printed bare, and safe only because rt_sanitise_html() ran on save and
+         again on receipt — see contract_sanitise(). about_reveal_paragraphs()
+         then puts back the per-paragraph scroll markers, which cannot live in
+         the content and cannot live in the template either; the comment on
+         that function says why. */ ?>
+          <?= about_reveal_paragraphs((string)$row['body']) ?>
+
         </div>
       </div>
     </div>
   </section>
-
-  <!-- ========================= Our Mission ========================= -->
-  <section class="section" aria-labelledby="mission-heading">
-    <div class="container">
-      <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="mission-heading">Our Mission</h2>
-        <div class="about-section__rule" aria-hidden="true"></div>
-      </div>
-
-      <div class="about-split">
-        <div data-reveal data-reveal-delay class="about-split__media">
-          <picture>
-            <source srcset="/assets/images/sections/our-mission.webp" type="image/webp">
-            <img class="about-split__image"
-                 src="/assets/images/sections/our-mission.jpg"
-                 alt="Illustration representing Tech4TIME's mission of bespoke, secure technology delivery"
-                 width="812" height="810" loading="lazy" decoding="async">
-          </picture>
-        </div>
-        <div class="about-split__text">
-          <p data-reveal data-reveal-delay>
-            Our mission is to become the beacon of technological evolution by delivering
-            bespoke, secure, and innovative solutions that propel businesses toward enduring
-            success. We stand at the intersection of cybersecurity, software craftsmanship, and
-            knowledge empowerment through IT training, ensuring that our clients achieve their
-            digital aspirations with precision and peace of mind.
-          </p>
-          <p data-reveal data-reveal-delay>
-            Driven by an ethos of integrity and foresight, we endeavour to craft secure digital
-            futures for businesses and societies alike. With a comprehensive suite of services
-            under one roof, Tech4TIME eliminates fragmentation and complexity, providing clients
-            with a unified pathway to digital transformation.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================== Our Vision ========================== -->
-  <section class="section section--surface" aria-labelledby="vision-heading">
-    <div class="container">
-      <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="vision-heading">Our Vision</h2>
-        <div class="about-section__rule" aria-hidden="true"></div>
-      </div>
-
-      <div class="about-split about-split--reverse">
-        <div data-reveal data-reveal-delay class="about-split__media">
-          <picture>
-            <source srcset="/assets/images/sections/our-vision.webp" type="image/webp">
-            <img class="about-split__image"
-                 src="/assets/images/sections/our-vision.jpg"
-                 alt="Illustration representing Tech4TIME's vision of a secure digital renaissance"
-                 width="812" height="810" loading="lazy" decoding="async">
-          </picture>
-        </div>
-        <div class="about-split__text">
-          <p data-reveal data-reveal-delay>
-            Our vision is to be the harbinger of a secure digital renaissance — where innovation
-            meets resilience, and businesses conquer the complexities of the digital age with
-            confidence. We envision a world where our expertise in cybersecurity, software
-            solutions, and IT training elevates industries to new heights of achievement and
-            sustainability.
-          </p>
-          <p data-reveal data-reveal-delay>
-            By steadfastly upholding values of integrity, continuous learning, and
-            client-centric strategies, we aim to pioneer new paradigms in technological
-            excellence. With a focus on holistic service integration, we aspire to craft
-            seamless, secure journeys for businesses navigating the ever-evolving digital
-            terrain.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= Our Ambition ========================= -->
-  <section class="section" aria-labelledby="ambition-heading">
-    <div class="container">
-      <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="ambition-heading">Our Ambition</h2>
-        <div class="about-section__rule" aria-hidden="true"></div>
-      </div>
-
-      <div class="about-split">
-        <div data-reveal data-reveal-delay class="about-split__media">
-          <picture>
-            <source srcset="/assets/images/sections/our-ambition.webp" type="image/webp">
-            <img class="about-split__image"
-                 src="/assets/images/sections/our-ambition.jpg"
-                 alt="Illustration representing Tech4TIME's ambition to lead the digital frontier"
-                 width="854" height="814" loading="lazy" decoding="async">
-          </picture>
-        </div>
-        <div class="about-split__text">
-          <p data-reveal data-reveal-delay>
-            Our ambition is to lead the digital frontier with avant-garde solutions that
-            epitomize security, innovation, and transformative growth. We aim to redefine
-            industry benchmarks through relentless pursuit of excellence in cybersecurity,
-            cutting-edge software development, and IT training that equips businesses to excel
-            in a hyperconnected world.
-          </p>
-          <p data-reveal data-reveal-delay>
-            By fostering a culture of integrity and forward-thinking innovation, we are
-            committed to crafting secure, sustainable futures for our clients and the
-            communities they touch. Through our all-encompassing service model, we empower
-            businesses to traverse the digital landscape with clarity, agility, and confidence,
-            making security and progress synonymous.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
+<?php endforeach; ?>
+<?php endif; ?>
+<?php if (about_band_shown($data, 'specialties')): ?>
+<?php $specialties = about_shown($data, 'specialties'); ?>
 
   <!-- ======================== Our Specialities ======================== -->
   <section class="section section--surface specialties" aria-labelledby="specialties-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="specialties-heading">Our Specialities</h2>
+        <h2 class="about-section__title" id="specialties-heading"><?= h($data['specialties']['title']) ?></h2>
         <div class="about-section__rule" aria-hidden="true"></div>
       </div>
 
       <!-- One specialty at a time, in a slideshow. Without JavaScript the
-           track is still the grid it was and all six are on screen at once;
-           see .slider__track in components.css. -->
+           track is still the grid it was and all of them are on screen at
+           once; see .slider__track in components.css. -->
       <div data-reveal data-reveal-delay class="slider specialties__slider" data-slider
-           data-slider-interval="10000" aria-label="Our specialities">
+           data-slider-interval="<?= (int)$data['specialties']['interval'] ?>" aria-label="Our specialities">
         <div class="slider__viewport">
           <div class="slider__track" data-slider-track>
+<?php foreach ($specialties as $row): ?>
             <div class="slider__slide">
               <article class="specialty-card">
                 <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#shield-alt"></use></svg>
+                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($row['icon']) ?>"></use></svg>
                 </span>
-                <h3 class="specialty-card__title">Cybersecurity</h3>
+                <h3 class="specialty-card__title"><?= h($row['title']) ?></h3>
                 <p class="specialty-card__text">
-                  We deliver comprehensive cybersecurity solutions to protect organizations from
-                  evolving digital threats. Our services include threat intelligence, risk assessment,
-                  vulnerability management, and incident response, ensuring continuous protection of
-                  critical assets. Through SOC monitoring, penetration testing, and network security,
-                  we help strengthen digital defenses. With a focus on prevention, response, and
-                  compliance, we empower businesses to stay secure in a rapidly changing cyber
-                  landscape.
-                </p>
-              </article>
-            </div>
+                  <?= h($row['text']) ?>
 
-            <div class="slider__slide">
-              <article class="specialty-card">
-                <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#code"></use></svg>
-                </span>
-                <h3 class="specialty-card__title">Software Development</h3>
-                <p class="specialty-card__text">
-                  We deliver custom software solutions that enhance productivity and streamline
-                  operations. Our expertise includes web and mobile app development, enterprise
-                  software, and systems integration to optimize workflows. Whether building scalable
-                  applications or secure platforms, we focus on delivering robust, efficient, and
-                  future-ready software to help organizations stay competitive in an evolving digital
-                  world.
                 </p>
               </article>
             </div>
-
-            <div class="slider__slide">
-              <article class="specialty-card">
-                <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#cloud"></use></svg>
-                </span>
-                <h3 class="specialty-card__title">Cloud Infrastructure &amp; Platform</h3>
-                <p class="specialty-card__text">
-                  We engineer and deploy custom cloud infrastructure and platforms designed to serve as
-                  the backbone of modern organizations. From the ground up, we build dedicated private
-                  and hybrid cloud environments that provide the perfect balance of localized control
-                  and scalable power. Our approach focuses on architecting a secure, high-performance
-                  foundation tailored to your specific operational needs, ensuring your data remains
-                  protected while your services remain accessible. By bridging the gap between physical
-                  hardware and digital agility, we empower businesses to own their innovation through a
-                  robust, purpose-built cloud ecosystem.
-                </p>
-              </article>
-            </div>
-
-            <div class="slider__slide">
-              <article class="specialty-card">
-                <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#users"></use></svg>
-                </span>
-                <h3 class="specialty-card__title">Human Resource as a Service (HRaaS)</h3>
-                <p class="specialty-card__text">
-                  We provide comprehensive HR solutions including talent acquisition, performance
-                  management, training &amp; development, and HR consultancy. Our expertise in
-                  recruiting top-tier technology professionals, developing performance evaluation
-                  systems, and strategic HR planning ensures your organization has the right people to
-                  drive success. We integrate HR services with our technological solutions to create
-                  holistic workforce strategies for sustainable growth.
-                </p>
-              </article>
-            </div>
-
-            <div class="slider__slide">
-              <article class="specialty-card">
-                <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#server"></use></svg>
-                </span>
-                <h3 class="specialty-card__title">IT Equipment Supply</h3>
-                <p class="specialty-card__text">
-                  We provide secure, on-demand IT equipment to support your business’s evolving
-                  technological needs. Our offerings include high-performance servers, firewalls,
-                  networking devices, and secure storage solutions, all optimized for network security
-                  and operational efficiency. We focus on delivering scalable and security-enhanced IT
-                  infrastructure that ensures reliability, data integrity, and seamless integration.
-                  With Tech4TIME, your business is equipped with the right tools to grow securely and
-                  sustainably.
-                </p>
-              </article>
-            </div>
-
-            <div class="slider__slide">
-              <article class="specialty-card">
-                <span class="specialty-card__icon">
-                  <svg class="icon" aria-hidden="true" focusable="false"><use href="#graduation-cap"></use></svg>
-                </span>
-                <h3 class="specialty-card__title">IT Consultancy and Training</h3>
-                <p class="specialty-card__text">
-                  Our commitment to knowledge-sharing and skill-building sets us apart. We offer
-                  specialized consultancy services and training programs to empower your workforce and
-                  strengthen your organization’s security framework. We are dedicated to creating
-                  technology-driven solutions that inspire trust, build resilience, and ensure a
-                  brighter, more secure future for our clients.
-                </p>
-              </article>
-            </div>
+<?php endforeach; ?>
           </div>
         </div>
 
@@ -830,19 +614,14 @@
             <svg class="icon" aria-hidden="true" focusable="false"><use href="#chevron-left"></use></svg>
           </button>
 
+<?php /* The dots are generated from the slide count rather than written out,
+           because slider.js matches a dot to a slide by index — a hand-written
+           list that drifts breaks the control silently. */ ?>
           <div class="slider__dots">
-            <button class="slider__dot" type="button" data-slider-to="0"
-                    aria-label="Go to specialty 1"></button>
-            <button class="slider__dot" type="button" data-slider-to="1"
-                    aria-label="Go to specialty 2"></button>
-            <button class="slider__dot" type="button" data-slider-to="2"
-                    aria-label="Go to specialty 3"></button>
-            <button class="slider__dot" type="button" data-slider-to="3"
-                    aria-label="Go to specialty 4"></button>
-            <button class="slider__dot" type="button" data-slider-to="4"
-                    aria-label="Go to specialty 5"></button>
-            <button class="slider__dot" type="button" data-slider-to="5"
-                    aria-label="Go to specialty 6"></button>
+<?php foreach ($specialties as $i => $_row): ?>
+            <button class="slider__dot" type="button" data-slider-to="<?= $i ?>"
+                    aria-label="Go to specialty <?= $i + 1 ?>"></button>
+<?php endforeach; ?>
           </div>
 
           <button class="slider__arrow" type="button" data-slider-next
@@ -862,112 +641,63 @@
       </div>
     </div>
   </section>
+<?php endif; ?>
+<?php if (about_band_shown($data, 'whyus')): ?>
 
   <!-- ============================ Why Us? ============================ -->
   <section class="section why-us" aria-labelledby="why-us-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="about-section__header">
-        <h2 class="about-section__title" id="why-us-heading">Why Us?</h2>
+        <h2 class="about-section__title" id="why-us-heading"><?= h($data['whyus']['title']) ?></h2>
         <div class="about-section__rule" aria-hidden="true"></div>
       </div>
 
       <ul class="why-us__grid">
+<?php foreach (about_shown($data, 'whyus') as $row): ?>
         <li data-reveal data-reveal-delay class="why-us-card">
           <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#trophy"></use></svg>
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($row['icon']) ?>"></use></svg>
           </span>
           <div>
-            <h3 class="why-us-card__title">Established Expertise</h3>
-            <p class="why-us-card__text">Founded in 2018 with proven track record</p>
+            <h3 class="why-us-card__title"><?= h($row['title']) ?></h3>
+            <p class="why-us-card__text"><?= h($row['text']) ?></p>
           </div>
         </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#layer-group"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Diverse Services</h3>
-            <p class="why-us-card__text">Comprehensive suite of technological solutions</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#lightbulb"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Innovative Paradigms</h3>
-            <p class="why-us-card__text">Pioneering new approaches to tech</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#handshake"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Unwavering Integrity</h3>
-            <p class="why-us-card__text">Ethical and transparent business practices</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#cogs"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Tailored Solutions</h3>
-            <p class="why-us-card__text">Customized approaches for each client</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#lock"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Robust Security</h3>
-            <p class="why-us-card__text">Enterprise-grade security measures</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#users"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Client-Centric Approach</h3>
-            <p class="why-us-card__text">Putting client needs first</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#project-diagram"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Holistic Methodology</h3>
-            <p class="why-us-card__text">Integrated approach to technology</p>
-          </div>
-        </li>
-        <li data-reveal data-reveal-delay class="why-us-card">
-          <span class="why-us-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#eye"></use></svg>
-          </span>
-          <div>
-            <h3 class="why-us-card__title">Progressive Vision</h3>
-            <p class="why-us-card__text">Future-focused strategies</p>
-          </div>
-        </li>
+<?php endforeach; ?>
       </ul>
     </div>
   </section>
+<?php endif; ?>
+<?php if (about_band_shown($data, 'cta')): ?>
 
   <!-- ============================== CTA ============================== -->
   <section class="cta-band" aria-labelledby="about-cta-heading">
     <div class="container cta-band__inner">
-      <h2 data-reveal data-reveal-delay class="cta-band__title" id="about-cta-heading">Curious About our Services?</h2>
-      <a data-reveal data-reveal-delay class="btn btn--primary btn--lg" href="/pages/services/">
-        Explore All Services
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
+      <h2 data-reveal data-reveal-delay class="cta-band__title" id="about-cta-heading"><?= h($data['cta']['title']) ?></h2>
+      <a data-reveal data-reveal-delay class="btn btn--primary btn--lg" href="<?= h($data['cta']['href']) ?>">
+        <?= h($data['cta']['label']) ?>
+
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($data['cta']['icon']) ?>"></use></svg>
       </a>
     </div>
   </section>
+<?php endif; ?>
 
+<?php /* Every icon a specialty card, a why-us card or the button above may
+         carry is named in the comment below. Read that comment before deleting
+         it: tools/inject_icons.py finds the symbols a page needs by scanning it
+         for a literal href="#name", and the names used above are chosen at run
+         time, where the scan cannot see them. Keep this in step with
+         ABOUT_ICONS in lib/contract.php — inject_icons.py --check says so when
+         it drifts.
+
+         <use href="#shield-alt"> <use href="#code"> <use href="#cloud">
+         <use href="#users"> <use href="#server"> <use href="#graduation-cap">
+         <use href="#trophy"> <use href="#layer-group"> <use href="#lightbulb">
+         <use href="#handshake"> <use href="#cogs"> <use href="#lock">
+         <use href="#project-diagram"> <use href="#eye"> <use href="#arrow-right">
+         <use href="#check-circle">
+      */ ?>
 </main>
 
 <footer class="site-footer">

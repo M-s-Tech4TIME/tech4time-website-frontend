@@ -40,7 +40,7 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 | Page | File | |
 |---|---|---|
 | Home | `index.html` | at the repository root |
-| About | `pages/about/index.html` | |
+| About | `pages/about/index.php` | **dynamic** — renders `content/about.json` |
 | Services hub | `pages/services/index.html` | |
 | — Cybersecurity | `pages/services/cybersecurity/index.html` | |
 | — Software development | `pages/services/software-development/index.html` | |

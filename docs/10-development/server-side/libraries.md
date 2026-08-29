@@ -19,6 +19,7 @@ store they read from is outside the document root entirely.
 | [`careers.php`](#careersphp) | what this side does with a job post | `contract`, `store` |
 | [`contact.php`](#contactphp) | what this side does with the contact page | `contract`, `store` |
 | [`company.php`](#companyphp) | what this side does with the company profile | `contract`, `store` |
+| [`about.php`](#aboutphp) | what this side does with the about page | `contract`, `store` |
 | [`publish.php`](#publishphp) **shared** | how a document is signed and checked on the wire | `private`, `contract` |
 | [`publish_client.php`](#publish_clientphp) *(backend)* | sending one | `publish` |
 | [`footer-fingerprint.php`](#footer-fingerprintphp) *(frontend, generated)* | what this site's footers currently say | — |
@@ -176,6 +177,33 @@ space the browser renders.
 **`company_validate()` refuses a figure that does not start with a digit.** `animations.js` counts
 it up by reading the number off the front, so `"Over 100"` silently never animates. That is the
 kind of thing an editor should say out loud rather than let somebody discover.
+
+### `about.php`
+
+`about_load()` · `about_save()` · `about_validate()` *(backend)* ·
+`about_page_schema()` · `about_picture()` · `about_logo_lockup()` ·
+`about_reveal_paragraphs()` *(frontend)*
+
+The same division again, for the about page: three repeatable lists — the story sections, the
+specialities and the why-us cards — plus the copy around them. The shape is in `contract.php`.
+
+Three things here are worth knowing before changing either half:
+
+**A story row's `layout` chooses between a photograph and the logo lockup,** and `logo` ignores the
+row's picture record entirely. The wordmark is a brand asset that ships with the site and changes
+with a deploy, so it is a layout an editor may choose and not a file an editor may replace.
+`about_logo_lockup()` emits both colour variants with the same `alt`, because exactly one is
+displayed at a time and two different names for one logo is what a screen reader would otherwise
+announce.
+
+**`about_reveal_paragraphs()` puts the scroll markers back on each paragraph.** The prose is one
+rich-text field, so the markers cannot be typed into it, and how many paragraphs there are is a
+property of the content rather than of the template. It runs on already-sanitised HTML and only
+ever adds two valueless attributes to an opening `<p>`; if it matched nothing the paragraphs would
+arrive un-animated rather than invisible.
+
+**`tools/apply_reveals.py` no longer governs this page.** It reports and skips any page that builds
+part of itself with a loop, which this one now does — see [motion.md](../frontend/motion.md).
 
 ### `publish.php`
 
