@@ -43,13 +43,14 @@ its record before acting.
 
 | | |
 |---|---|
-| `pages/` `index.html` | the sixteen pages — two are `.php` and render from `content/` |
+| `pages/` `index.html` | the sixteen pages — three are `.php` and render from `content/` |
 | `assets/` | css, js, fonts, icons, images — all self-hosted |
 | `lib/` | server-side PHP: rendering, the contract, the publish format |
 | `api/publish.php` | where the backend's content arrives. The only thing here that writes |
-| `content/` | the replica the two dynamic pages render from |
+| `content/` | the replica the three dynamic pages render from |
 | `tools/` | build, audit and test scripts — never deployed |
 | `docs/` | the documentation |
+| `plans/` | parked designs — not deployed, and not yet true. `docs/` is for what is |
 | `../t4t-private/` | **outside the repo** — `secret.key`, `throttle.json`, `publish.key`. Never committed |
 
 There is no `admin/`, no `lib/auth.php` and no password hash on this host. The private store has no

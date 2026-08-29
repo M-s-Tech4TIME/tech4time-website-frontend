@@ -100,7 +100,7 @@ REQUIRED = [
 # Never in the set, whatever else changes. Stated separately from "not in
 # UPLOAD" because that is the claim worth failing on out loud.
 FORBIDDEN_TREES = ["content", "tools", "docs", "references", ".git", ".claude",
-                   "admin", "deploy", "uploads"]
+                   "admin", "deploy", "uploads", "plans"]
 
 SEED = ROOT / "deploy" / "seed"
 CONTRACT = ROOT / "lib" / "contract.php"
