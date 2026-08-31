@@ -44,6 +44,7 @@ require_once __DIR__ . '/../lib/careers.php';
 require_once __DIR__ . '/../lib/contact.php';
 require_once __DIR__ . '/../lib/company.php';
 require_once __DIR__ . '/../lib/about.php';
+require_once __DIR__ . '/../lib/home.php';
 
 /**
  * Where each document lands, by name.
@@ -64,6 +65,7 @@ const PUBLISH_FILES = [
     'contact' => CONTACT_FILE,
     'company' => COMPANY_FILE,
     'about'   => ABOUT_FILE,
+    'home'    => HOME_FILE,
 ];
 
 header('Content-Type: application/json; charset=utf-8');

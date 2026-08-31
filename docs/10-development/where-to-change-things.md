@@ -20,6 +20,8 @@ that name the admin name the other repository too.
 
 | I want to change | Where |
 |---|---|
+| The home page's hero, badges, tags and terminal | `https://admin.tech4time.bd/?s=home` |
+| The service cards and the Get to Know Us cards | `https://admin.tech4time.bd/?s=home` |
 | A job post — add, edit, remove, reorder | `https://admin.tech4time.bd/?s=careers` |
 | The CV / application form link | `https://admin.tech4time.bd/?s=careers` |
 | An office address, phone number, email | `https://admin.tech4time.bd/?s=contact` |
@@ -31,8 +33,8 @@ that name the admin name the other repository too.
 | The about page's sections, specialities and why-us cards | `https://admin.tech4time.bd/?s=about` |
 
 Saving there writes the backend's own record, then pushes a signed copy to `api/publish.php` here,
-which verifies it, re-sanitises it and writes `content/careers.json`, `content/contact.json` or
-`content/company.json`. Pictures travel a second endpoint of their own, `api/publish-asset.php`,
+which verifies it, re-sanitises it and writes `content/home.json`, `content/careers.json`,
+`content/contact.json`, `content/company.json` or `content/about.json`. Pictures travel a second endpoint of their own, `api/publish-asset.php`,
 and land in `uploads/` — [0019](../90-decisions/0019-uploaded-images-travel-their-own-channel.md). This
 site's copy is a **replica** — never edit it by hand, on the server or anywhere else: the next
 publish overwrites it. [publish-api.md](server-side/publish-api.md)
@@ -90,7 +92,7 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 |---|---|
 | **The header or footer** | `tools/templates/`, then `python3 tools/propagate_shared.py` — **never one page** |
 | A page's content | `pages/<name>/index.html` |
-| The homepage | `index.html`, at the repository root |
+| The homepage | `index.php`, at the repository root — its **words** are in the admin, above |
 | The 404 page | `404.html` |
 | Add a whole new page | [adding-a-page.md](frontend/adding-a-page.md) |
 | An icon on a page | edit the markup, then `python3 tools/inject_icons.py` |

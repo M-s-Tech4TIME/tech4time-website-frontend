@@ -42,7 +42,11 @@ The ways it can break, each of which has a check below:
       The quietest one. A page with no [data-reveal] passes every check here
       without any of them testing anything, which is how the careers page went
       through a full run untouched — it is index.php, and the tool that applies
-      the markers only globbed index.html.
+      the markers only globbed index.html. The home page became index.php later
+      and would have walked into the same trap: apply_reveals.py hardcoded
+      ROOT/"index.html" at the root, so it stopped seeing the file. It looks for
+      both names now, and reports-and-skips this page along with the other four
+      that render a list, whose markers are hand-maintained.
 
 The central assertion is the blunt one: load each of the sixteen pages, scroll
 from top to bottom, and require every marked element to be fully opaque. If
@@ -300,7 +304,9 @@ def sweep(b: Browser, origin: str, r: Results) -> None:
         # A page with nothing marked passes the line above without testing
         # anything. That is how the careers page went through a whole run
         # untouched: tools/apply_reveals.py only globbed index.html and careers
-        # is index.php, so it had no markers and reported a clean pass.
+        # is index.php, so it had no markers and reported a clean pass. The home
+        # page is index.php now too, and this is the check that would catch it
+        # if its hand-maintained markers were ever dropped.
         if path not in NO_REVEALS:
             r.check(f"{path} — has reveals to check in the first place",
                     d["marked"] > 0,

@@ -72,6 +72,15 @@
      the image rather than as a light patch in a dark page. */
   --artwork-plate: #ffffff;
 
+  /* The plate behind artwork an operator has uploaded AS the dark-mode half of
+     a picture. It does not flip either, and for the mirror-image reason: that
+     image is only ever shown in dark mode, so a light plate behind it would
+     flash white while it loads and would show through anything transparent in
+     it. Used only by .destination-card__media--dark, which exists only when a
+     dark half has been uploaded — with none, the card emits one picture on the
+     ordinary plate exactly as it always has. */
+  --artwork-plate-dark: #0b0b0c;
+
   /* Shine sweep overlay for the metallic hover effect. */
   --silver-shine: rgba(255, 255, 255, 0.55);
 

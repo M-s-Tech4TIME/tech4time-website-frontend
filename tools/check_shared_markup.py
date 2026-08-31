@@ -73,6 +73,11 @@ def normalise(markup: str) -> str:
 def pages() -> list[Path]:
     found = (
         list(ROOT.glob("*.html"))
+        # The home page is index.php. Without it the one page every visitor
+        # sees would be the one page whose header and footer nothing checked.
+        # Named, not globbed as "*.php": contact-handler.php is an endpoint,
+        # not a page, and has none of these blocks by design.
+        + list(ROOT.glob("index.php"))
         + list(ROOT.glob("pages/**/*.html"))
         # The careers page is PHP because its content changes without a
         # redeploy. Its header and footer are still literal markup pasted in

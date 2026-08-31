@@ -208,7 +208,7 @@ def targets_for(page: htmltree.Node) -> list[tuple[htmltree.Node, bool]]:
 
 def pages() -> list[Path]:
     """Every page, static or rendered."""
-    found = [ROOT / "index.html", ROOT / "404.html"]
+    found = [ROOT / "index.html", ROOT / "index.php", ROOT / "404.html"]
     for name in ("index.html", "index.php"):
         found += sorted((ROOT / "pages").rglob(name))
     return [p for p in found if p.exists()]

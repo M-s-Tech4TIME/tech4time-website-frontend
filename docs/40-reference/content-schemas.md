@@ -203,14 +203,71 @@ The same shape.
 | `status` | `shown` or `hidden` |
 
 **The specialities repeat the six service names that also appear on the home page and
-`/pages/services/`.** Neither of those has a content source yet, so this document is not the owner
-of that taxonomy — it is the first place it was written down. To be reconciled when the services
-page comes under management.
+`/pages/services/`.** The home page now has a content source of its own, so the taxonomy lives in
+**three** places — `content/about.json`, `content/home.json` and `pages/services/index.html` — with
+no owner. The home page's `Service` ItemList used to be a fourth and is now generated from
+`services.items`, so that copy is gone. The remaining three are to be reconciled when the services
+page comes under management; nothing enforces that they agree today.
 
 **About's why-us cards and the company profile's `principles` express overlapping ideas** — Robust
 Security and Security First, Client-Centric Approach and Client Partnership — and are deliberately
 separate: different wording, different icons, different markup, on different pages. Editing one is
 worth a look at the other.
+
+## `content/home.json`
+
+```json
+{
+  "updated":  "…",
+  "revision": 0,
+  "meta":         { "title": "…", "description": "…", "share_title": "…" },
+  "hero":         { "title": "…", "accent": "…", "cta_label": "…", "cta_href": "…" },
+  "badges":       { "status": "shown", "items": [] },
+  "tags":         { "status": "shown", "items": [] },
+  "terminal":     { "status": "shown", "title": "…", "summary": "…", "items": [] },
+  "capabilities": { "status": "shown", "title": "…", "lead": "…", "items": [] },
+  "services":     { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…",
+                    "schema_name": "…", "schema_description": "…", "items": [] },
+  "destinations": { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…", "items": [] },
+  "cta":          { "status": "shown", "icon": "…", "title": "…", "text": "…",
+                    "label": "…", "href": "…" }
+}
+```
+
+| Field | |
+|---|---|
+| `updated` · `revision` | bookkeeping — see *Rules that apply to both* |
+| `meta` | `<title>`, meta description, Open Graph and Twitter titles |
+| `hero` | the page's only `<h1>`, the phrase drawn in the accent colour, and one button. No `status`: a front page with no heading is not a page with a section switched off |
+| `badges` · `tags` | `{ id, icon, label, status }` — the pills under the heading |
+| `terminal` | the decorative SOC console. `summary` is the one line a screen reader is given instead of it |
+| `capabilities` | `{ id, icon, title, status }` — the technical domains |
+| `services` | `{ id, icon, title, text, href, label, link_hint, status }` |
+| `destinations` | the same plus `alt`, `image{}` and `image_dark{}` |
+| `cta` | the closing panel. `title` holds a newline, which becomes the `<br>` |
+
+**Six lists, the most of any document here.** `HOME_LISTS` names them and `home_normalise()` drives
+itself off that, so a seventh is added by being added there.
+
+**A terminal line is `{ id, kind, tone, prompt, text, status }`.** `kind` is `command` or `output`;
+`tone` is `plain`, `success` or `alert` and is ignored on a command. **The blinking caret is not a
+row** — it is emitted after the last line by `home_terminal_lines()`, so it cannot be deleted,
+duplicated or stranded in the middle.
+
+**`hero.accent` is a phrase, not markup.** The renderer wraps its first exact occurrence in the
+title. It has to match exactly, capitals included; the editor refuses a save where it does not, and
+the page falls back to a plain heading if one ever gets through.
+
+**`link_hint` is the visually-hidden tail on a card's link** — "for Cybersecurity". It is a field
+rather than something derived from the title, because the wording differs from it: the card titled
+"IT Consultancy & Training" reads "and", not "&".
+
+**`schema_name` and `schema_description` are the only fields here nobody sees on the page.** They
+name the `Service` ItemList in the `<head>`. Each service's own entry is generated from its card, so
+there is no second copy of the six to keep true — there was, and it had drifted.
+
+**Both halves of a destination picture are counted by `home_images()`**, so an unused-file sweep
+cannot offer to delete a dark image the moment it is uploaded.
 
 ## Rules that apply to both
 
@@ -227,6 +284,11 @@ so alignment is a class from a fixed list.
 both directions. Nothing renders them and the form does not write them.
 
 **Ids are generated, not typed.** `careers_slug()` and `contact_slug()` make them.
+
+**`.htaccess` redirects `index.php` as well as `index.html`** to the directory that holds it. It
+covered only `.html` until the home page became PHP, and `https://tech4time.bd/pages/about/index.php`
+answered 200 — a second URL for a page that already had one, which is the duplicate-content problem
+those rules exist to prevent. Do not simplify the rule back to one extension.
 
 ---
 

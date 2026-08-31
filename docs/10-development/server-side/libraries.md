@@ -20,6 +20,7 @@ store they read from is outside the document root entirely.
 | [`contact.php`](#contactphp) | what this side does with the contact page | `contract`, `store` |
 | [`company.php`](#companyphp) | what this side does with the company profile | `contract`, `store` |
 | [`about.php`](#aboutphp) | what this side does with the about page | `contract`, `store` |
+| [`home.php`](#homephp) | what this side does with the home page | `contract`, `store` |
 | [`publish.php`](#publishphp) **shared** | how a document is signed and checked on the wire | `private`, `contract` |
 | [`publish_client.php`](#publish_clientphp) *(backend)* | sending one | `publish` |
 | [`footer-fingerprint.php`](#footer-fingerprintphp) *(frontend, generated)* | what this site's footers currently say | — |
@@ -204,6 +205,45 @@ arrive un-animated rather than invisible.
 
 **`tools/apply_reveals.py` no longer governs this page.** It reports and skips any page that builds
 part of itself with a loop, which this one now does — see [motion.md](../frontend/motion.md).
+
+### `home.php`
+
+`home_load()` · `home_save()` · `home_validate()` *(backend)* ·
+`home_hero_title()` · `home_terminal_lines()` · `home_cta_title()` ·
+`home_picture()` · `home_destination_art()` · `home_service_schema()` *(frontend)*
+
+The same division once more, for the home page — **six** repeatable lists, more than any other
+document: the hero's badges and tags, the terminal's lines, the technical domains, the service
+cards and the Get to Know Us cards. The shape is in `contract.php`.
+
+**Every field on this page is plain text.** There is no rich-text field at all, because every lead
+and card body is a single styled `<p>`; see `HOME_ROW_RICH_FIELDS` in `contract.php`. The three
+functions that return markup build it from values they escape themselves.
+
+**`home_hero_title()` wraps one phrase of the heading in the accent colour.** The title is stored as
+plain text with the phrase to emphasise beside it, so nobody types a tag and the class name stays in
+the stylesheet. The split is made on the raw strings and each part escaped afterwards — searching
+escaped text for an escaped needle works until the phrase contains an `&`. A phrase that is not in
+the title renders the heading plain; the editor refuses to save that, so it is a safety net rather
+than the plan.
+
+**`home_terminal_lines()` emits at column 0, and owns the caret.** `.terminal__line` is
+`white-space: pre-wrap`, so source indentation would appear as leading spaces on the page. The
+blinking cursor is emitted after the last line and is not a row in the document: an operator cannot
+delete it, end up with two, or strand it in the middle.
+
+**`home_destination_art()` emits one picture unless a dark half exists.** With none — which is every
+card today — the markup is exactly what the page carried before it rendered from a document, with no
+theme-swap classes and no second element. The illustrations are line art that the stylesheet keeps
+on a light plate in both colour modes, so the dark slot is an option nobody has taken rather than a
+gap. Uploading one produces the pair and takes the dark half off that plate.
+
+**`home_service_schema()` generates the `Service` ItemList from the cards.** It was literal markup
+maintained beside them, and the two had already drifted: the card read "SOC & CIRT" and the schema
+read "SOC and CIRT". A seventh card is now a seventh entry by being a seventh card, and a hidden one
+is absent from both.
+
+**`tools/apply_reveals.py` does not govern this page either**, for the same reason.
 
 ### `publish.php`
 

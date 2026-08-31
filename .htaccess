@@ -90,9 +90,15 @@
     # problem the canonical tag would otherwise have to paper over).
     # ----------------------------------------------------------------------
 
-    # Send /pages/about/index.html -> /pages/about/
-    RewriteCond %{THE_REQUEST} \s/(.*/)?index\.html[\s?] [NC]
-    RewriteRule ^(.*/)?index\.html$ /%1 [R=301,L]
+    # Send /pages/about/index.html -> /pages/about/, and the same for the
+    # pages that render from content/ and are therefore index.php: the home
+    # page, careers, contact, the company profile and about. Both extensions,
+    # because DirectoryIndex serves either and a page reachable at both its
+    # directory AND its filename is the duplicate-content problem these rules
+    # exist to prevent. It answered 200 at /pages/about/index.php until this
+    # covered .php as well.
+    RewriteCond %{THE_REQUEST} \s/(.*/)?index\.(html|php)[\s?] [NC]
+    RewriteRule ^(.*/)?index\.(html|php)$ /%1 [R=301,L]
 
     # Send /pages/about -> /pages/about/  (only where the directory exists)
     RewriteCond %{REQUEST_FILENAME} -d

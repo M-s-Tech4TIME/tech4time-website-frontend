@@ -64,6 +64,7 @@ CAREERS = ROOT / "content" / "careers.json"
 CONTACT = ROOT / "content" / "contact.json"
 COMPANY = ROOT / "content" / "company.json"
 ABOUT = ROOT / "content" / "about.json"
+HOME = ROOT / "content" / "home.json"
 
 MARK = "PUBLISHMARK"
 
@@ -332,6 +333,7 @@ def run(base: str, key: bytes, r: Results) -> None:
     contact_switches(base, key, r)
     company_round_trip(base, key, r)
     about_round_trip(base, key, r)
+    home_round_trip(base, key, r)
 
 
 def contact_switches(base: str, key: bytes, r: Results) -> None:
@@ -705,6 +707,233 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
             stored["story"]["items"][0]["image"]["src"] == "",
             str(stored["story"]["items"][0]["image"]))
 
+
+def home_round_trip(base: str, key: bytes, r: Results) -> None:
+    """Every field the home model declares, set and then read off the page.
+
+    THIS IS WHAT check_content_model.py POINTS AT, for the same reason
+    about_round_trip() is, only more so: the home page has SIX lists and the
+    renderer walks every one of them with foreach, so a regex over the page
+    finds loops rather than fields. Put a distinguishable value in every field,
+    publish it, and look for it in the HTML a visitor would get.
+    """
+    print("\nthe home page travels the same road")
+
+    data = json.loads(HOME.read_text())
+    data["revision"] = 3
+
+    data["meta"]["title"] = f"{MARK}-tab"
+    data["meta"]["description"] = f"{MARK}-desc"
+    data["meta"]["share_title"] = f"{MARK}-share"
+    data["hero"]["title"] = f"{MARK}-hero with {MARK}-accent inside"
+    data["hero"]["accent"] = f"{MARK}-accent"
+    data["hero"]["cta_label"] = f"{MARK}-hero-btn"
+    data["hero"]["cta_href"] = "/pages/services/"
+    data["terminal"]["title"] = f"{MARK}-term-title"
+    data["terminal"]["summary"] = f"{MARK}-term-summary"
+    data["capabilities"]["title"] = f"{MARK}-cap-title"
+    data["capabilities"]["lead"] = f"{MARK}-cap-lead"
+    data["services"]["eyebrow"] = f"{MARK}-svc-eyebrow"
+    data["services"]["title"] = f"{MARK}-svc-title"
+    data["services"]["lead"] = f"{MARK}-svc-lead"
+    data["services"]["schema_name"] = f"{MARK}-svc-schema"
+    data["services"]["schema_description"] = f"{MARK}-svc-schema-desc"
+    data["destinations"]["eyebrow"] = f"{MARK}-dst-eyebrow"
+    data["destinations"]["title"] = f"{MARK}-dst-title"
+    data["destinations"]["lead"] = f"{MARK}-dst-lead"
+    data["cta"]["icon"] = "rocket"
+    data["cta"]["title"] = f"{MARK}-cta-one\n{MARK}-cta-two"
+    data["cta"]["text"] = f"{MARK}-cta-text"
+    data["cta"]["label"] = f"{MARK}-cta-label"
+    data["cta"]["href"] = "/pages/contact/"
+
+    data["badges"]["items"] = [{
+        "id": "mark-badge", "icon": "shield-alt", "label": f"{MARK}-badge",
+        "status": "shown"}]
+    data["tags"]["items"] = [{
+        "id": "mark-tag", "icon": "bug", "label": f"{MARK}-tag", "status": "shown"}]
+    # One of each kind and tone, so every branch of home_terminal_lines() runs.
+    data["terminal"]["items"] = [
+        {"id": "mark-cmd", "kind": "command", "tone": "plain",
+         "prompt": f"{MARK}-prompt$", "text": f"{MARK}-command", "status": "shown"},
+        {"id": "mark-ok", "kind": "output", "tone": "success",
+         "prompt": "", "text": f"{MARK}-success", "status": "shown"},
+        {"id": "mark-bad", "kind": "output", "tone": "alert",
+         "prompt": "", "text": f"{MARK}-alert", "status": "shown"},
+    ]
+    data["capabilities"]["items"] = [{
+        "id": "mark-cap", "icon": "sitemap", "title": f"{MARK}-cap-row",
+        "status": "shown"}]
+    data["services"]["items"] = [{
+        "id": "mark-svc", "icon": "laptop-code", "title": f"{MARK}-svc-row",
+        "text": f"{MARK}-svc-text", "href": "/pages/services/cybersecurity/",
+        "label": f"{MARK}-svc-label", "link_hint": f"{MARK}-svc-hint",
+        "status": "shown"}]
+    data["destinations"]["items"] = [{
+        "id": "mark-dst", "title": f"{MARK}-dst-row", "text": f"{MARK}-dst-text",
+        "href": "/pages/about/", "label": f"{MARK}-dst-label",
+        "link_hint": f"{MARK}-dst-hint", "alt": f"{MARK}-dst-alt",
+        "status": "shown",
+        "image": {"src": "/assets/images/pages/about-us.jpg",
+                  "webp": "/assets/images/pages/about-us.webp",
+                  "width": 800, "height": 658},
+        "image_dark": {"src": "", "webp": "", "width": 0, "height": 0}}]
+
+    status, answer = publish(base, key, "home", data)
+    r.check("the home page publishes", status == 200 and answer.get("ok") is True,
+            f"{status} {answer}")
+
+    _, page = get(base, "/")
+
+    missing = [k for k in (
+        "tab", "desc", "share", "hero", "accent", "hero-btn",
+        "term-title", "term-summary", "command", "success", "alert", "prompt",
+        "cap-title", "cap-lead", "cap-row",
+        "svc-eyebrow", "svc-title", "svc-lead", "svc-row", "svc-text",
+        "svc-label", "svc-hint", "svc-schema", "svc-schema-desc",
+        "dst-eyebrow", "dst-title", "dst-lead", "dst-row", "dst-text",
+        "dst-label", "dst-hint", "dst-alt",
+        "badge", "tag",
+        "cta-one", "cta-two", "cta-text", "cta-label",
+    ) if f"{MARK}-{k}" not in page]
+    r.check("every field the model declares reaches the page",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    r.check("the highlighted phrase is wrapped where it appears",
+            f'<span class="hero__accent">{MARK}-accent</span>' in page,
+            "home_hero_title() marks the first occurrence and nothing else")
+    r.check("and the rest of the heading is not",
+            page.count(f'{MARK}-accent') == 1,
+            "the accent must be wrapped once, not repeated")
+    r.check("the closing heading keeps its line break as a <br>",
+            f"{MARK}-cta-one<br>{MARK}-cta-two" in page,
+            "a newline in the field is the break on the page")
+    r.check("a command line carries its prompt and is typed",
+            f'<span class="terminal__prompt">{MARK}-prompt$</span>'
+            f'<span class="terminal__command">{MARK}-command</span>' in page)
+    r.check("an output line carries its tone",
+            f'class="terminal__line terminal__output terminal__output--success">'
+            f'{MARK}-success' in page
+            and f'terminal__output--alert">{MARK}-alert' in page)
+    r.check("the caret is emitted after the last line, not stored as one",
+            page.count('class="terminal__cursor"') == 1,
+            "an operator must not be able to delete it or end up with two")
+    r.check("and it follows the last command's prompt",
+            f'<span class="terminal__prompt">{MARK}-prompt$</span>'
+            '<span class="terminal__cursor"></span>' in page)
+    r.check("terminal lines are emitted at column 0",
+            f'\n<div class="terminal__line' in page,
+            "pre-wrap renders source indentation as leading spaces on the page")
+    r.check("a destination card gets a <picture> and its size",
+            '<source srcset="/assets/images/pages/about-us.webp"' in page
+            and 'width="800" height="658"' in page)
+    r.check("with no dark half it draws ONE picture and no theme-swap",
+            page.count('class="destination-card__media"') == 1
+            and "destination-card__media--dark" not in page,
+            "the page must not grow a second picture per card for an unused feature")
+    r.check("the icons chosen at run time are drawn",
+            all(f'<use href="#{i}">' in page
+                for i in ("shield-alt", "bug", "sitemap", "laptop-code", "rocket")))
+    r.check("the screen-reader tail follows the link label",
+            f'<span class="visually-hidden">{MARK}-svc-hint</span>' in page)
+
+    print("\nthe services a search engine is told about")
+    schema = itemlist_of(page)
+    r.check("the page carries a Service ItemList", schema is not None)
+    if schema is not None:
+        r.check("generated from the cards, so it cannot disagree with them",
+                len(schema["itemListElement"]) == 1
+                and schema["itemListElement"][0]["item"]["name"] == f"{MARK}-svc-row",
+                str(schema.get("itemListElement")))
+        r.check("with the card's own text as the description",
+                schema["itemListElement"][0]["item"]["description"] == f"{MARK}-svc-text")
+        r.check("and an absolute url built from the card's link",
+                schema["itemListElement"][0]["item"]["url"]
+                == "https://tech4time.bd/pages/services/cybersecurity/",
+                str(schema["itemListElement"][0]["item"].get("url")))
+
+    print("\na destination card may carry artwork for each colour mode")
+    data["revision"] = 4
+    data["destinations"]["items"][0]["image_dark"] = {
+        "src": "/uploads/3333333333333333.webp", "webp": "", "width": 800, "height": 658}
+    publish(base, key, "home", data)
+    _, page = get(base, "/")
+    r.check("the dark half appears only once a dark image is given",
+            "/uploads/3333333333333333.webp" in page
+            and 'class="destination-card__media destination-card__media--dark '
+                'theme-swap--dark"' in page)
+    r.check("and the light half is marked as the light one",
+            'class="destination-card__media theme-swap--light"' in page)
+
+    data["revision"] = 5
+    data["destinations"]["items"][0]["image_dark"] = {
+        "src": "", "webp": "", "width": 0, "height": 0}
+    publish(base, key, "home", data)
+    _, page = get(base, "/")
+    r.check("clearing it goes back to one picture and no swap",
+            page.count('class="destination-card__media"') == 1
+            and "theme-swap--light" not in page)
+
+    print("\nwhat the home page does with hidden things")
+    data["revision"] = 6
+    data["tags"]["items"][0]["status"] = "hidden"
+    data["capabilities"]["status"] = "hidden"
+    data["terminal"]["status"] = "hidden"
+    publish(base, key, "home", data)
+    _, page = get(base, "/")
+
+    r.check("a hidden row is not rendered", f"{MARK}-tag" not in page)
+    r.check("a hidden band is gone entirely", f"{MARK}-cap-title" not in page)
+    r.check("including the terminal, and its description with it",
+            f"{MARK}-term-summary" not in page and "terminal__cursor" not in page)
+    r.check("and the rest of the page is untouched", f"{MARK}-svc-row" in page)
+    r.check("a hidden service is out of the structured data too",
+            itemlist_of(page)["itemListElement"][0]["item"]["name"] == f"{MARK}-svc-row")
+
+    print("\nan accent phrase that is not in the title")
+    data["revision"] = 7
+    data["tags"]["items"][0]["status"] = "shown"
+    data["capabilities"]["status"] = "shown"
+    data["terminal"]["status"] = "shown"
+    data["hero"]["accent"] = "not-in-the-title"
+    publish(base, key, "home", data)
+    _, page = get(base, "/")
+    r.check("the heading still renders, plain",
+            f"{MARK}-hero" in page and 'class="hero__accent"' not in page,
+            "a heading losing its colour, not a page losing its heading")
+
+    print("\na signature is not a promise about what is inside")
+    data["revision"] = 8
+    data["hero"]["accent"] = f"{MARK}-accent"
+    data["capabilities"]["items"][0]["title"] = '<script>steal()</script>'
+    data["destinations"]["items"][0]["image"]["src"] = "https://evil.example/photo.jpg"
+    status, _ = publish(base, key, "home", data)
+    r.check("a validly signed payload is accepted", status == 200, str(status))
+
+    stored = json.loads(HOME.read_text())
+    _, page = get(base, "/")
+    r.check("but the script is not markup on the page",
+            "<script>steal()" not in page and "steal()" not in page.replace(
+                "&lt;script&gt;steal()&lt;/script&gt;", ""),
+            "every field on this page is plain text and goes through h()")
+    r.check("a picture pointing at another origin is dropped on receipt",
+            stored["destinations"]["items"][0]["image"]["src"] == "",
+            str(stored["destinations"]["items"][0]["image"]))
+
+
+def itemlist_of(page: str):
+    """The Service ItemList block, parsed. There are two ld+json blocks."""
+    for raw in re.findall(r'<script type="application/ld\+json">(.*?)</script>',
+                          page, re.S):
+        try:
+            node = json.loads(raw)
+        except ValueError:
+            continue
+        if node.get("@type") == "ItemList":
+            return node
+    return None
+
+
 def main() -> None:
     if not shutil.which("php"):
         print("php not found — skipping. sudo apt install php-cli")
@@ -725,6 +954,7 @@ def main() -> None:
         contact_backup = CONTACT.read_text() if CONTACT.is_file() else None
         company_backup = COMPANY.read_text() if COMPANY.is_file() else None
         about_backup = ABOUT.read_text() if ABOUT.is_file() else None
+        home_backup = HOME.read_text() if HOME.is_file() else None
 
         server = subprocess.Popen(
             ["php", "-S", f"127.0.0.1:{port}", "-t", str(ROOT),
@@ -753,8 +983,13 @@ def main() -> None:
             os.killpg(os.getpgid(server.pid), signal.SIGTERM)
             server.wait(timeout=10)
 
+            # EVERY document, not the ones somebody remembered. Leaving one out
+            # does not fail the run that left it out — it fails the NEXT run,
+            # which starts from a document the previous run raised the revision
+            # of, and is refused as not-newer. home.json was that one.
             for path, backup in ((CAREERS, careers_backup), (CONTACT, contact_backup),
-                                 (COMPANY, company_backup), (ABOUT, about_backup)):
+                                 (COMPANY, company_backup), (ABOUT, about_backup),
+                                 (HOME, home_backup)):
                 if backup is not None:
                     path.write_text(backup)
                 bak = path.with_suffix(".json.bak")

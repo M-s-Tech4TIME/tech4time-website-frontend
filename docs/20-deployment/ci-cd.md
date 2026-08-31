@@ -25,7 +25,7 @@ Nothing about the two kinds of flag looks different. That is the problem being f
 |---|---|
 | `tools/build_deploy_set.py` | builds the upload set, and asserts what is in it |
 | `.github/workflows/test.yml` | every check this repository has, on every push |
-| `.github/workflows/deploy.yml` | push to `main` → checks → dry run → gate → sync → seed → verify |
+| `.github/workflows/deploy.yml` | push to `main` → checks → dry run → gate → **seed** → sync → verify |
 | `tools/verify_live.py` | asks the deployed site whether its protections are still there |
 
 ---
@@ -65,7 +65,14 @@ leaving a site that looks completely normal.
 server. The repository's copy is test data. It is **never** synced.
 
 But a brand-new host has nothing there and the two dynamic pages need something to render, so the
-seed directory is copied with `rsync --ignore-existing`: it creates what is absent and overwrites
+**The seed is copied before the site, not after.** A page that renders from `content/` is useless
+until its document is there, and these are two rsyncs with seconds between them — with the site
+first, a newly dynamic page is live and rendering from its defaults for the length of that gap:
+headings with nothing under them. That was tolerable while the dynamic pages were inner ones and
+stopped being so when the home page joined them. Neither step can undo the other: `--ignore-existing`
+overwrites nothing, and the site sync protects `/content/` from `--delete`.
+
+The seed directory is copied with `rsync --ignore-existing`: it creates what is absent and overwrites
 nothing. A file already on the host has been edited by somebody and wins, permanently, without
 anyone having to decide so on the day.
 
