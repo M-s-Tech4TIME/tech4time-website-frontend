@@ -182,8 +182,8 @@ kind of thing an editor should say out loud rather than let somebody discover.
 ### `about.php`
 
 `about_load()` · `about_save()` · `about_validate()` *(backend)* ·
-`about_page_schema()` · `about_picture()` · `about_logo_lockup()` ·
-`about_reveal_paragraphs()` *(frontend)*
+`about_page_schema()` · `about_picture()` · `about_photograph()` ·
+`about_logo_lockup()` · `about_reveal_paragraphs()` *(frontend)*
 
 The same division again, for the about page: three repeatable lists — the story sections, the
 specialities and the why-us cards — plus the copy around them. The shape is in `contract.php`.
@@ -196,6 +196,15 @@ works with nothing uploaded, and a new mark can be put there without a deploy. W
 half given it is used in both modes, deliberately: the alternative is the old logo beside the new
 one. Both variants carry the same `alt`, because exactly one is displayed at a time and two
 different names for one logo is what a screen reader would otherwise announce.
+
+**Every story row carries two picture records, whichever layout it uses.**
+`about_logo_lockup()` draws the pair for a logo row and `about_photograph()` for a photograph one.
+The dark half is optional and almost always empty: `.about-split__image` keeps the illustrations on
+a white plate in both colour modes by design, so one picture is the normal case. With none uploaded
+the markup is exactly what it was before the slot existed — one `<picture>`, no theme-swap classes,
+no second element. Uploading one produces the pair and takes the dark half off the white plate. This
+is `home_destination_art()` in `home.php` for the row shape this page uses; the two are separate
+rather than shared because they take different classes.
 
 **`about_reveal_paragraphs()` puts the scroll markers back on each paragraph.** The prose is one
 rich-text field, so the markers cannot be typed into it, and how many paragraphs there are is a

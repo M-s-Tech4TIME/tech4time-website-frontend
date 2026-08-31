@@ -269,6 +269,39 @@ there is no second copy of the six to keep true — there was, and it had drifte
 **Both halves of a destination picture are counted by `home_images()`**, so an unused-file sweep
 cannot offer to delete a dark image the moment it is uploaded.
 
+## Which pictures get a light/dark pair, and which do not
+
+Asked and settled on 2026-08-31. Every managed picture on the site, and why it is or is not a pair:
+
+| Page | What | n | Treatment | Pair? |
+|---|---|---|---|---|
+| Home | Get to Know Us cards | 3 | white plate, both modes | **yes** |
+| About | photograph sections | 4 | white plate, both modes | **yes** |
+| About | the logo section | 1 | themed surface | **yes** |
+| Company | client logos | 9 | white plate, both modes | no |
+| Company | technology logos | 50 | white plate, both modes | no |
+| Company | journey photographs | 3 | no plate, full-bleed | no |
+
+**The three that are pairs are line art or a wordmark** — dark ink that needs a light ground, kept on
+`--artwork-plate` in both modes. If the company ever has artwork drawn for a dark page, the slot is
+there. **With nothing uploaded the markup is exactly what it was before the slot existed**: one
+`<picture>`, no theme-swap classes, no second element. The page does not pay for an unused feature.
+
+**The client and technology logos are deliberately NOT pairs.** They are other companies' brand
+marks and the white plate is a legibility guarantee, not a default — several client marks are close
+to solid black and vanished into the dark theme's elevated surface at about 1.4:1 before the plate
+was introduced. A dark slot there would invite somebody to break that guarantee with artwork this
+company does not own. One generic, consistent presentation is the right answer for a logo wall.
+
+**The journey photographs are NOT pairs either, for a different reason.** They have no plate at all
+— `object-fit: cover`, full-bleed — and they are photographs. A photograph carries its own content
+edge to edge and reads correctly in either mode, so a second version would be two copies of the same
+picture. Full-bleed is also simply how they look best.
+
+The rule, stated once: **a picture gets a second slot when the page has to supply its background.
+It does not when the picture is its own background, or when a fixed plate is a guarantee rather
+than a default.**
+
 ## Rules that apply to both
 
 **Written atomically.** `store_write()` writes a temp file and renames it over the target, keeping

@@ -554,7 +554,7 @@ $data = about_load();
         <div data-reveal data-reveal-delay class="about-split__media">
           <?= $row['layout'] === 'logo'
                 ? about_logo_lockup($row, 'about-split__image about-split__image--contain')
-                : about_picture($row['image'], 'about-split__image', (string)$row['alt']) ?>
+                : about_photograph($row) ?>
 
         </div>
         <div class="about-split__text">
