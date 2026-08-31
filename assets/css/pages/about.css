@@ -75,6 +75,15 @@
   background-color: var(--artwork-plate);
 }
 
+/* A row whose dark half has been uploaded through the admin gets --dark on
+   that half only, which swaps the white plate for a dark one. The pair itself
+   is shown and hidden by .theme-swap--light / --dark in layout.css. A row with
+   no dark half emits ONE picture with neither class, so nothing here applies to
+   it and the rendered result is what it has always been. */
+.about-split__image--dark {
+  background-color: var(--artwork-plate-dark);
+}
+
 /* The Company section shows the wordmark rather than an illustration, so it
    sits on the themed surface instead of a white plate. */
 .about-split__image--contain {

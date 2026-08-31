@@ -636,6 +636,36 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
             and 'id="mark-photo-heading"' in page,
             "a generated id must match the aria-labelledby generated beside it")
 
+    print("\na photograph section may carry artwork for each colour mode")
+    r.check("with no dark half it draws ONE picture and no theme-swap",
+            page.count('class="about-split__image"') == 1
+            and "about-split__image--dark" not in page,
+            "the page must not grow a second picture per row for an unused feature")
+
+    data["revision"] = 4
+    data["story"]["items"][0]["image_dark"] = {
+        "src": "/uploads/4444444444444444.webp", "webp": "", "width": 818, "height": 810}
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    r.check("the dark half appears only once a dark image is given",
+            "/uploads/4444444444444444.webp" in page
+            and 'class="about-split__image about-split__image--dark theme-swap--dark"' in page)
+    r.check("and the light half is marked as the light one",
+            'class="about-split__image theme-swap--light"' in page)
+
+    data["revision"] = 5
+    data["story"]["items"][0]["image_dark"] = {
+        "src": "", "webp": "", "width": 0, "height": 0}
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    # Scoped to the photograph's own class pair. The LOGO row wraps its two
+    # halves in <picture class="theme-swap--light"> whatever happens, so a bare
+    # "theme-swap--light" is always on this page and asserting on it tests the
+    # wrong row.
+    r.check("clearing it goes back to one picture and no swap",
+            page.count('class="about-split__image"') == 1
+            and 'class="about-split__image theme-swap--light"' not in page)
+
     print("\na logo section may carry a logo of its own")
     data["revision"] = 6
     data["story"]["items"][1]["image"] = {

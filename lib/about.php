@@ -106,6 +106,56 @@ function about_picture(array $image, string $class, string $alt): string
 }
 
 /**
+ * A photograph row's artwork: one picture, or a light/dark pair.
+ *
+ * WITH NO DARK HALF UPLOADED THIS EMITS EXACTLY ONE PICTURE, with no
+ * theme-swap classes and no second element — what the page carried before the
+ * dark slot existed. That is the case for every row today: the illustrations
+ * are black line art and .about-split__image keeps them on a white plate in
+ * both colour modes, so a dark half is an option nobody has taken rather than
+ * a gap. A page that grew a hidden second <picture> per row to support a
+ * feature nobody is using would be paying for it on every visit.
+ *
+ * Upload a dark half and the pair appears, swapped by CSS rather than by
+ * script so the right one is there at first paint, and the dark half carries
+ * a modifier that takes it off the white plate.
+ *
+ * This is home_destination_art() in the frontend's lib/home.php, for the row
+ * shape this page uses. The two are deliberately separate rather than shared:
+ * they take different classes, and a helper parameterised by class name is a
+ * helper that reads as if the two pages must always agree.
+ *
+ * There is deliberately no "dark only" case: a row with a dark image and no
+ * light one shows the dark one in both modes, because the alternative is a row
+ * with no picture in light mode.
+ */
+function about_photograph(array $row): string
+{
+    $class = 'about-split__image';
+    $alt   = (string)($row['alt'] ?? '');
+
+    $light = is_array($row['image'] ?? null) ? $row['image'] : [];
+    $dark  = is_array($row['image_dark'] ?? null) ? $row['image_dark'] : [];
+
+    $hasLight = trim((string)($light['src'] ?? '')) !== '';
+    $hasDark  = trim((string)($dark['src'] ?? '')) !== '';
+
+    if (!$hasDark) {
+        return about_picture($light, $class, $alt);
+    }
+
+    if (!$hasLight) {
+        return about_picture($dark, $class . ' ' . $class . '--dark', $alt);
+    }
+
+    /* Both halves carry the same alt text, and that is deliberate: exactly one
+       is displayed at a time, so a screen reader ignoring CSS would otherwise
+       announce the same illustration twice under two different names. */
+    return about_picture($light, $class . ' theme-swap--light', $alt)
+         . about_picture($dark, $class . ' ' . $class . '--dark theme-swap--dark', $alt);
+}
+
+/**
  * The light/dark wordmark pair, for a story row laid out as 'logo'.
  *
  * Each half is the row's own upload if it has one, and the lockup that ships
