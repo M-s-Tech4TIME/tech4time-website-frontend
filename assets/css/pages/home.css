@@ -450,7 +450,13 @@
 }
 
 /* The illustrations are black line art on white, so they need a light plate
-   under them in both modes; the card body below carries the theme instead. */
+   under them in both modes; the card body below carries the theme instead.
+
+   A card whose dark half has been uploaded through the admin gets --dark on
+   that half only, which swaps the plate for a dark one. The pair themselves
+   are shown and hidden by .theme-swap--light / --dark in layout.css. A card
+   with no dark half emits ONE picture with neither class, so nothing below
+   applies to it and the rendered result is what it has always been. */
 .destination-card__media {
   display: block;
   width: 100%;
@@ -458,6 +464,10 @@
   object-fit: cover;
   background-color: var(--artwork-plate);
   border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.destination-card__media--dark {
+  background-color: var(--artwork-plate-dark);
 }
 
 .destination-card__body {

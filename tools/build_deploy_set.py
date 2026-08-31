@@ -54,7 +54,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # A directory here brings its contents, minus DENY below.
 UPLOAD = [
     ".htaccess",          # headers, caching, and the rules that block lib/ and content/
-    "index.html",
+    "index.php",          # the home page, rendered from content/home.json
     "404.html",
     "robots.txt",
     "sitemap.xml",
@@ -85,13 +85,14 @@ DENY = [
 # the block on lib/ and content/ with it and leaving a site that looks fine.
 REQUIRED = [
     ".htaccess",
-    "index.html",
+    "index.php",          # a missing home page is a 404 at the site's root
     "404.html",
     "assets/css/base.css",
     "lib/private.php",
     "lib/contract.php",   # the shape both halves agree on
     "lib/publish.php",    # and the format they agree it travels in
     "lib/about.php",      # the about page renders from this, on every request
+    "lib/home.php",       # and the home page from this
     "pages/careers/index.php",
     "pages/contact/index.php",
     "pages/company-profile/index.php",

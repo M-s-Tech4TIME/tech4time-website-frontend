@@ -39,12 +39,18 @@ python3 tools/apply_reveals.py --write    # apply
 python3 tools/apply_reveals.py --strip    # remove every marker
 ```
 
-**The four dynamic pages are the exception, and the tool says so.** `pages/about/`,
+**The five dynamic pages are the exception, and the tool says so.** `index.php`, `pages/about/`,
 `pages/careers/`, `pages/contact/` and `pages/company-profile/` build part of themselves with a
 `foreach`, so the markers on a repeated row live in the template rather than in the emitted
 markup. All three modes report those pages and leave them alone. Their markers are maintained by
 hand, in the renderer, and the rule they follow is the same one — the section header, then its
 content.
+
+**The home page is the one at the repository root**, and that mattered: the tool hardcoded
+`ROOT/"index.html"` there and stopped seeing the file the moment it became `index.php` — silently,
+because a page with no markers passes every check in `test_motion.py` without any of them testing
+anything. It looks for both names now. Five other tools had the same root-level blind spot and were
+fixed with it; the list is in the header comment of `index.php`.
 
 On the about page the per-paragraph markers inside a story section are put back at render time by
 `about_reveal_paragraphs()`, because the prose is one rich-text field and the number of paragraphs

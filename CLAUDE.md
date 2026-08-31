@@ -43,7 +43,7 @@ its record before acting.
 
 | | |
 |---|---|
-| `pages/` `index.html` | the sixteen pages — four are `.php` and render from `content/` |
+| `pages/` `index.php` | the sixteen pages — five are `.php` and render from `content/` |
 | `assets/` | css, js, fonts, icons, images — all self-hosted |
 | `lib/` | server-side PHP: rendering, the contract, the publish format |
 | `api/publish.php` | where the backend's content arrives. The only thing here that writes |
@@ -70,7 +70,7 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 | Browser behaviour | `assets/js/` — modules register on `window.Tech4Time` |
 | Header / footer | `tools/templates/` → `propagate_shared.py` |
 | An icon | the markup, then `python3 tools/inject_icons.py` |
-| A job post, a contact detail, the about page's copy | **`https://admin.tech4time.bd/`** — not a file, and not here |
+| A job post, a contact detail, the about or home page's copy | **`https://admin.tech4time.bd/`** — not a file, and not here |
 | The shape of editable content | `lib/contract.php` — **and the same file in the backend** |
 | How a document is signed | `lib/publish.php` — likewise byte-identical |
 | Add a page | [adding-a-page.md](docs/10-development/frontend/adding-a-page.md) |
@@ -84,7 +84,7 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 python3 tools/serve.py          # http://localhost:8000  — NOT python3 -m http.server
 ```
 
-Four things need PHP: the careers page, the contact page, the contact handler, and
+Five things need PHP: the home page, the careers page, the contact page, the contact handler, and
 `api/publish.php`.
 
 To watch content actually arrive, run the backend's `serve.py` beside this one and point it here:

@@ -1,11 +1,49 @@
+<?php
+/**
+ * Tech4TIME — the home page.
+ *
+ * PHP, and not HTML, because its content is edited at admin.tech4time.bd and
+ * arrives here as content/home.json. Rendered on the server, on this request,
+ * from a file on this disk: no fetch, no framework, and the page works with
+ * JavaScript switched off. See ADR 0003 and ADR 0010.
+ *
+ * Everything editable goes through h(). The three places that emit markup —
+ * the hero title's accent span, the closing title's line break, and the
+ * terminal's lines — build it in lib/home.php from values they escape
+ * themselves. Nothing on this page prints a stored string unescaped.
+ *
+ * THIS FILE IS AT THE REPOSITORY ROOT, which is why six tools glob for
+ * "index.php" beside their "*.html": propagate_shared, check_shared_markup,
+ * sync_site_contact, inject_icons, audit_pages and apply_reveals. A root glob
+ * of "*.html" alone stops seeing this page the moment it becomes PHP, and
+ * stops silently — the page keeps rendering and simply goes stale.
+ *
+ * The header, footer and dock are shared markup and stay literal;
+ * tools/check_shared_markup.py holds them byte-identical to tools/templates/.
+ * The Organization structured data below is likewise literal and is written by
+ * tools/sync_site_contact.py out of content/contact.json — those facts belong
+ * to the contact document, not to this one. The Service ItemList after it IS
+ * generated here, because it describes this page's own cards.
+ *
+ * The scroll-reveal markers below are hand-maintained, because
+ * tools/apply_reveals.py reports and skips any page that builds part of itself
+ * with a loop, which this one now does.
+ */
+
+declare(strict_types=1);
+
+require __DIR__ . '/lib/home.php';
+
+$data = home_load();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Tech4TIME | Orchestrating Technology with Time</title>
-<meta name="description" content="Enterprise-grade cybersecurity, software development, cloud infrastructure and HR solutions from Tech4TIME. Orchestrate, build, maintain and protect your business.">
+<title><?= h($data['meta']['title']) ?></title>
+<meta name="description" content="<?= h($data['meta']['description']) ?>">
 <link rel="canonical" href="https://tech4time.bd/">
 
 <!-- Crawling. Large image previews and full snippets are allowed so rich
@@ -23,8 +61,8 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Tech4TIME">
-<meta property="og:title" content="Tech4TIME | Orchestrating Technology with Time">
-<meta property="og:description" content="Enterprise-grade cybersecurity, software development, cloud infrastructure and HR solutions from Tech4TIME. Orchestrate, build, maintain and protect your business.">
+<meta property="og:title" content="<?= h($data['meta']['share_title']) ?>">
+<meta property="og:description" content="<?= h($data['meta']['description']) ?>">
 <meta property="og:url" content="https://tech4time.bd/">
 <meta property="og:image" content="https://tech4time.bd/assets/images/og/tech4time-og.png">
 <meta property="og:image:width" content="1200">
@@ -33,8 +71,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Tech4TIME | Orchestrating Technology with Time">
-<meta name="twitter:description" content="Enterprise-grade cybersecurity, software development, cloud infrastructure and HR solutions from Tech4TIME. Orchestrate, build, maintain and protect your business.">
+<meta name="twitter:title" content="<?= h($data['meta']['share_title']) ?>">
+<meta name="twitter:description" content="<?= h($data['meta']['description']) ?>">
 <meta name="twitter:image" content="https://tech4time.bd/assets/images/og/tech4time-og.png">
 <meta name="twitter:image:alt" content="Tech4TIME — Orchestrating Technology with Time">
 
@@ -234,93 +272,12 @@
 
 <!-- Homepage-specific: the service catalogue offered from this page. No
      BreadcrumbList — this is the site root, so a one-item trail adds nothing. -->
+<!-- The six services a visitor reads, said again for a search engine.
+     Generated from the same rows the cards below are built from, so the
+     two cannot drift apart; see home_service_schema(). -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "name": "Tech4TIME technology services",
-  "description": "End-to-end IT services from software development, cybersecurity and cloud infrastructure to human resource provisioning.",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "item": {
-        "@type": "Service",
-        "name": "Cybersecurity",
-        "description": "Building full SOC and CIRT capability, SIM3 audits, penetration testing, incident response and digital forensics.",
-        "url": "https://tech4time.bd/pages/services/cybersecurity/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "item": {
-        "@type": "Service",
-        "name": "Software Development",
-        "description": "Web, mobile and custom application development, DevSecOps, database design, QA and source code auditing.",
-        "url": "https://tech4time.bd/pages/services/software-development/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "item": {
-        "@type": "Service",
-        "name": "Cloud Infrastructure",
-        "description": "Private and hybrid cloud on OpenStack, migration, container platforms, monitoring and disaster recovery.",
-        "url": "https://tech4time.bd/pages/services/cloud-infrastructure/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 4,
-      "item": {
-        "@type": "Service",
-        "name": "Human Resource Provision",
-        "description": "Dedicated, shared, project-based and retainer resourcing, also known as Human Resource as a Service (HRaaS).",
-        "url": "https://tech4time.bd/pages/services/hr-solutions/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 5,
-      "item": {
-        "@type": "Service",
-        "name": "IT Equipment Supply",
-        "description": "Multi-vendor hardware sourcing and licensing, deployment, lifecycle support and responsible disposal.",
-        "url": "https://tech4time.bd/pages/services/it-equipment-supply/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 6,
-      "item": {
-        "@type": "Service",
-        "name": "IT Consultancy & Training",
-        "description": "IT strategy, enterprise architecture and vCIO advisory, plus technical and operational skills training.",
-        "url": "https://tech4time.bd/pages/services/it-consultancy-training/",
-        "provider": {
-          "@id": "https://tech4time.bd/#organization"
-        }
-      }
-    }
-  ]
-}
+<?= json_encode(home_service_schema($data, 'https://tech4time.bd'),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 </head>
 
@@ -452,98 +409,48 @@
     <div class="container hero__grid">
       <div class="hero__content">
         <h1 class="hero__title">
-          Orchestrating <span class="hero__accent">Technology</span> with Time
+          <?= home_hero_title($data['hero']['title'], $data['hero']['accent']) ?>
         </h1>
 
+<?php if (home_band_shown($data, 'badges') && home_shown($data, 'badges')): ?>
         <ul class="hero__badges">
+<?php foreach (home_shown($data, 'badges') as $badge): ?>
           <li class="hero__badge">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#shield-alt"></use></svg>
-            Cybersecurity
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($badge['icon']) ?>"></use></svg>
+            <?= h($badge['label']) ?>
           </li>
-          <li class="hero__badge">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#code"></use></svg>
-            Software Dev
-          </li>
-          <li class="hero__badge">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#cloud"></use></svg>
-            Cloud Solutions
-          </li>
-          <li class="hero__badge">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#users"></use></svg>
-            HR Services
-          </li>
+<?php endforeach; ?>
         </ul>
+<?php endif; ?>
 
+<?php if (home_band_shown($data, 'tags') && home_shown($data, 'tags')): ?>
         <ul class="tag-list hero__tags">
+<?php foreach (home_shown($data, 'tags') as $tag): ?>
           <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#bug"></use></svg>
-            Penetration Testing
+            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#<?= h($tag['icon']) ?>"></use></svg>
+            <?= h($tag['label']) ?>
           </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#search"></use></svg>
-            Vulnerability Assessment
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#crosshairs"></use></svg>
-            Red Teaming
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#shield-halved"></use></svg>
-            Blue Teaming
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#desktop"></use></svg>
-            Managed SOC
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#first-aid"></use></svg>
-            Incident Response
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#cogs"></use></svg>
-            DevSecOps
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#server"></use></svg>
-            OpenStack
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#network-wired"></use></svg>
-            Network Security
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#file-contract"></use></svg>
-            Compliance
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#graduation-cap"></use></svg>
-            Security Training
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#laptop-code"></use></svg>
-            Web Development
-          </li>
-          <li class="tag">
-            <svg class="icon tag__icon icon--sm" aria-hidden="true" focusable="false"><use href="#mobile-alt"></use></svg>
-            Mobile Apps
-          </li>
+<?php endforeach; ?>
         </ul>
+<?php endif; ?>
 
+<?php if (trim((string)$data['hero']['cta_label']) !== ''): ?>
         <div class="hero__actions">
-          <a class="btn btn--primary btn--lg" href="/pages/services/">
-            Explore All Services
+          <a class="btn btn--primary btn--lg" href="<?= h($data['hero']['cta_href']) ?>">
+            <?= h($data['hero']['cta_label']) ?>
             <svg class="icon" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
           </a>
         </div>
+<?php endif; ?>
       </div>
 
+<?php if (home_band_shown($data, 'terminal') && home_shown($data, 'terminal')): ?>
       <div class="hero__visual">
         <!-- Decorative SOC console. The window is hidden from assistive tech and
              summarised in one line instead, because reading shell output line by
              line is noise. The text stays real text for crawlers and selection. -->
         <p class="visually-hidden">
-          Illustration: a security operations console showing twelve connected
-          agents and two high-severity alerts in the last 24 hours.
+          <?= h($data['terminal']['summary']) ?>
         </p>
         <div class="terminal" data-terminal aria-hidden="true">
           <div class="terminal__bar">
@@ -552,302 +459,163 @@
               <span class="terminal__dot"></span>
               <span class="terminal__dot"></span>
             </div>
-            <span class="terminal__title">tech4time@soc:~</span>
+            <span class="terminal__title"><?= h($data['terminal']['title']) ?></span>
           </div>
           <!-- These lines are deliberately not indented inside their element.
                .terminal__line uses white-space: pre-wrap so that overlong lines
                wrap back to column 0 the way a shell does, and pre-wrap renders
-               the HTML's own source indentation as leading spaces. -->
+               the HTML's own source indentation as leading spaces. The loop that
+               writes them honours that; see home_terminal_lines(). -->
           <div class="terminal__body">
-<div class="terminal__line"><span class="terminal__prompt">tech4time@soc:~$</span><span class="terminal__command">agents status</span></div>
-<div class="terminal__line terminal__output">Fetching agent status…</div>
-<div class="terminal__line terminal__output terminal__output--success">&#10003; 12 agents connected</div>
-<div class="terminal__line terminal__output">└─ 3 linux | 2 windows | 4 containers | 3 network</div>
-<div class="terminal__line"><span class="terminal__prompt">tech4time@soc:~$</span><span class="terminal__command">alerts --last 24h --severity high</span></div>
-<div class="terminal__line terminal__output terminal__output--alert">! 2 high severity alerts</div>
-<div class="terminal__line terminal__output">└─ SSH brute-force blocked (web-01)</div>
-<div class="terminal__line terminal__output">└─ Unusual outbound traffic (db-02)</div>
-<div class="terminal__line"><span class="terminal__prompt">tech4time@soc:~$</span><span class="terminal__cursor"></span></div>
+<?= home_terminal_lines(home_shown($data, 'terminal')) ?>
           </div>
         </div>
       </div>
+<?php endif; ?>
     </div>
   </section>
 
+<?php if (home_band_shown($data, 'capabilities')): ?>
   <!-- ========================= Capabilities ========================= -->
   <section class="section capabilities" aria-labelledby="capabilities-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="section__header">
-        <h2 class="section__title" id="capabilities-heading">Our Technical Domains</h2>
+        <h2 class="section__title" id="capabilities-heading"><?= h($data['capabilities']['title']) ?></h2>
         <p class="section__lead">
-          The principles and practices we cherish from our roots throughout the
-          endeavour of time.
+          <?= h($data['capabilities']['lead']) ?>
         </p>
       </div>
 
       <ul class="capabilities__grid">
+<?php foreach (home_shown($data, 'capabilities') as $card): ?>
         <li data-reveal data-reveal-delay class="capability-card">
           <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#sitemap"></use></svg>
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($card['icon']) ?>"></use></svg>
           </span>
-          <span class="capability-card__title">Secured Architecture Design</span>
+          <span class="capability-card__title"><?= h($card['title']) ?></span>
         </li>
-        <li data-reveal data-reveal-delay class="capability-card">
-          <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#server"></use></svg>
-          </span>
-          <span class="capability-card__title">Infrastructure High Availability</span>
-        </li>
-        <li data-reveal data-reveal-delay class="capability-card">
-          <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#eye"></use></svg>
-          </span>
-          <span class="capability-card__title">24/7/365 Monitoring &amp; Response</span>
-        </li>
-        <li data-reveal data-reveal-delay class="capability-card">
-          <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#lightbulb"></use></svg>
-          </span>
-          <span class="capability-card__title">Research and Innovation Driven</span>
-        </li>
-        <li data-reveal data-reveal-delay class="capability-card">
-          <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#shield-virus"></use></svg>
-          </span>
-          <span class="capability-card__title">Building SOC &amp; CIRT</span>
-        </li>
-        <li data-reveal data-reveal-delay class="capability-card">
-          <span class="capability-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#clipboard-check"></use></svg>
-          </span>
-          <span class="capability-card__title">Conducting SIM3 Audits</span>
-        </li>
+<?php endforeach; ?>
       </ul>
     </div>
   </section>
+<?php endif; ?>
 
+<?php if (home_band_shown($data, 'services')): ?>
   <!-- ====================== Services overview ====================== -->
   <section class="section section--surface services-overview" id="services" aria-labelledby="services-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="section__header">
-        <span class="section__eyebrow">Our Services</span>
-        <h2 class="section__title" id="services-heading">Complete Technology Solutions</h2>
+        <span class="section__eyebrow"><?= h($data['services']['eyebrow']) ?></span>
+        <h2 class="section__title" id="services-heading"><?= h($data['services']['title']) ?></h2>
         <p class="section__lead">
-          Tech4TIME provides end-to-end IT services from Software Development,
-          Cybersecurity and Cloud Infrastructure, along with Human Resource
-          Provisioning — which we also call Human Resource as a Service (HRaaS).
+          <?= h($data['services']['lead']) ?>
         </p>
       </div>
 
       <div class="services-overview__grid">
+<?php foreach (home_shown($data, 'services') as $card): ?>
         <article data-reveal data-reveal-delay class="service-card">
           <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#shield-alt"></use></svg>
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($card['icon']) ?>"></use></svg>
           </span>
-          <h3 class="service-card__title">Cybersecurity</h3>
+          <h3 class="service-card__title"><?= h($card['title']) ?></h3>
           <p class="service-card__text">
-            Building full SOC &amp; CIRT capability, SIM3 audits, penetration testing,
-            incident response and digital forensics.
+            <?= h($card['text']) ?>
           </p>
           <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/cybersecurity/">
-              View Services
+            <a class="service-card__link" href="<?= h($card['href']) ?>">
+              <?= h($card['label']) ?>
               <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for Cybersecurity</span>
+<?php if (trim((string)$card['link_hint']) !== ''): ?>
+              <span class="visually-hidden"><?= h($card['link_hint']) ?></span>
+<?php endif; ?>
             </a>
           </div>
         </article>
-
-        <article data-reveal data-reveal-delay class="service-card">
-          <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#laptop-code"></use></svg>
-          </span>
-          <h3 class="service-card__title">Software Development</h3>
-          <p class="service-card__text">
-            Web, mobile and custom application development, DevSecOps, database
-            design, QA and source code auditing.
-          </p>
-          <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/software-development/">
-              View Services
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for Software Development</span>
-            </a>
-          </div>
-        </article>
-
-        <article data-reveal data-reveal-delay class="service-card">
-          <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#cloud"></use></svg>
-          </span>
-          <h3 class="service-card__title">Cloud Infrastructure</h3>
-          <p class="service-card__text">
-            Private and hybrid cloud on OpenStack, migration, container platforms,
-            monitoring and disaster recovery.
-          </p>
-          <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/cloud-infrastructure/">
-              View Services
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for Cloud Infrastructure</span>
-            </a>
-          </div>
-        </article>
-
-        <article data-reveal data-reveal-delay class="service-card">
-          <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#users"></use></svg>
-          </span>
-          <h3 class="service-card__title">Human Resource Provision</h3>
-          <p class="service-card__text">
-            Dedicated, shared, project-based and retainer resourcing — Human Resource
-            as a Service (HRaaS).
-          </p>
-          <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/hr-solutions/">
-              View Services
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for Human Resource Provision</span>
-            </a>
-          </div>
-        </article>
-
-        <article data-reveal data-reveal-delay class="service-card">
-          <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#boxes"></use></svg>
-          </span>
-          <h3 class="service-card__title">IT Equipment Supply</h3>
-          <p class="service-card__text">
-            Multi-vendor hardware sourcing and licensing, deployment, lifecycle
-            support and responsible disposal.
-          </p>
-          <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/it-equipment-supply/">
-              View Services
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for IT Equipment Supply</span>
-            </a>
-          </div>
-        </article>
-
-        <article data-reveal data-reveal-delay class="service-card">
-          <span class="service-card__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#chalkboard-teacher"></use></svg>
-          </span>
-          <h3 class="service-card__title">IT Consultancy &amp; Training</h3>
-          <p class="service-card__text">
-            IT strategy, enterprise architecture and vCIO advisory, plus technical
-            and operational skills training.
-          </p>
-          <div class="service-card__footer">
-            <a class="service-card__link" href="/pages/services/it-consultancy-training/">
-              View Services
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">for IT Consultancy and Training</span>
-            </a>
-          </div>
-        </article>
+<?php endforeach; ?>
       </div>
     </div>
   </section>
+<?php endif; ?>
 
+<?php if (home_band_shown($data, 'destinations')): ?>
   <!-- ======================== Destinations ======================== -->
   <section class="section destinations" aria-labelledby="destinations-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="section__header">
-        <span class="section__eyebrow">Explore Tech4TIME</span>
-        <h2 class="section__title" id="destinations-heading">Get to Know Us</h2>
+        <span class="section__eyebrow"><?= h($data['destinations']['eyebrow']) ?></span>
+        <h2 class="section__title" id="destinations-heading"><?= h($data['destinations']['title']) ?></h2>
         <p class="section__lead">
-          Three ways in — who we are, what we deliver, and the track record
-          behind it.
+          <?= h($data['destinations']['lead']) ?>
         </p>
       </div>
 
       <div class="destinations__grid">
+<?php foreach (home_shown($data, 'destinations') as $card): ?>
         <article data-reveal data-reveal-delay class="destination-card">
-          <picture>
-            <source srcset="/assets/images/pages/about-us.webp" type="image/webp">
-            <img class="destination-card__media"
-                 src="/assets/images/pages/about-us.jpg"
-                 alt="Line illustration of a team collaborating around a table with laptops and notes"
-                 width="800" height="658" loading="lazy" decoding="async">
-          </picture>
+          <?= home_destination_art($card) ?>
           <div class="destination-card__body">
-            <h3 class="destination-card__title">About Us</h3>
-            <p class="destination-card__text">Get familiar with us</p>
-            <a class="btn btn--secondary destination-card__action" href="/pages/about/">
-              Learn more
+            <h3 class="destination-card__title"><?= h($card['title']) ?></h3>
+            <p class="destination-card__text"><?= h($card['text']) ?></p>
+            <a class="btn btn--secondary destination-card__action" href="<?= h($card['href']) ?>">
+              <?= h($card['label']) ?>
               <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">about Tech4TIME</span>
+<?php if (trim((string)$card['link_hint']) !== ''): ?>
+              <span class="visually-hidden"><?= h($card['link_hint']) ?></span>
+<?php endif; ?>
             </a>
           </div>
         </article>
-
-        <article data-reveal data-reveal-delay class="destination-card">
-          <picture>
-            <source srcset="/assets/images/pages/services.webp" type="image/webp">
-            <img class="destination-card__media"
-                 src="/assets/images/pages/services.jpg"
-                 alt="Line illustration of a team reviewing charts, dashboards and project gears"
-                 width="800" height="655" loading="lazy" decoding="async">
-          </picture>
-          <div class="destination-card__body">
-            <h3 class="destination-card__title">Services</h3>
-            <p class="destination-card__text">Check out our services</p>
-            <a class="btn btn--secondary destination-card__action" href="/pages/services/">
-              Learn more
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">about our services</span>
-            </a>
-          </div>
-        </article>
-
-        <article data-reveal data-reveal-delay class="destination-card">
-          <picture>
-            <source srcset="/assets/images/pages/company-profile.webp" type="image/webp">
-            <img class="destination-card__media"
-                 src="/assets/images/pages/company-profile.jpg"
-                 alt="Line illustration of a certificate, ratings and a performance chart being reviewed"
-                 width="800" height="659" loading="lazy" decoding="async">
-          </picture>
-          <div class="destination-card__body">
-            <h3 class="destination-card__title">Company Profile</h3>
-            <p class="destination-card__text">Get to learn our background</p>
-            <a class="btn btn--secondary destination-card__action" href="/pages/company-profile/">
-              Learn more
-              <svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
-              <span class="visually-hidden">about our company profile</span>
-            </a>
-          </div>
-        </article>
+<?php endforeach; ?>
       </div>
     </div>
   </section>
+<?php endif; ?>
 
+<?php if (home_band_shown($data, 'cta')): ?>
   <!-- ============================ CTA ============================ -->
   <section class="home-cta" aria-labelledby="home-cta-heading">
     <div class="container">
       <div data-reveal class="home-cta__panel">
         <div class="home-cta__inner">
           <span class="home-cta__icon">
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#rocket"></use></svg>
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#<?= h($data['cta']['icon']) ?>"></use></svg>
           </span>
           <h2 class="home-cta__title" id="home-cta-heading">
-            Transform Your Digital Landscape<br>with Expert Technology Solutions
+            <?= home_cta_title($data['cta']['title']) ?>
           </h2>
           <p class="home-cta__text">
-            From software development to cybersecurity — complete IT services for
-            your business growth.
+            <?= h($data['cta']['text']) ?>
           </p>
-          <a class="btn btn--primary btn--lg" href="/pages/contact/">
-            Start Your Project
+          <a class="btn btn--primary btn--lg" href="<?= h($data['cta']['href']) ?>">
+            <?= h($data['cta']['label']) ?>
             <svg class="icon" aria-hidden="true" focusable="false"><use href="#arrow-right"></use></svg>
           </a>
         </div>
       </div>
     </div>
   </section>
+<?php endif; ?>
 
+<?php /* Every icon a badge, a tag, a capability card, a service card or a
+         button above may carry is named in the comment below. Read that comment
+         before deleting it: tools/inject_icons.py finds the symbols a page needs
+         by scanning it for a literal href="#name", and the names used above are
+         chosen at run time, where the scan cannot see them. Keep this in step
+         with HOME_ICONS in lib/contract.php — inject_icons.py --check says so
+         when it drifts.
+
+         <use href="#shield-alt"> <use href="#shield-halved">
+         <use href="#shield-virus"> <use href="#bug"> <use href="#search">
+         <use href="#crosshairs"> <use href="#desktop"> <use href="#first-aid">
+         <use href="#cogs"> <use href="#server"> <use href="#network-wired">
+         <use href="#file-contract"> <use href="#graduation-cap">
+         <use href="#laptop-code"> <use href="#mobile-alt"> <use href="#code">
+         <use href="#cloud"> <use href="#users"> <use href="#boxes">
+         <use href="#chalkboard-teacher"> <use href="#sitemap">
+         <use href="#clipboard-check"> <use href="#lightbulb"> <use href="#eye">
+         <use href="#rocket"> <use href="#arrow-right">
+      */ ?>
 </main>
 
 <footer class="site-footer">

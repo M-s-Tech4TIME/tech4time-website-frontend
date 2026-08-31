@@ -35,8 +35,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SITE_ORIGIN = "https://tech4time.bd"
 
-# Directories that hold deployable pages.
-PAGE_GLOBS = ["*.html", "pages/**/*.html", "pages/**/*.php"]
+# Directories that hold deployable pages. index.php is the home page, named
+# rather than globbed as "*.php": a root glob of "*.html" alone would drop the
+# most-visited page in the site out of the audit without saying so, but "*.php"
+# would sweep in contact-handler.php, which is a POST endpoint and has no
+# canonical, description or landmarks to audit.
+PAGE_GLOBS = ["*.html", "index.php", "pages/**/*.html", "pages/**/*.php"]
 
 
 class PageParser(HTMLParser):

@@ -10,7 +10,7 @@ Every directory: what it holds, who owns it, and what must never happen to it.
 
 ```
 tech4time-website/
-├── index.html              the homepage — stays at the root, not in pages/
+├── index.php               the homepage — stays at the root, not in pages/
 ├── 404.html                the custom error page
 ├── contact-handler.php     where the enquiry form posts
 ├── .htaccess               security headers, caching, clean URLs, blocking
@@ -39,7 +39,7 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 
 | Page | File | |
 |---|---|---|
-| Home | `index.html` | at the repository root |
+| Home | `index.php` | at the repository root — **dynamic**, renders `content/home.json` |
 | About | `pages/about/index.php` | **dynamic** — renders `content/about.json` |
 | Services hub | `pages/services/index.html` | |
 | — Cybersecurity | `pages/services/cybersecurity/index.html` | |

@@ -76,6 +76,12 @@ DAY_NAMES = {
 def pages() -> list[Path]:
     return sorted(
         list(ROOT.glob("*.html"))
+        # The home page is index.php. Missing it here would be the worst of the
+        # six places this glob is repeated: the site's front door would keep
+        # showing an old address and an old phone number in its footer AND in
+        # its Organization structured data, which is what search results quote.
+        # Named, not "*.php" — contact-handler.php is an endpoint, not a page.
+        + list(ROOT.glob("index.php"))
         + list(ROOT.glob("pages/**/*.html"))
         + list(ROOT.glob("pages/**/*.php"))
     )

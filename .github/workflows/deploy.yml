@@ -133,6 +133,32 @@ jobs:
           fi
           echo "Nothing protected is proposed for deletion."
 
+      # SEEDED BEFORE THE SITE IS SYNCED, DELIBERATELY. A page that renders from
+      # content/ is useless until its document is there, and these are two rsyncs
+      # with seconds between them: with the site first, a NEW dynamic page is live
+      # and rendering from its defaults — headings with nothing under them — for
+      # the length of that gap. The home page made that a visible front door
+      # rather than a corner of the site, which is what prompted the reorder.
+      #
+      # Safe in the other order for the reason it is safe at all: --ignore-existing
+      # creates what is absent and overwrites nothing, and the site sync protects
+      # /content/ from --delete (see the protect list above), so neither step can
+      # undo the other whichever runs first.
+      #
+      # --ignore-existing is the whole content rule: a file already on the host was
+      # written by somebody through /admin/ and wins, permanently, without anyone
+      # having to decide so on the day. No --delete here, ever.
+      - name: seed content, only where there is none
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          rsync -az --ignore-existing --itemize-changes \
+            -e "ssh -i ~/.ssh/deploy -p $SSH_PORT -o BatchMode=yes" \
+            _deploy/seed/ "$SSH_USER@$SSH_HOST:~/public_html/content/"
+
       - name: sync the site
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -144,21 +170,6 @@ jobs:
             --filter='merge /tmp/protect.rules' \
             -e "ssh -i ~/.ssh/deploy -p $SSH_PORT -o BatchMode=yes" \
             _deploy/site/ "$SSH_USER@$SSH_HOST:~/public_html/"
-
-      # --ignore-existing is the whole content rule: it creates what is absent
-      # and overwrites nothing. A file already on the host was written by
-      # somebody through /admin/ and wins, permanently, without anyone having
-      # to decide so on the day. No --delete here, ever.
-      - name: seed content, only where there is none
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          set -euo pipefail
-          rsync -az --ignore-existing --itemize-changes \
-            -e "ssh -i ~/.ssh/deploy -p $SSH_PORT -o BatchMode=yes" \
-            _deploy/seed/ "$SSH_USER@$SSH_HOST:~/public_html/content/"
 
       - name: ask the site whether it is still protected
         run: python3 tools/verify_live.py https://tech4time.bd

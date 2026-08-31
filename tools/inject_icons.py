@@ -52,6 +52,9 @@ def load_symbols() -> dict[str, str]:
 
 def pages() -> list[Path]:
     found = [p for p in ROOT.glob("*.html")]
+    # The home page is index.php, at the root rather than under pages/.
+    # Named rather than globbed: contact-handler.php is an endpoint.
+    found += sorted(ROOT.glob("index.php"))
     found += sorted(ROOT.glob("pages/**/*.html"))
     # The careers page is PHP, but its icon references are plain markup and
     # need the same symbols inlined as every other page.

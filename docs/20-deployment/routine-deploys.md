@@ -20,7 +20,7 @@ working, showing older content, until somebody notices their job post is gone.
 
 ```
 UPLOAD                            NEVER UPLOAD
-  index.html   404.html             content/          ← live data
+  index.php    404.html             content/          ← live data
   pages/                            tools/            ← scripts, incl. password reset
   assets/                           docs/
   lib/                              references/
