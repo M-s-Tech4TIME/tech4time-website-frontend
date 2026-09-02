@@ -1299,6 +1299,33 @@ Array.prototype.forEach.call(nodes, function (n) {
   });
 });
 
+/* Whether the charge actually reaches every trace. A charge is a <g> holding a
+   <use> of a group of traces, relying on stroke-dashoffset being inherited; if
+   that ever stopped being true the drawing would still be there and only the
+   charges on four traces would move. So: the set of traces the charge groups
+   name, against the set the wires layer draws. */
+function named(prefix, groups) {
+  var seen = {};
+  groups.forEach(function (g) {
+    var host = doc.getElementById(prefix + g);
+    if (!host) { return; }
+    Array.prototype.forEach.call(host.querySelectorAll('use'), function (u) {
+      seen[u.getAttribute('href')] = true;
+    });
+  });
+  return Object.keys(seen).length;
+}
+function drawnTraces(id) {
+  var host = doc.getElementById(id);
+  return host ? host.querySelectorAll('use').length : 0;
+}
+
+/* And that the inheritance is live, not merely declared: read the offset the
+   browser has actually computed on a path deep inside a charge group. */
+var deep = doc.querySelector('.hero-circuit__charge use');
+var deepOffset = deep ? view.getComputedStyle(deep).strokeDashoffset : null;
+var deepDash = deep ? view.getComputedStyle(deep).strokeDasharray : null;
+
 var cs = view.getComputedStyle(box);
 var root = doc.documentElement;
 
@@ -1315,6 +1342,12 @@ return {
   infinite: infinite,
   nodes: nodes.length,
   nodesRunning: nodeRunning,
+  cornerTraces: drawnTraces('hc-corner-wires'),
+  cornerCharged: named('hc-corner-chg', [0, 1, 2, 3, 4, 5]),
+  bandTraces: drawnTraces('hc-band-half'),
+  bandCharged: named('hc-band-chg', [0, 1, 2, 3]),
+  deepOffset: deepOffset,
+  deepDash: deepDash,
   events: cs.pointerEvents,
   zIndex: cs.zIndex,
   position: cs.position,
@@ -1384,21 +1417,46 @@ def hero_circuit(b: Browser, origin: str, r: Results) -> None:
                 not d["overflows"],
                 "the document scrolls horizontally with the circuit in place")
 
-    r.check("every trace that should carry a charge carries one",
-            d["charges"] == 24, f"{d['charges']} charges")
+    r.check("the drawing carries forty charges",
+            d["charges"] == 40, f"{d['charges']} charges")
     r.check("every charge is running",
-            d["running"] == 24, f"{d['running']} of 24 running")
+            d["running"] == 40, f"{d['running']} of 40 running")
     r.check("every node is running",
             d["nodesRunning"] == d["nodes"] == 24,
             f"{d['nodesRunning']} of {d['nodes']} running")
     r.check("nothing is set to stop", d["infinite"] is True)
 
+    # THE ONE THAT WOULD FAIL SILENTLY
+    # A charge is a <g> over a <use> of a group of traces, and it lights them by
+    # inheritance: stroke-dashoffset is an inherited property, so animating it
+    # on the group reaches every path inside. That is what puts a charge on all
+    # 216 traces for forty animated elements. If it ever stopped holding, the
+    # drawing would look unchanged and only a handful of lines would move.
+    r.check("every trace in a corner is inside a charge group",
+            d["cornerCharged"] == d["cornerTraces"] > 0,
+            f"{d['cornerCharged']} of {d['cornerTraces']} corner traces charged")
+    r.check("every trace in a band is inside a charge group",
+            d["bandCharged"] == d["bandTraces"] > 0,
+            f"{d['bandCharged']} of {d['bandTraces']} band traces charged")
+    r.check("the charge reaches the traces through inheritance",
+            d["deepDash"] not in (None, "none")
+            and d["deepOffset"] not in (None, "none"),
+            f"dasharray {d['deepDash']}, dashoffset {d['deepOffset']} "
+            "on a use inside a charge group")
+
     # The corners must never resynchronise: equal durations there would make the
     # four of them visibly repeat as one loop.
     corner_secs = [c["seconds"] for c in d["corner"]]
     r.check("no two corner charges share a duration",
-            len(set(corner_secs)) == len(corner_secs) == 16,
+            len(set(corner_secs)) == len(corner_secs) == 24,
             f"durations: {sorted(corner_secs)}")
+
+    # Consecutive traces are dealt round-robin into six groups, and the odd ones
+    # are reversed, so neighbouring lines in a cluster run against each other.
+    forward = sum(1 for c in d["corner"] if c["rightward"])
+    r.check("neighbouring lines in a corner flow against each other",
+            forward == len(d["corner"]) - forward == 12,
+            f"{forward} of {len(d['corner'])} corner groups run forward")
 
     # The bands are the opposite case, and deliberately so. They are one current
     # going round the band, so they must share a speed exactly — a difference of
@@ -1413,15 +1471,25 @@ def hero_circuit(b: Browser, origin: str, r: Results) -> None:
     # transform the right half sits inside, so it is the direction a visitor
     # sees rather than the sign in the stylesheet.
     r.check("the top band flows left to right, all the way across",
-            len(d["bandTop"]) == 4 and all(c["rightward"] for c in d["bandTop"]),
+            len(d["bandTop"]) == 8 and all(c["rightward"] for c in d["bandTop"]),
             f"{sum(c['rightward'] for c in d['bandTop'])} of "
             f"{len(d['bandTop'])} top-band charges travel rightward")
     r.check("and the bottom band flows right to left, mirroring it",
-            len(d["bandBottom"]) == 4
+            len(d["bandBottom"]) == 8
             and not any(c["rightward"] for c in d["bandBottom"]),
             f"{sum(c['rightward'] for c in d['bandBottom'])} of "
             f"{len(d['bandBottom'])} bottom-band charges travel rightward, "
             "which should be none")
+
+    # The two halves of the drawing are meant to run at different paces: the
+    # bands are the current, the corners are the board it runs on. Every path
+    # carries pathLength="100", so a duration is a speed here and the comparison
+    # is exact.
+    band_secs = sorted(top_secs)[0] if top_secs else 0
+    r.check("the bands run several times faster than any corner",
+            band_secs > 0 and band_secs * 2 < min(corner_secs),
+            f"bands {band_secs}s against corners "
+            f"{min(corner_secs)}-{max(corner_secs)}s")
 
     # Constraint that check_focus only catches second-hand, one page at a time.
     r.check("the circuit cannot be clicked or hovered",

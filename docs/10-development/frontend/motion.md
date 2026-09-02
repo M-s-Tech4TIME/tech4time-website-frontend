@@ -21,7 +21,7 @@ script failing to load. That state is never "the content is missing".
 | Company Profile | experience figures count up | the real figures, which are in the markup |
 | Company Profile | client logos arrive a row at a time | all of them, in place |
 | Company Profile | a technology sphere you can take hold of and turn | a grid of logos with alt text |
-| Pages with a title band | circuitry emerging from all four corners and along the top and bottom edges | the same circuit, still |
+| Pages with a title band | circuitry emerging from all four corners and along the top and bottom edges, a charge running every trace | the same circuit, still |
 | Home hero | clusters of nodes drifting across the hero, linking to whatever comes in reach | nothing — a plain hero, which is the intended appearance (reduced motion keeps the picture, held still) |
 
 ---
@@ -205,14 +205,42 @@ cancelling both, so it checks what a visitor sees rather than the sign in the st
 **The circuits branch out from their own edge, once.** Every corner trace starts on one of the two
 edges meeting at that corner, and every band trace starts at the outer edge — so a clip expanding
 from that same origin uncovers each trace from its root outward. Six animated elements instead of
-the eighty it would take to draw every trace on individually. The four corners are given no
+the two hundred it would take to draw every trace on individually. The four corners are given no
 stagger: they emerge together.
+
+**A charge on every trace, without a timer on every trace.** `stroke-dashoffset` is an inherited
+property, so a charge here is a `<g>` carrying the animation over a `<use>` of a *group* of traces:
+every path inside it lights, and the browser animates one element rather than thirty. Six such
+groups per corner and four per band half put a moving charge on all 216 drawn traces for **forty**
+animated elements — fewer than the charges and nodes of the sparser drawing before it. That
+inheritance is load-bearing and invisible when it breaks: the artwork would look identical and only
+a handful of lines would still move, so `hero_circuit()` checks both that every declared trace is
+named by a charge group and that the browser has actually computed a dash on a `<use>` inside one.
+
+**Neighbouring lines flow against each other.** Consecutive traces are dealt round-robin into the
+six groups, so no two neighbours share one, and the odd groups carry `--back`, which reverses them.
+That is what makes a cluster read as a working board rather than a fan of parallel arrows.
+
+**The bands are the current; the corners are the board.** Each band runs its whole circuit in 4s,
+every corner group somewhere between 12s and 35s — three to nine times slower. Every path carries
+`pathLength="100"`, so a duration *is* a speed here regardless of how long the path really is, and
+`hero_circuit()` compares the two directly.
 
 **Density is free; motion is not.** A static trace is rasterised once. A charge animates
 `stroke-dashoffset`, which is not compositor-accelerated and repaints its path every frame, on
-fourteen pages, above the fold, for as long as the tab is open. So the drawing is about three
-times denser than the one it replaced while the moving parts stayed at 48 — 24 charges and 24
-nodes, against 36 before.
+fourteen pages, above the fold, for as long as the tab is open. Grouping is what buys the density:
+216 charged traces cost forty timers, and `hero_frame_budget()` holds the result to an absolute
+ceiling rather than to a multiple of a baseline the circuit itself is part of.
+
+**The pen is widened as the drawing shrinks.** An SVG stroke scales with its drawing. A corner
+renders at `width / 260` — 0.92 on a desktop, 0.40 on a phone — and the band is worse, because
+`preserveAspectRatio="none"` squashes it unevenly and a diagonal ends up at roughly the geometric
+mean of the two scales, 0.89 wide against 0.29 narrow. Left alone every line falls under a pixel
+below about 800px and the drawing turns to haze, which is not the same failure as being absent and
+no check would have called it. Three tiers in `layout.css` widen the stroke to hold the rendered
+weight between about one and two pixels at every width; the numbers there are that arithmetic, not
+taste. The corner layer carries `aspect-ratio: 13 / 10` so its scale stays exactly `width / 260`
+and the arithmetic has something fixed to stand on.
 
 **Every animation must rest on its declared value.** `base.css` sets no `animation-fill-mode`, so
 when reduced motion collapses an animation the element reverts to its *specified* value, not to
