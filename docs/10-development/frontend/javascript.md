@@ -3,7 +3,7 @@
 **Applies to:** frontend
 
 Vanilla ES5-compatible JavaScript in IIFEs. No framework, no bundler, no modules, no transpiler.
-Thirteen files, each doing one thing.
+Eleven files, each doing one thing.
 
 ---
 
@@ -91,6 +91,7 @@ Everything else is deferred, at the end of `<body>`.
 | `slider.js` | the slideshows on About and Company Profile |
 | `terminal.js` | the typed terminal session on the homepage |
 | `tech-sphere.js` | the draggable technology sphere on Company Profile |
+| `neural.js` | the drifting neural mesh behind the homepage hero |
 | `forms.js` | contact form convenience validation |
 | `dashboard.js` | the tabbed panels on the service detail pages |
 | `main.js` | bootstrap; runs each module's `init()` |

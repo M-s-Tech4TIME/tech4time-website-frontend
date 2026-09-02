@@ -78,10 +78,18 @@ $cvForm = trim((string)($data['cv_form_url'] ?? ''));
      the -ext subset is not preloaded since most pages never reference it. -->
 <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 
-<!-- Styles, in cascade order -->
+<!-- Styles, in cascade order.
+
+     THE VERSION QUERY IS THE CACHE BUST, AND IT IS NOT DECORATION
+     Filenames are not content-hashed — there is no build step to hash them —
+     and .htaccess caches CSS for a year. A changed stylesheet does not reach
+     anybody who has been here before unless this string changes with it, so
+     bump it in the same breath as the file. Forget, and the release is for
+     new visitors only, which looks like nothing at all from here.
+     docs/20-deployment/routine-deploys.md, "Cache busting" -->
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/layout.css?v=2">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
 <link rel="stylesheet" href="/assets/css/pages/careers.css">
@@ -392,129 +400,241 @@ $cvForm = trim((string)($data['cv_form_url'] ?? ''));
   <!-- ========================== Hero banner ========================== -->
   <section class="page-hero">
     <!--hero-circuit:start-->
-    <!-- Circuitry framing the page title, on all four edges. Drawn rather than
-         photographed: about a kilobyte, it tints itself from the theme tokens,
-         and it costs the Largest Contentful Paint nothing because there is no
-         image to fetch.
+    <!-- The circuitry around the page title, in the same language as the
+         company's own printed material: clusters emerging from all four
+         corners, and a chevron band running the full width of the top and the
+         bottom edge. Drawn rather than photographed, so it tints itself from
+         the theme tokens and costs the Largest Contentful Paint nothing.
 
-         aria-hidden, and inside the hero but behind it: this is texture around
+         aria-hidden, and inside the band but behind it: this is texture around
          the title, and it says nothing.
 
-         The geometry is declared once, in the top edge's <defs>. SVG ids are
-         document-scoped, so the other three edges reference the same paths and
-         are flipped in CSS — two sets of geometry, four sides.
+         SIX LAYERS, ONE SET OF GEOMETRY
+         Everything is declared once, in the first layer's <defs>. SVG ids are
+         document-scoped, so the other five reference the same paths and are
+         mirrored in CSS. That is not tidiness - a duplicate id is a hard
+         failure in audit_pages.py, so four corners cannot each carry a copy.
 
-         preserveAspectRatio="none" because these strips run the width of the
-         viewport at a fixed height, and any aspect-preserving fit either crops
-         most of the drawing away or letterboxes it. The traces are built from
-         horizontal runs and vertical drops for that reason: stretching one
-         axis lengthens the runs and moves the drops apart, which is what a
-         longer stretch of circuit board would look like anyway.
+         The bands use preserveAspectRatio="none" because they run the width of
+         the viewport at a fixed height, and stretching a horizontal run just
+         makes it a longer run, which is what more circuit board looks like.
+         The corners use xMinYMin meet instead: a cluster of 45 degree elbows
+         must not shear, and it has to stay pinned to its own corner.
 
-         Every charge runs on its own prime number of seconds, as the dock's
-         does, so the four edges never settle back into an arrangement anyone
-         has already seen. -->
+         A CHARGE ON EVERY TRACE, WITHOUT A TIMER ON EVERY TRACE
+         stroke-dashoffset is inherited, and animating it is not compositor
+         accelerated: each animated element repaints its path every frame, on
+         fourteen pages, above the fold, for as long as the tab is open. So a
+         charge here is a <g> carrying the animation over a <use> of a group of
+         traces. Every trace inside it lights; the browser animates one element
+         rather than thirty. Six such groups per corner and four per band half
+         put a moving charge on all 216 drawn traces for forty animated
+         elements - fewer than the sum of the charges and nodes they replace.
+
+         Consecutive traces are dealt round-robin into those six groups, so
+         neighbours are never in the same one. The odd groups run reversed,
+         which is why adjacent lines in a corner flow against each other.
+
+         Every corner group runs on its own duration, as the dock's charges do,
+         so the four corners never settle back into an arrangement anyone has
+         already seen. The two bands are the deliberate exception: one speed,
+         opposite directions, because they are one current going round. -->
     <div class="hero-circuit" aria-hidden="true">
-      <svg class="hero-circuit__edge hero-circuit__edge--top" viewBox="0 0 1440 72"
-           preserveAspectRatio="none" focusable="false">
+      <svg class="hero-circuit__layer hero-circuit__layer--band-top" viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false">
         <defs>
-          <path id="hc-h-a" d="M0 18h206v26h178v-26h242v34h198"/>
-          <path id="hc-h-b" d="M1440 46h-286v-22H902v30H628v-30H318"/>
-          <path id="hc-h-c" d="M0 58h122v-30h150v22h268v-40h214"/>
-          <path id="hc-h-d" d="M1440 12h-192v28h-206v20H714v-14H452"/>
-          <path id="hc-v-a" d="M18 0v182h30v148H20v170"/>
-          <path id="hc-v-b" d="M54 480V330h-26V190h30V44"/>
-          <path id="hc-v-c" d="M36 0v96h26v128H30v186"/>
-          <path id="hc-v-d" d="M62 480V366H36V246h26V120"/>
+        <path id="hc-c0" pathLength="100" d="M12 0L12 34L32 54L32 84L58 84L58 102"/>
+        <path id="hc-c1" pathLength="100" d="M30 0L30 18L56 44L56 88"/>
+        <path id="hc-c2" pathLength="100" d="M48 0L48 46L70 46L86 62L114 62"/>
+        <path id="hc-c3" pathLength="100" d="M66 0L66 26L84 44L84 68L122 68"/>
+        <path id="hc-c4" pathLength="100" d="M84 0L84 36L104 36L104 66L118 80"/>
+        <path id="hc-c5" pathLength="100" d="M104 0L104 16L126 38L160 38L160 58"/>
+        <path id="hc-c6" pathLength="100" d="M124 0L124 28L140 28L140 44L158 62"/>
+        <path id="hc-c7" pathLength="100" d="M146 0L146 20L162 36L162 70"/>
+        <path id="hc-c8" pathLength="100" d="M170 0L170 40L196 40L196 54"/>
+        <path id="hc-c9" pathLength="100" d="M196 0L196 24L216 44L238 44"/>
+        <path id="hc-c10" pathLength="100" d="M224 0L224 32L242 32"/>
+        <path id="hc-c11" pathLength="100" d="M0 12L34 12L54 32L84 32L84 58L102 58"/>
+        <path id="hc-c12" pathLength="100" d="M0 30L18 30L44 56L88 56"/>
+        <path id="hc-c13" pathLength="100" d="M0 48L46 48L46 70L62 86L62 114"/>
+        <path id="hc-c14" pathLength="100" d="M0 66L26 66L44 84L68 84L68 122"/>
+        <path id="hc-c15" pathLength="100" d="M0 84L36 84L36 104L66 104L80 118"/>
+        <path id="hc-c16" pathLength="100" d="M0 104L16 104L38 126L38 160L58 160"/>
+        <path id="hc-c17" pathLength="100" d="M0 124L28 124L28 140L44 140L62 158"/>
+        <path id="hc-c18" pathLength="100" d="M0 146L20 146L36 162L70 162"/>
+        <path id="hc-c19" pathLength="100" d="M0 170L40 170L40 196L54 196"/>
+        <path id="hc-c20" pathLength="100" d="M32 54L52 54L64 66"/>
+        <path id="hc-c21" pathLength="100" d="M54 32L54 52L66 64"/>
+        <path id="hc-c22" pathLength="100" d="M84 68L84 86L98 86"/>
+        <path id="hc-c23" pathLength="100" d="M68 84L86 84L86 98"/>
+        <path id="hc-c24" pathLength="100" d="M126 38L126 60L114 72"/>
+        <path id="hc-c25" pathLength="100" d="M38 126L60 126L72 114"/>
+        <path id="hc-c26" pathLength="100" d="M54 84L68 98L84 98"/>
+        <path id="hc-c27" pathLength="100" d="M84 54L98 68L98 84"/>
+        <path id="hc-c28" pathLength="100" d="M162 36L182 36L182 48"/>
+        <path id="hc-c29" pathLength="100" d="M36 162L36 182L48 182"/>
+        <g id="hc-corner-wires"><use href="#hc-c0"/><use href="#hc-c1"/><use href="#hc-c2"/><use href="#hc-c3"/><use href="#hc-c4"/><use href="#hc-c5"/><use href="#hc-c6"/><use href="#hc-c7"/><use href="#hc-c8"/><use href="#hc-c9"/><use href="#hc-c10"/><use href="#hc-c11"/><use href="#hc-c12"/><use href="#hc-c13"/><use href="#hc-c14"/><use href="#hc-c15"/><use href="#hc-c16"/><use href="#hc-c17"/><use href="#hc-c18"/><use href="#hc-c19"/><use href="#hc-c20"/><use href="#hc-c21"/><use href="#hc-c22"/><use href="#hc-c23"/><use href="#hc-c24"/><use href="#hc-c25"/><use href="#hc-c26"/><use href="#hc-c27"/><use href="#hc-c28"/><use href="#hc-c29"/></g>
+        <g id="hc-corner-chg0"><use href="#hc-c0"/><use href="#hc-c6"/><use href="#hc-c12"/><use href="#hc-c18"/><use href="#hc-c24"/></g>
+        <g id="hc-corner-chg1"><use href="#hc-c1"/><use href="#hc-c7"/><use href="#hc-c13"/><use href="#hc-c19"/><use href="#hc-c25"/></g>
+        <g id="hc-corner-chg2"><use href="#hc-c2"/><use href="#hc-c8"/><use href="#hc-c14"/><use href="#hc-c20"/><use href="#hc-c26"/></g>
+        <g id="hc-corner-chg3"><use href="#hc-c3"/><use href="#hc-c9"/><use href="#hc-c15"/><use href="#hc-c21"/><use href="#hc-c27"/></g>
+        <g id="hc-corner-chg4"><use href="#hc-c4"/><use href="#hc-c10"/><use href="#hc-c16"/><use href="#hc-c22"/><use href="#hc-c28"/></g>
+        <g id="hc-corner-chg5"><use href="#hc-c5"/><use href="#hc-c11"/><use href="#hc-c17"/><use href="#hc-c23"/><use href="#hc-c29"/></g>
+        <g id="hc-corner-pads"><circle cx="58" cy="102" r="3.4"/><circle cx="56" cy="88" r="3.4"/><circle cx="114" cy="62" r="3.4"/><circle cx="122" cy="68" r="3.4"/><circle cx="118" cy="80" r="3.4"/><circle cx="160" cy="58" r="3.4"/><circle cx="158" cy="62" r="3.4"/><circle cx="162" cy="70" r="3.4"/><circle cx="196" cy="54" r="3.4"/><circle cx="238" cy="44" r="3.4"/><circle cx="242" cy="32" r="3.4"/><circle cx="102" cy="58" r="3.4"/><circle cx="88" cy="56" r="3.4"/><circle cx="62" cy="114" r="3.4"/><circle cx="68" cy="122" r="3.4"/><circle cx="80" cy="118" r="3.4"/><circle cx="58" cy="160" r="3.4"/><circle cx="62" cy="158" r="3.4"/><circle cx="70" cy="162" r="3.4"/><circle cx="54" cy="196" r="3.4"/><circle cx="64" cy="66" r="3.4"/><circle cx="66" cy="64" r="3.4"/><circle cx="98" cy="86" r="3.4"/><circle cx="86" cy="98" r="3.4"/><circle cx="114" cy="72" r="3.4"/><circle cx="72" cy="114" r="3.4"/><circle cx="84" cy="98" r="3.4"/><circle cx="98" cy="84" r="3.4"/><circle cx="182" cy="48" r="3.4"/><circle cx="48" cy="182" r="3.4"/><rect x="88" y="92" width="10" height="6" rx="1"/><rect x="146" y="74" width="6" height="10" rx="1"/><rect x="54" y="126" width="10" height="6" rx="1"/><rect x="118" y="110" width="6" height="10" rx="1"/><rect x="200" y="60" width="10" height="6" rx="1"/><rect x="36" y="100" width="10" height="6" rx="1"/><rect x="74" y="148" width="6" height="10" rx="1"/><rect x="172" y="92" width="10" height="6" rx="1"/><rect x="108" y="154" width="10" height="6" rx="1"/><rect x="30" y="168" width="6" height="10" rx="1"/></g>
+        <g id="hc-corner-rings"><circle cx="140" cy="46" r="5"/><circle cx="46" cy="140" r="5"/><circle cx="206" cy="96" r="4.2"/><circle cx="96" cy="206" r="4.2"/><circle cx="176" cy="128" r="4"/><circle cx="128" cy="176" r="4"/><path d="M180 14v15"/><path d="M189 14v15"/><path d="M198 14v15"/><path d="M207 14v15"/><path d="M216 14v15"/><path d="M225 14v15"/><path d="M14 180h15"/><path d="M14 189h15"/><path d="M14 198h15"/><path d="M14 207h15"/><path d="M14 216h15"/><path d="M14 225h15"/><path d="M138 100v12"/><path d="M146 100v12"/><path d="M154 100v12"/><path d="M162 100v12"/><path d="M170 100v12"/><path d="M100 138h12"/><path d="M100 146h12"/><path d="M100 154h12"/><path d="M100 162h12"/><path d="M100 170h12"/><path d="M222 62v11"/><path d="M230 62v11"/><path d="M238 62v11"/><path d="M246 62v11"/></g>
+        <path id="hc-b0" pathLength="100" d="M-100 132L-18 -12"/>
+        <path id="hc-b1" pathLength="100" d="M-52 132L-14 66L44 66L82 -12"/>
+        <path id="hc-b2" pathLength="100" d="M-4 132L78 -12"/>
+        <path id="hc-b3" pathLength="100" d="M44 132L78 72L78 40L104 -12"/>
+        <path id="hc-b4" pathLength="100" d="M92 132L174 -12"/>
+        <path id="hc-b5" pathLength="100" d="M130 66l22 13"/>
+        <path id="hc-b6" pathLength="100" d="M140 132L222 -12"/>
+        <path id="hc-b7" pathLength="100" d="M188 132L239 43"/>
+        <path id="hc-b8" pathLength="100" d="M236 132L274 66L332 66L370 -12"/>
+        <path id="hc-b9" pathLength="100" d="M284 132L366 -12"/>
+        <path id="hc-b10" pathLength="100" d="M332 132L366 72L366 40L392 -12"/>
+        <path id="hc-b11" pathLength="100" d="M380 132L462 -12"/>
+        <path id="hc-b12" pathLength="100" d="M428 132L466 66L524 66L562 -12"/>
+        <path id="hc-b13" pathLength="100" d="M476 132L558 -12"/>
+        <path id="hc-b14" pathLength="100" d="M524 132L558 72L558 40L584 -12"/>
+        <path id="hc-b15" pathLength="100" d="M572 132L654 -12"/>
+        <path id="hc-b16" pathLength="100" d="M610 66l22 13"/>
+        <path id="hc-b17" pathLength="100" d="M620 132L702 -12"/>
+        <path id="hc-b18" pathLength="100" d="M668 132L719 43"/>
+        <path id="hc-b19" pathLength="100" d="M646 132L720 2"/>
+        <path id="hc-b20" pathLength="100" d="M598 132L672 2L720 2"/>
+        <path id="hc-b21" pathLength="100" d="M0 26h150l22 20h206"/>
+        <path id="hc-b22" pathLength="100" d="M0 62h84l26-18h150"/>
+        <path id="hc-b23" pathLength="100" d="M0 100h96l24-20h180"/>
+        <g id="hc-band-half"><use href="#hc-b0"/><use href="#hc-b1"/><use href="#hc-b2"/><use href="#hc-b3"/><use href="#hc-b4"/><use href="#hc-b5"/><use href="#hc-b6"/><use href="#hc-b7"/><use href="#hc-b8"/><use href="#hc-b9"/><use href="#hc-b10"/><use href="#hc-b11"/><use href="#hc-b12"/><use href="#hc-b13"/><use href="#hc-b14"/><use href="#hc-b15"/><use href="#hc-b16"/><use href="#hc-b17"/><use href="#hc-b18"/><use href="#hc-b19"/><use href="#hc-b20"/><use href="#hc-b21"/><use href="#hc-b22"/><use href="#hc-b23"/></g>
+        <g id="hc-band-wires"><use href="#hc-band-half"/><use href="#hc-band-half" transform="translate(1440,0) scale(-1,1)"/></g>
+        <g id="hc-band-chg0"><use href="#hc-b0"/><use href="#hc-b4"/><use href="#hc-b8"/><use href="#hc-b12"/><use href="#hc-b16"/><use href="#hc-b20"/></g>
+        <g id="hc-band-chg1"><use href="#hc-b1"/><use href="#hc-b5"/><use href="#hc-b9"/><use href="#hc-b13"/><use href="#hc-b17"/><use href="#hc-b21"/></g>
+        <g id="hc-band-chg2"><use href="#hc-b2"/><use href="#hc-b6"/><use href="#hc-b10"/><use href="#hc-b14"/><use href="#hc-b18"/><use href="#hc-b22"/></g>
+        <g id="hc-band-chg3"><use href="#hc-b3"/><use href="#hc-b7"/><use href="#hc-b11"/><use href="#hc-b15"/><use href="#hc-b19"/><use href="#hc-b23"/></g>
+        <g id="hc-band-pads-half"><rect x="-79" y="85" width="8" height="8" rx="1"/><rect x="65" y="85" width="8" height="8" rx="1"/><rect x="209" y="85" width="8" height="8" rx="1"/><rect x="353" y="85" width="8" height="8" rx="1"/><rect x="497" y="85" width="8" height="8" rx="1"/><rect x="641" y="85" width="8" height="8" rx="1"/><rect x="14" y="16" width="9" height="9" rx="1"/><rect x="14" y="38" width="9" height="9" rx="1"/><rect x="14" y="60" width="9" height="9" rx="1"/><rect x="14" y="82" width="9" height="9" rx="1"/><path d="M-4 40L4 48L-4 56L-12 48Z"/><path d="M140 40L148 48L140 56L132 48Z"/><path d="M284 40L292 48L284 56L276 48Z"/><path d="M428 40L436 48L428 56L420 48Z"/><path d="M572 40L580 48L572 56L564 48Z"/><path d="M716 40L724 48L716 56L708 48Z"/><circle cx="62" cy="17" r="3.2"/><circle cx="152" cy="79" r="3.4"/><circle cx="239" cy="43" r="4"/><circle cx="254" cy="17" r="3.2"/><circle cx="446" cy="17" r="3.2"/><circle cx="632" cy="79" r="3.4"/><circle cx="638" cy="17" r="3.2"/><circle cx="719" cy="43" r="4"/></g>
+        <g id="hc-band-pads"><use href="#hc-band-pads-half"/><use href="#hc-band-pads-half" transform="translate(1440,0) scale(-1,1)"/></g>
+        <g id="hc-band-rings-half"><circle cx="206" cy="46" r="4.6"/><circle cx="474" cy="66" r="4.6"/><circle cx="120" cy="80" r="4"/><circle cx="352" cy="30" r="4.4"/></g>
+        <g id="hc-band-rings"><use href="#hc-band-rings-half"/><use href="#hc-band-rings-half" transform="translate(1440,0) scale(-1,1)"/></g>
         </defs>
-
-        <g class="hero-circuit__wires" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use href="#hc-h-a"/><use href="#hc-h-b"/>
-          <use href="#hc-h-c"/><use href="#hc-h-d"/>
+        <g class="hero-circuit__wires"><use href="#hc-band-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-band-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-band-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          <g transform="translate(1440,0) scale(-1,1)">
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          </g>
         </g>
-
-        <g class="hero-circuit__charges" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use class="hero-circuit__charge hero-circuit__charge--a" href="#hc-h-a"/>
-          <use class="hero-circuit__charge hero-circuit__charge--b" href="#hc-h-b"/>
-          <use class="hero-circuit__charge hero-circuit__charge--c" href="#hc-h-c"/>
-          <use class="hero-circuit__charge hero-circuit__charge--d" href="#hc-h-d"/>
-        </g>
-
         <g class="hero-circuit__nodes">
-          <circle class="hero-circuit__node hero-circuit__node--a" cx="206" cy="18" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--b" cx="384" cy="44" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--c" cx="902" cy="24" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--d" cx="628" cy="54" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--e" cx="272" cy="28" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--f" cx="1248" cy="40" r="3.4"/>
+          <circle class="hero-circuit__node hero-circuit__node--a" cx="206" cy="46" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--b" cx="474" cy="66" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--c" cx="966" cy="66" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--d" cx="1234" cy="46" r="3.6"/>
         </g>
       </svg>
-
-      <svg class="hero-circuit__edge hero-circuit__edge--bottom" viewBox="0 0 1440 72"
-           preserveAspectRatio="none" focusable="false">
-        <g class="hero-circuit__wires" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use href="#hc-h-a"/><use href="#hc-h-b"/>
-          <use href="#hc-h-c"/><use href="#hc-h-d"/>
+      <svg class="hero-circuit__layer hero-circuit__layer--band-bottom" viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false">
+        <g class="hero-circuit__wires"><use href="#hc-band-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-band-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-band-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          <g transform="translate(1440,0) scale(-1,1)">
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
+            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          </g>
         </g>
-
-        <g class="hero-circuit__charges" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use class="hero-circuit__charge hero-circuit__charge--e" href="#hc-h-a"/>
-          <use class="hero-circuit__charge hero-circuit__charge--f" href="#hc-h-b"/>
-          <use class="hero-circuit__charge hero-circuit__charge--g" href="#hc-h-c"/>
-          <use class="hero-circuit__charge hero-circuit__charge--h" href="#hc-h-d"/>
-        </g>
-
         <g class="hero-circuit__nodes">
-          <circle class="hero-circuit__node hero-circuit__node--g" cx="206" cy="18" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--h" cx="384" cy="44" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--i" cx="902" cy="24" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--j" cx="628" cy="54" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--k" cx="1148" cy="24" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--l" cx="452" cy="60" r="3.4"/>
+          <circle class="hero-circuit__node hero-circuit__node--e" cx="206" cy="46" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--f" cx="474" cy="66" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--g" cx="966" cy="66" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--h" cx="1234" cy="46" r="3.6"/>
         </g>
       </svg>
-
-      <svg class="hero-circuit__edge hero-circuit__edge--left" viewBox="0 0 72 480"
-           preserveAspectRatio="none" focusable="false">
-        <g class="hero-circuit__wires" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use href="#hc-v-a"/><use href="#hc-v-b"/>
-          <use href="#hc-v-c"/><use href="#hc-v-d"/>
+      <svg class="hero-circuit__layer hero-circuit__layer--corner-tl" viewBox="0 0 260 200" preserveAspectRatio="xMinYMin meet" focusable="false">
+        <g class="hero-circuit__wires"><use href="#hc-corner-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--c1"><use href="#hc-corner-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c3"><use href="#hc-corner-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c4 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c5"><use href="#hc-corner-chg4"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c6 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
         </g>
-
-        <g class="hero-circuit__charges" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use class="hero-circuit__charge hero-circuit__charge--i" href="#hc-v-a"/>
-          <use class="hero-circuit__charge hero-circuit__charge--j" href="#hc-v-b"/>
-          <use class="hero-circuit__charge hero-circuit__charge--k" href="#hc-v-c"/>
-          <use class="hero-circuit__charge hero-circuit__charge--l" href="#hc-v-d"/>
-        </g>
-
         <g class="hero-circuit__nodes">
-          <circle class="hero-circuit__node hero-circuit__node--m" cx="18" cy="182" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--n" cx="48" cy="330" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--o" cx="62" cy="224" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--p" cx="36" cy="96" r="3.4"/>
+          <circle class="hero-circuit__node hero-circuit__node--i" cx="56" cy="44" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--j" cx="104" cy="36" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--k" cx="44" cy="56" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--l" cx="36" cy="104" r="3.6"/>
         </g>
       </svg>
-
-      <svg class="hero-circuit__edge hero-circuit__edge--right" viewBox="0 0 72 480"
-           preserveAspectRatio="none" focusable="false">
-        <g class="hero-circuit__wires" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use href="#hc-v-a"/><use href="#hc-v-b"/>
-          <use href="#hc-v-c"/><use href="#hc-v-d"/>
+      <svg class="hero-circuit__layer hero-circuit__layer--corner-tr" viewBox="0 0 260 200" preserveAspectRatio="xMinYMin meet" focusable="false">
+        <g class="hero-circuit__wires"><use href="#hc-corner-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--c7"><use href="#hc-corner-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c8 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c9"><use href="#hc-corner-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c10 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c11"><use href="#hc-corner-chg4"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c12 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
         </g>
-
-        <g class="hero-circuit__charges" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <use class="hero-circuit__charge hero-circuit__charge--m" href="#hc-v-a"/>
-          <use class="hero-circuit__charge hero-circuit__charge--n" href="#hc-v-b"/>
-          <use class="hero-circuit__charge hero-circuit__charge--o" href="#hc-v-c"/>
-          <use class="hero-circuit__charge hero-circuit__charge--p" href="#hc-v-d"/>
-        </g>
-
         <g class="hero-circuit__nodes">
-          <circle class="hero-circuit__node hero-circuit__node--q" cx="18" cy="182" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--r" cx="48" cy="330" r="3.4"/>
-          <circle class="hero-circuit__node hero-circuit__node--s" cx="62" cy="224" r="4"/>
-          <circle class="hero-circuit__node hero-circuit__node--t" cx="36" cy="366" r="3.4"/>
+          <circle class="hero-circuit__node hero-circuit__node--m" cx="56" cy="44" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--n" cx="104" cy="36" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--o" cx="44" cy="56" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--p" cx="36" cy="104" r="3.6"/>
+        </g>
+      </svg>
+      <svg class="hero-circuit__layer hero-circuit__layer--corner-bl" viewBox="0 0 260 200" preserveAspectRatio="xMinYMin meet" focusable="false">
+        <g class="hero-circuit__wires"><use href="#hc-corner-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--c13"><use href="#hc-corner-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c14 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c15"><use href="#hc-corner-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c16 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c17"><use href="#hc-corner-chg4"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c18 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+        </g>
+        <g class="hero-circuit__nodes">
+          <circle class="hero-circuit__node hero-circuit__node--q" cx="56" cy="44" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--r" cx="104" cy="36" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--s" cx="44" cy="56" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--t" cx="36" cy="104" r="3.6"/>
+        </g>
+      </svg>
+      <svg class="hero-circuit__layer hero-circuit__layer--corner-br" viewBox="0 0 260 200" preserveAspectRatio="xMinYMin meet" focusable="false">
+        <g class="hero-circuit__wires"><use href="#hc-corner-wires"/></g>
+        <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
+        <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
+        <g class="hero-circuit__charges">
+          <g class="hero-circuit__charge hero-circuit__charge--c19"><use href="#hc-corner-chg0"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c20 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c21"><use href="#hc-corner-chg2"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c22 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c23"><use href="#hc-corner-chg4"/></g>
+          <g class="hero-circuit__charge hero-circuit__charge--c24 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+        </g>
+        <g class="hero-circuit__nodes">
+          <circle class="hero-circuit__node hero-circuit__node--u" cx="56" cy="44" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--v" cx="104" cy="36" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--w" cx="44" cy="56" r="3.6"/>
+          <circle class="hero-circuit__node hero-circuit__node--x" cx="36" cy="104" r="3.6"/>
         </g>
       </svg>
     </div>
@@ -1022,6 +1142,10 @@ $cvForm = trim((string)($data['cv_form_url'] ?? ''));
 <script src="/assets/js/forms.js" defer></script>
 <script src="/assets/js/dashboard.js" defer></script>
 <script src="/assets/js/tech-sphere.js" defer></script>
-<script src="/assets/js/main.js" defer></script>
+<!-- Versioned for the same reason the stylesheets are, and with a sharper
+     edge: MODULES in this file is a hardcoded allow list, so a stale copy
+     silently skips every module added since — no error, no console line,
+     just a feature that is not there. -->
+<script src="/assets/js/main.js?v=2" defer></script>
 </body>
 </html>

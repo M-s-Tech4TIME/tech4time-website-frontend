@@ -111,6 +111,11 @@ python3 tools/audit_pages.py           python3 tools/check_shared_lib.py
 python3 tools/build_deploy_set.py --check
 ```
 
+Touched anything under `assets/`? Also **`python3 tools/check_cache_bust.py`** — filenames are not
+content-hashed and `.htaccess` caches them for a year, so a changed file behind an unchanged URL
+ships to new visitors only. Bump the version query in `tools/templates/` **and** in all sixteen
+pages: `propagate_shared.py` does not carry `head.html` or `scripts.html`.
+
 Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and
 `check_shared_lib.py --update`, and copy the changed file to the backend.**
 

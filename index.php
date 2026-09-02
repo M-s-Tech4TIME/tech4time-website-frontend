@@ -91,13 +91,21 @@ $data = home_load();
      the -ext subset is not preloaded since most pages never reference it. -->
 <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 
-<!-- Styles, in cascade order -->
+<!-- Styles, in cascade order.
+
+     THE VERSION QUERY IS THE CACHE BUST, AND IT IS NOT DECORATION
+     Filenames are not content-hashed — there is no build step to hash them —
+     and .htaccess caches CSS for a year. A changed stylesheet does not reach
+     anybody who has been here before unless this string changes with it, so
+     bump it in the same breath as the file. Forget, and the release is for
+     new visitors only, which looks like nothing at all from here.
+     docs/20-deployment/routine-deploys.md, "Cache busting" -->
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/layout.css?v=2">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
-<link rel="stylesheet" href="/assets/css/pages/home.css">
+<link rel="stylesheet" href="/assets/css/pages/home.css?v=2">
 
 <!-- Colour mode, applied before first paint to avoid a flash of the wrong
      theme. Deliberately NOT deferred; see the comment in the file itself. -->
@@ -950,6 +958,11 @@ $data = home_load();
 <script src="/assets/js/nav.js" defer></script>
 <script src="/assets/js/animations.js" defer></script>
 <script src="/assets/js/terminal.js" defer></script>
-<script src="/assets/js/main.js" defer></script>
+<script src="/assets/js/neural.js" defer></script>
+<!-- Versioned for the same reason the stylesheets are, and with a sharper
+     edge: MODULES in this file is a hardcoded allow list, so a stale copy
+     silently skips every module added since — no error, no console line,
+     just a feature that is not there. -->
+<script src="/assets/js/main.js?v=2" defer></script>
 </body>
 </html>

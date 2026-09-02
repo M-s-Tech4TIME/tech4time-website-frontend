@@ -1,7 +1,8 @@
 /* ==========================================================================
    Tech4TIME — pages/home.css
-   Styles for the homepage: hero, terminal, stats, services overview, CTA.
-   Loaded only by index.html.
+   Styles for the homepage: hero, the hero's neural mesh, terminal,
+   capabilities, services overview, destination cards, CTA.
+   Loaded only by index.php.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -10,6 +11,13 @@
 
 .hero {
   padding-block: clamp(3rem, 7vw, 5.5rem) var(--section-padding);
+  /* A stacking context for the neural mesh, which sits at z-index -1. Without
+     isolation that negative index resolves against the page and the mesh goes
+     behind the body background; without overflow the sliced field spills
+     sideways at narrow widths. Both are load-bearing, not tidying. */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .hero__grid {
@@ -80,7 +88,58 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. Terminal
+   2. Hero neural mesh
+
+   A canvas, built and torn down by assets/js/neural.js. There is no mesh in
+   the markup and no CSS fallback: with JavaScript off, or reduced motion
+   asked for, the hero is a plain hero and that is the intended appearance.
+
+   Everything here is inert until the module puts its container in the page.
+   The custom properties below are the module's only source of colour — it
+   reads them from this element and re-reads them whenever the theme changes,
+   because a canvas cannot inherit a token the way a stylesheet can.
+   -------------------------------------------------------------------------- */
+
+.hero-neural {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  /* The whole effect tunes from these six.
+
+     --accent-text rather than --silver-accent-mid, and deliberately: the two
+     are the same colour in dark mode (#b8babe), but in light mode
+     --accent-text is #6a6c71 against #9ea1a6. On a near-white page the mid
+     grey almost disappears, so the mesh read as a strong effect in one theme
+     and a faint one in the other. This lifts light to match dark and leaves
+     dark alone.
+
+     The signal borrows --text-primary, near-black in light and near-white in
+     dark, so a firing link stands off the mesh in both. */
+  --neural-link: var(--accent-text);
+  --neural-node: var(--accent-text);
+  --neural-signal: var(--text-primary);
+  --neural-link-opacity: 0.24;
+  --neural-node-opacity: 0.36;
+  --neural-signal-opacity: 0.55;
+
+  /* Fades out before it reaches the edges, so the field never crowds the
+     headline and never appears to be cut off by the section below. */
+  -webkit-mask-image: radial-gradient(125% 105% at 50% 45%, #000 38%, transparent 92%);
+  mask-image: radial-gradient(125% 105% at 50% 45%, #000 38%, transparent 92%);
+}
+
+.hero-neural__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   3. Terminal
    A stylised SOC console. Decorative, but its content is real text in the DOM
    rather than an image, so it stays selectable and readable to assistive tech.
    The window is marked aria-hidden and paired with a visually-hidden summary,
@@ -231,7 +290,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   3. Capabilities
+   4. Capabilities
    Six capability statements. Unlike the metric cards they replaced, these are
    phrases rather than value + label pairs, so the card leads with the icon and
    sets the statement as the only text.
@@ -318,7 +377,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   4. Services overview
+   5. Services overview
    -------------------------------------------------------------------------- */
 
 .services-overview__grid {
@@ -412,7 +471,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   5. Destination cards
+   6. Destination cards
    Three routes into the site (About, Services, Company Profile), following the
    current live site's layout: line-art illustration above, a dark panel with
    title, subtitle and action below.
@@ -509,7 +568,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   6. Closing CTA
+   7. Closing CTA
    -------------------------------------------------------------------------- */
 
 .home-cta {

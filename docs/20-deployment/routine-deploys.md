@@ -91,16 +91,41 @@ rules with it, and nothing about the site's appearance will tell you.
 Asset filenames are not content-hashed — there is no build step to hash them — and `.htaccess`
 caches CSS, JS and fonts for a year.
 
-**A changed `base.css` will not reach returning visitors on its own.**
-
-When you change one, either append a version query to the tag:
+**A changed `base.css` will not reach returning visitors on its own.** Append a version query to
+the tag, and bump it in the same breath as the file:
 
 ```html
 <link rel="stylesheet" href="/assets/css/base.css?v=2">
 ```
 
-(via `tools/templates/head.html`, then `propagate_shared.py`) or lower the `max-age` for that file
-type in `.htaccess`.
+`python3 tools/check_cache_bust.py` refuses a release where a changed stylesheet or script is still
+served from the URL it had on `main`. Run it before every deploy — this rule was kept by memory
+until it was missed twice, and both misses were invisible from a clean cache.
+
+### Both places, by hand
+
+The stylesheet links live in `tools/templates/head.html` and the script tags in
+`tools/templates/scripts.html` — and **`propagate_shared.py` does not carry either of them out to
+the pages.** It handles the header, footer, dock and hero circuit only; `head.html` and
+`scripts.html` are read by `assemble_page.py` when a page is *created*, and after that each page
+holds its own copy. So a bump means editing the template **and** all sixteen pages, and
+`check_shared_markup.py` pins the expected `main.js` URL so a page left behind fails rather than
+merely behaving oddly for people who have been here before.
+
+### What being wrong looks like
+
+Nothing. Neither failure raises an error, and neither is visible in a browser opened on a clean
+cache, which is every browser a developer tests in:
+
+- **A stale stylesheet** meets markup written for rules it does not have. Undefined animation
+  durations resolve to `0s`, undefined classes to nothing at all. The page renders; parts of it
+  simply do not move.
+- **A stale `main.js`** iterates the `MODULES` allow list it was cached with, so any module added
+  since registers itself and is never initialised. No error, no console line — the feature is
+  absent, and only for returning visitors.
+
+Lowering `max-age` for that file type in `.htaccess` is the other way, and costs every visitor a
+revalidation on every asset forever. Prefer the query.
 
 ---
 
