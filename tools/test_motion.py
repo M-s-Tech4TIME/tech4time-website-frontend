@@ -1227,6 +1227,219 @@ def hero_mesh(b: Browser, origin: str, r: Results) -> None:
             "colour tokens, and no other check here would notice")
 
 
+# The circuit is measured inside an <iframe> of the width being tested: the
+# artwork now renders at every width, including below the ~500px Firefox refuses
+# to make a window (ADR 0015), and the phone tier is the new part.
+CIRCUIT_PROBE = r"""
+var width = arguments[0], url = arguments[1];
+
+var frame = document.getElementById('circuit-probe');
+if (!frame) {
+  frame = document.createElement('iframe');
+  frame.id = 'circuit-probe';
+  frame.style.border = '0';
+  frame.style.height = '900px';
+  document.body.appendChild(frame);
+}
+frame.style.width = width + 'px';
+
+var want = url + '#' + width;
+if (frame.getAttribute('data-showing') !== want) {
+  frame.setAttribute('data-showing', want);
+  frame.src = url;
+  return {loading: true};
+}
+var doc = frame.contentDocument;
+if (!doc || doc.readyState !== 'complete' || !doc.body) return {loading: true};
+var view = frame.contentWindow;
+
+var box = doc.querySelector('.hero-circuit');
+if (!box) return {loading: false, found: false};
+
+function drawn(el) {
+  var b = el.getBoundingClientRect();
+  return (b.width > 0 || b.height > 0) &&
+         parseFloat(view.getComputedStyle(el).opacity) > 0.05;
+}
+
+var layers = Array.prototype.slice.call(
+  doc.querySelectorAll('.hero-circuit__layer'));
+var charges = doc.querySelectorAll('.hero-circuit__charge');
+var nodes = doc.querySelectorAll('.hero-circuit__node');
+
+var running = 0, infinite = true;
+var corner = [], bandTop = [], bandBottom = [];
+Array.prototype.forEach.call(charges, function (c) {
+  c.getAnimations().forEach(function (a) {
+    if (a.playState === 'running') { running += 1; }
+    var t = a.effect.getTiming();
+    if (t.iterations !== Infinity) { infinite = false; }
+
+    /* Which way this charge actually travels on screen. A charge on the right
+       half of a band sits inside a mirroring transform, so running its keyframes
+       forward carries it right to left; the --mirrored class reverses it to put
+       it back in step. The two cancel, and what is left is the direction a
+       visitor sees. */
+    var mirrored = c.classList.contains('hero-circuit__charge--mirrored');
+    var reversed = t.direction === 'reverse';
+    var rightward = mirrored ? reversed : !reversed;
+
+    var layer = c.closest('.hero-circuit__layer');
+    var name = layer ? layer.getAttribute('class') : '';
+    var row = {seconds: Math.round(t.duration / 1000), rightward: rightward};
+    if (name.indexOf('band-top') > -1) { bandTop.push(row); }
+    else if (name.indexOf('band-bottom') > -1) { bandBottom.push(row); }
+    else { corner.push(row); }
+  });
+});
+var nodeRunning = 0;
+Array.prototype.forEach.call(nodes, function (n) {
+  n.getAnimations().forEach(function (a) {
+    if (a.playState === 'running') { nodeRunning += 1; }
+  });
+});
+
+var cs = view.getComputedStyle(box);
+var root = doc.documentElement;
+
+return {
+  loading: false,
+  found: true,
+  layers: layers.length,
+  layersDrawn: layers.filter(drawn).length,
+  charges: charges.length,
+  running: running,
+  corner: corner,
+  bandTop: bandTop,
+  bandBottom: bandBottom,
+  infinite: infinite,
+  nodes: nodes.length,
+  nodesRunning: nodeRunning,
+  events: cs.pointerEvents,
+  zIndex: cs.zIndex,
+  position: cs.position,
+  marked: doc.querySelectorAll('.page-hero [data-reveal]').length,
+  titleOpacity: view.getComputedStyle(
+    doc.querySelector('.page-hero__title')).opacity,
+  overflows: root.scrollWidth > root.clientWidth
+};
+"""
+
+# Read directly on the page, under reduced motion, where the contract is that
+# the circuit becomes a still drawing rather than disappearing.
+CIRCUIT_STILL = """
+function lit(sel) {
+  return Array.prototype.filter.call(document.querySelectorAll(sel), function (el) {
+    var b = el.getBoundingClientRect();
+    return (b.width > 0 || b.height > 0) &&
+           parseFloat(getComputedStyle(el).opacity) > 0.05;
+  }).length;
+}
+return {
+  layers: lit('.hero-circuit__layer'),
+  wires: lit('.hero-circuit__wires'),
+  pads: lit('.hero-circuit__pads'),
+  nodes: lit('.hero-circuit__node')
+};
+"""
+
+
+def hero_circuit(b: Browser, origin: str, r: Results) -> None:
+    """
+    The circuitry around the page title, on all fourteen interior pages.
+
+    Nothing watched this before. The band carried decoration that no check
+    named, so it could have stopped drawing, lost its mirror, started
+    intercepting clicks or gone on animating under reduced motion, and every
+    suite would still have passed. test_nav.py does exactly this job for the
+    dock's circuit; this is its counterpart for the banner.
+    """
+    print("\nthe circuit around the page title")
+    b.go(origin + "/404.html")          # a host for the frame; it has no band
+
+    for width in (1440, 768, 390):
+        d = {"loading": True}
+        for _ in range(40):
+            d = b.js(CIRCUIT_PROBE, [width, origin + "/pages/about/"])
+            if not d.get("loading"):
+                break
+            time.sleep(0.25)
+
+        if not d.get("found"):
+            r.check(f"{width}px — the circuit is in the band", False,
+                    "no .hero-circuit element in the page hero")
+            continue
+
+        print(f"    {width:>4}px: {d['layersDrawn']}/{d['layers']} layers drawn, "
+              f"{d['running']}/{d['charges']} charges running, "
+              f"{d['nodesRunning']}/{d['nodes']} nodes")
+
+        # Six layers: two bands and four corners. The artwork now renders at
+        # every width, so a missing layer at 390px is a real regression rather
+        # than the old deliberate hiding.
+        r.check(f"{width}px — all six layers are drawn",
+                d["layers"] == 6 and d["layersDrawn"] == 6,
+                f"{d['layersDrawn']} of {d['layers']} layers painted")
+        r.check(f"{width}px — nothing overflows sideways",
+                not d["overflows"],
+                "the document scrolls horizontally with the circuit in place")
+
+    r.check("every trace that should carry a charge carries one",
+            d["charges"] == 24, f"{d['charges']} charges")
+    r.check("every charge is running",
+            d["running"] == 24, f"{d['running']} of 24 running")
+    r.check("every node is running",
+            d["nodesRunning"] == d["nodes"] == 24,
+            f"{d['nodesRunning']} of {d['nodes']} running")
+    r.check("nothing is set to stop", d["infinite"] is True)
+
+    # The corners must never resynchronise: equal durations there would make the
+    # four of them visibly repeat as one loop.
+    corner_secs = [c["seconds"] for c in d["corner"]]
+    r.check("no two corner charges share a duration",
+            len(set(corner_secs)) == len(corner_secs) == 16,
+            f"durations: {sorted(corner_secs)}")
+
+    # The bands are the opposite case, and deliberately so. They are one current
+    # going round the band, so they must share a speed exactly — a difference of
+    # a second would have the two edges drift apart over a few minutes.
+    top_secs = {c["seconds"] for c in d["bandTop"]}
+    bottom_secs = {c["seconds"] for c in d["bandBottom"]}
+    r.check("both bands run at one speed",
+            len(top_secs) == 1 and top_secs == bottom_secs,
+            f"top {sorted(top_secs)}, bottom {sorted(bottom_secs)}")
+
+    # And in opposite directions. This is measured after cancelling the mirror
+    # transform the right half sits inside, so it is the direction a visitor
+    # sees rather than the sign in the stylesheet.
+    r.check("the top band flows left to right, all the way across",
+            len(d["bandTop"]) == 4 and all(c["rightward"] for c in d["bandTop"]),
+            f"{sum(c['rightward'] for c in d['bandTop'])} of "
+            f"{len(d['bandTop'])} top-band charges travel rightward")
+    r.check("and the bottom band flows right to left, mirroring it",
+            len(d["bandBottom"]) == 4
+            and not any(c["rightward"] for c in d["bandBottom"]),
+            f"{sum(c['rightward'] for c in d['bandBottom'])} of "
+            f"{len(d['bandBottom'])} bottom-band charges travel rightward, "
+            "which should be none")
+
+    # Constraint that check_focus only catches second-hand, one page at a time.
+    r.check("the circuit cannot be clicked or hovered",
+            d["events"] == "none", f"pointer-events: {d['events']}")
+    r.check("the circuit sits behind the title",
+            d["position"] == "absolute" and d["zIndex"] == "-1",
+            f"position: {d['position']}, z-index: {d['zIndex']}")
+
+    # An element at opacity 0 has not been painted, and the band is the LCP
+    # region of every interior page. apply_reveals.py refuses to mark it; this
+    # is the check that it stayed refused.
+    r.check("no part of the band carries a reveal marker",
+            d["marked"] == 0,
+            f"{d['marked']} marked elements inside .page-hero")
+    r.check("the page title is fully opaque with the circuit behind it",
+            d["titleOpacity"] == "1", f"title opacity is {d['titleOpacity']}")
+
+
 def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     """
     What the mesh costs a frame, on the page it matters most on, and whether it
@@ -1245,6 +1458,21 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     b.go(origin + "/pages/careers/")
     time.sleep(1.0)
     base = b.js_async(FRAME_SAMPLER, [1800])
+
+    # THE BASELINE NEEDS A CEILING OF ITS OWN, AND THIS IS WHY
+    # Both frame budgets in this file — this one and sphere_smoothness — gate on
+    # max(baseline x 2, 33ms), and both take their baseline from an interior
+    # page. Those pages carry the circuit around the title. So a circuit that
+    # got heavier would raise the baseline, which would *loosen* the only two
+    # frame assertions in the repository while making the pages it measures
+    # worse. Nothing would report it. An absolute ceiling on the baseline
+    # closes that: 33ms is 30fps, roughly twice what an idle interior page
+    # measures, so it is a real ceiling rather than a coincidence.
+    r.check("an interior page is not itself slow enough to loosen these gates",
+            base["median"] <= 33.0,
+            f"a page with no mesh and no sphere measured {base['median']}ms a "
+            "frame — the decoration in the title band has become expensive "
+            "enough to raise every budget that uses it as a baseline")
 
     b.go(origin + "/")
     # Long enough for terminal.js to finish typing, so this measures the mesh
@@ -1412,6 +1640,19 @@ def reduced_motion(drv_port: int, origin: str, r: Results) -> None:
                 held["first"] is not None and held["first"] == held["second"],
                 "two readings of the canvas a second apart differed, so a "
                 "loop is running for someone who asked for no motion")
+
+        # The band's circuit is pure CSS, so base.css collapses it on its own —
+        # but only because every animation in it rests on its declared value.
+        # A charge whose keyframes ended anywhere other than its base would
+        # freeze somewhere nobody designed, and a trace animated on from
+        # nothing would freeze invisible. This is the check that it did not.
+        b.go(origin + "/pages/about/")
+        c = b.js(CIRCUIT_STILL)
+        r.check("the page-title circuit is a still drawing, not a blank band",
+                c["layers"] == 6 and c["wires"] >= 6 and c["nodes"] > 12,
+                f"{c['layers']} layers, {c['wires']} wire groups, "
+                f"{c['pads']} pad groups and {c['nodes']} nodes painted with "
+                "reduced motion requested")
     finally:
         b.quit()
 
@@ -1492,6 +1733,7 @@ def main() -> None:
         shine(browser, origin, results)
         typed_terminal(browser, origin, results)
         hero_mesh(browser, origin, results)
+        hero_circuit(browser, origin, results)
         sliders(browser, origin, results)
         counters(browser, origin, results)
         alternating_rows(browser, origin, results)

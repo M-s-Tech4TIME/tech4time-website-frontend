@@ -69,7 +69,7 @@
 /* Banner every inner page opens with: the page name in the silver gradient over
    a tagline. Shared rather than per-page, so all fourteen read as one family. */
 .page-hero {
-  padding-block: clamp(3rem, 8vw, 6rem) clamp(2.5rem, 6vw, 4rem);
+  padding-block: clamp(4rem, 10vw, 7.5rem) clamp(3.5rem, 8vw, 6rem);
   text-align: center;
   background-color: var(--bg-surface);
   border-block-end: var(--border-width) solid var(--border-subtle);
@@ -467,22 +467,27 @@
 /* --------------------------------------------------------------------------
    The circuit around the page title
 
-   Four strips, one per edge, each masked so the traces fade before they reach
-   the title. The whole thing is behind the content and takes no pointer
-   events, so it cannot interfere with anything.
+   Six layers: a chevron band across the top and the bottom, and a cluster
+   emerging from each of the four corners. The drawing is the company's own,
+   taken from its printed material.
 
-   The two edges of each pair share one set of paths and are flipped, so the
-   right-hand edge is the left one mirrored and the bottom is the top turned
-   over. What keeps that from reading as a mirror is the timing: every charge
-   runs on a different prime number of seconds, so no two edges ever line up.
+   One set of geometry, declared once in the first layer and mirrored here —
+   the top-right corner is the top-left one flipped, the bottom band is the top
+   band turned over. What keeps that from reading as a mirror is the timing:
+   every charge runs on a different prime number of seconds, so no two layers
+   ever line up.
 
    Motion here is suppressed by the prefers-reduced-motion block in base.css,
-   which leaves the traces as a still drawing.
+   which leaves the traces as a still drawing. That works only because every
+   animation below rests on its declared value: the charges end at
+   stroke-dashoffset 0, which is also their base, and the nodes revert to the
+   opacity declared on the rule. An animation that ended anywhere else would
+   collapse to something nobody designed.
    -------------------------------------------------------------------------- */
 
 .page-hero {
   position: relative;
-  /* The strips are inset to the edges of this box; without this they would
+  /* The layers are inset to the edges of this box; without this they would
      resolve against the page. */
   isolation: isolate;
   overflow: hidden;
@@ -492,6 +497,9 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  /* Inherited, so it covers every shape inside. Without it the artwork sits in
+     front of the title for hit-testing and check_focus.py reports the focus
+     ring as covered. */
   pointer-events: none;
 }
 
@@ -499,78 +507,158 @@
   position: relative;
 }
 
-.hero-circuit__edge {
+.hero-circuit__layer {
   position: absolute;
   display: block;
 }
 
-.hero-circuit__edge--top,
-.hero-circuit__edge--bottom {
+/* THE CIRCUITS BRANCH OUT FROM THEIR OWN EDGE, ONCE
+   Every trace in a corner starts on one of the two edges that meet there, and
+   every trace in a band starts at the outer edge. So a clip expanding from that
+   same origin uncovers each trace from its root outward, which is the growth
+   the artwork is meant to have — and it costs six animated elements rather than
+   the eighty it would take to draw every trace on individually.
+
+   The resting value is the fully revealed one, declared on the rule. That is
+   load-bearing: base.css sets no animation-fill-mode, so under reduced motion
+   the collapsed animation reverts to whatever is declared here. Had the rule
+   said "hidden" and the keyframes said "revealed", asking for less motion would
+   have emptied the band. */
+.hero-circuit__layer--band-top,
+.hero-circuit__layer--band-bottom {
+  clip-path: inset(0 0 0 0);
+  animation: hero-emerge-band 1.5s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+
+.hero-circuit__layer--corner-tl,
+.hero-circuit__layer--corner-tr,
+.hero-circuit__layer--corner-bl,
+.hero-circuit__layer--corner-br {
+  clip-path: circle(160% at 0 0);
+  /* No stagger between the four: they are asked to emerge together. */
+  animation: hero-emerge-corner 1.5s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+
+/* Each layer is clipped in its own coordinate space, which the mirrors carry
+   round with them — so "from the top edge" and "from this corner" stay true for
+   all six without a rule each. */
+@keyframes hero-emerge-band {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hero-emerge-corner {
+  from {
+    clip-path: circle(0% at 0 0);
+  }
+  to {
+    clip-path: circle(160% at 0 0);
+  }
+}
+
+/* --- the chevron bands, top and bottom ----------------------------------- */
+
+.hero-circuit__layer--band-top,
+.hero-circuit__layer--band-bottom {
   inset-inline: 0;
   width: 100%;
-  height: clamp(3.5rem, 9vw, 4.5rem);
+  height: clamp(2.75rem, 8vw, 6rem);
+  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
 }
 
-.hero-circuit__edge--top {
+.hero-circuit__layer--band-top {
   top: 0;
-  mask-image: linear-gradient(to bottom, #000 20%, transparent 95%);
 }
 
-.hero-circuit__edge--bottom {
+/* The same drawing turned over, so the traces run out of the bottom edge
+   rather than into it. The mask turns over with it. */
+.hero-circuit__layer--band-bottom {
   bottom: 0;
-  /* The same drawing turned over, so the traces run out of the bottom edge
-     rather than into it. */
   transform: scaleY(-1);
-  mask-image: linear-gradient(to bottom, #000 20%, transparent 95%);
 }
 
-.hero-circuit__edge--left,
-.hero-circuit__edge--right {
-  inset-block: 0;
-  height: 100%;
-  width: clamp(3rem, 7vw, 4.5rem);
+/* --- the four corner clusters -------------------------------------------- */
+
+.hero-circuit__layer--corner-tl,
+.hero-circuit__layer--corner-tr,
+.hero-circuit__layer--corner-bl,
+.hero-circuit__layer--corner-br {
+  width: clamp(5rem, 20vw, 15rem);
+  height: clamp(4rem, 15vw, 11.5rem);
+  /* Fades on a diagonal away from its own corner. The gradient is anchored at
+     0% 0%, which each mirror carries round to the corner it belongs to. */
+  -webkit-mask-image: radial-gradient(125% 125% at 0% 0%, #000 26%, transparent 90%);
+  mask-image: radial-gradient(125% 125% at 0% 0%, #000 26%, transparent 90%);
 }
 
-.hero-circuit__edge--left {
-  left: 0;
-  mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+/* The bands are the half of the drawing a visitor recognises from the printed
+   material, so they carry more weight than the corner texture. */
+.hero-circuit__layer--band-top .hero-circuit__wires,
+.hero-circuit__layer--band-bottom .hero-circuit__wires {
+  stroke-width: 1.8;
+  opacity: 0.34;
 }
 
-.hero-circuit__edge--right {
-  right: 0;
-  transform: scaleX(-1);
-  mask-image: linear-gradient(to right, #000 20%, transparent 95%);
+.hero-circuit__layer--band-top .hero-circuit__pads,
+.hero-circuit__layer--band-bottom .hero-circuit__pads {
+  opacity: 0.42;
 }
 
-/* Below this the title has the band to itself: four strips of circuitry around
-   a heading on a phone is a frame with nothing left in the middle. The side
-   edges go first because they are the ones that eat the width. */
-@media (max-width: 40em) {
-  .hero-circuit__edge--left,
-  .hero-circuit__edge--right {
-    display: none;
-  }
+.hero-circuit__layer--band-top .hero-circuit__rings,
+.hero-circuit__layer--band-bottom .hero-circuit__rings {
+  stroke-width: 1.7;
+  opacity: 0.38;
 }
 
-@media (max-width: 26em) {
-  .hero-circuit {
-    display: none;
-  }
-}
+.hero-circuit__layer--corner-tl { top: 0; left: 0; }
+.hero-circuit__layer--corner-tr { top: 0; right: 0; transform: scaleX(-1); }
+.hero-circuit__layer--corner-bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.hero-circuit__layer--corner-br { bottom: 0; right: 0; transform: scale(-1, -1); }
 
-.hero-circuit__wires use {
+/* --- the three static layers --------------------------------------------- */
+
+.hero-circuit__wires {
+  fill: none;
   stroke: var(--silver-accent-mid);
   stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   opacity: 0.24;
 }
 
-/* A short bright dash travelling the length of a trace. The dasharray is one
-   visible segment followed by a gap longer than any path here, so only one
-   charge is ever on a wire at a time. */
+/* Pads and the small rectangles a board carries where a component lands. */
+.hero-circuit__pads {
+  fill: var(--silver-accent-mid);
+  opacity: 0.3;
+}
+
+/* Vias, and the short parallel runs of a bus leaving a connector. */
+.hero-circuit__rings {
+  fill: none;
+  stroke: var(--silver-accent-mid);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.26;
+}
+
+/* --- the charge ---------------------------------------------------------- */
+
+/* Every trace carries pathLength="100", so one dash length works for a 150-unit
+   corner elbow and a 1600-unit band zigzag alike: 12 units lit against 88 dark
+   is one charge crossing, then a rest of the same again before the next. 100 is
+   exactly one period, so the loop closes on itself with no visible jump. */
 .hero-circuit__charge {
+  fill: none;
   stroke: var(--accent-text);
-  stroke-width: 2.5;
-  stroke-dasharray: 30 1400;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 12 88;
   animation-name: hero-charge;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -578,15 +666,15 @@
 
 @keyframes hero-charge {
   from {
-    stroke-dashoffset: 1430;
+    stroke-dashoffset: 100;
   }
   to {
     stroke-dashoffset: 0;
   }
 }
 
-/* Primes, and no two the same anywhere in the four edges: equal durations
-   would resynchronise and the repeat would become visible. */
+/* The sixteen corner charges each run on their own prime number of seconds, so
+   the four corners never settle back into an arrangement anyone has seen. */
 .hero-circuit__charge--a { animation-duration: 11s; }
 .hero-circuit__charge--b { animation-duration: 13s; }
 .hero-circuit__charge--c { animation-duration: 17s; }
@@ -604,6 +692,42 @@
 .hero-circuit__charge--o { animation-duration: 67s; }
 .hero-circuit__charge--p { animation-duration: 71s; }
 
+/* THE TWO BANDS ARE A MATCHED PAIR, AND THAT IS WHY THEY SHARE A DURATION
+   Everywhere else here a shared duration is the fault being avoided. Along the
+   top and bottom edges it is the requirement: the flow runs left to right
+   across the top and right to left across the bottom, at one speed, so the two
+   read as a single current going round the band rather than as two unrelated
+   animations that happen to be nearby. One duration is what makes the speeds
+   equal; the delays only stagger where each charge sits on its circuit. */
+.hero-circuit__charge--band { animation-duration: 24s; }
+
+.hero-circuit__charge--p1 { animation-delay: -2s; }
+.hero-circuit__charge--p2 { animation-delay: -8s; }
+.hero-circuit__charge--p3 { animation-delay: -14s; }
+.hero-circuit__charge--p4 { animation-delay: -20s; }
+
+/* The right half of each band is the left half mirrored, so a charge running
+   forward along its path travels right to left there. Reversing it puts both
+   halves back in step with each other. */
+.hero-circuit__charge--mirrored {
+  animation-direction: reverse;
+}
+
+/* And the bottom band is the top one turned over, so the whole flow inverts:
+   what ran left to right along the top runs right to left along the bottom. */
+.hero-circuit__layer--band-bottom .hero-circuit__charge {
+  animation-direction: reverse;
+}
+
+.hero-circuit__layer--band-bottom .hero-circuit__charge--mirrored {
+  animation-direction: normal;
+}
+
+/* --- the junctions ------------------------------------------------------- */
+
+/* opacity is declared here, not only in the keyframes: under reduced motion the
+   animation is collapsed and the element reverts to this value, so this is the
+   still drawing's brightness. */
 .hero-circuit__node {
   fill: var(--silver-accent-mid);
   opacity: 0.3;
@@ -646,3 +770,7 @@
 .hero-circuit__node--r { animation-duration: 73s; }
 .hero-circuit__node--s { animation-duration: 79s; }
 .hero-circuit__node--t { animation-duration: 83s; }
+.hero-circuit__node--u { animation-duration: 89s; }
+.hero-circuit__node--v { animation-duration: 97s; }
+.hero-circuit__node--w { animation-duration: 101s; }
+.hero-circuit__node--x { animation-duration: 103s; }

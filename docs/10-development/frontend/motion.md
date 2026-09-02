@@ -21,7 +21,7 @@ script failing to load. That state is never "the content is missing".
 | Company Profile | experience figures count up | the real figures, which are in the markup |
 | Company Profile | client logos arrive a row at a time | all of them, in place |
 | Company Profile | a technology sphere you can take hold of and turn | a grid of logos with alt text |
-| Pages with a title band | circuitry animating along all four edges | the same circuit, still |
+| Pages with a title band | circuitry emerging from all four corners and along the top and bottom edges | the same circuit, still |
 | Home hero | clusters of nodes drifting across the hero, linking to whatever comes in reach | nothing — a plain hero, which is the intended appearance (reduced motion keeps the picture, held still) |
 
 ---
@@ -178,6 +178,58 @@ is in the page at all.
 
 ---
 
+## The circuit around the page title
+
+`tools/templates/hero-circuit.html` + `assets/css/layout.css`. Every interior page opens with a
+title band, and the band is framed by circuitry drawn in the company's own idiom — the one its
+printed material uses. Six layers: a chevron band across the top and the bottom, and a cluster
+emerging from each of the four corners.
+
+**Pure inline SVG animated in CSS. No JavaScript at all**, which is why it has no "without
+JavaScript" story to tell and why the reduced-motion block in `base.css` freezes it for free.
+
+**One set of geometry.** Everything is declared once, in the first layer's `<defs>`, and the other
+five reference it and are mirrored in CSS. That is not tidiness: a duplicate `id` is a hard
+failure in `tools/audit_pages.py`, so four corners cannot each carry their own copy. Change the
+template, then `python3 tools/propagate_shared.py` — never a page by hand.
+
+**The two bands are one current.** The flow runs left to right along the top and right to left
+along the bottom, at a single shared duration, so the two edges read as one circuit going round the
+band rather than two animations that happen to be near each other. Everywhere else here a shared
+duration is the fault being avoided; along the bands it is the requirement. Two things have to
+cancel for that to hold: the right half of each band is the left half mirrored, so a charge running
+forward there travels the wrong way and is reversed by `--mirrored`; and the bottom band is the top
+one turned over, which inverts the whole flow again. `hero_circuit()` measures the direction *after*
+cancelling both, so it checks what a visitor sees rather than the sign in the stylesheet.
+
+**The circuits branch out from their own edge, once.** Every corner trace starts on one of the two
+edges meeting at that corner, and every band trace starts at the outer edge — so a clip expanding
+from that same origin uncovers each trace from its root outward. Six animated elements instead of
+the eighty it would take to draw every trace on individually. The four corners are given no
+stagger: they emerge together.
+
+**Density is free; motion is not.** A static trace is rasterised once. A charge animates
+`stroke-dashoffset`, which is not compositor-accelerated and repaints its path every frame, on
+fourteen pages, above the fold, for as long as the tab is open. So the drawing is about three
+times denser than the one it replaced while the moving parts stayed at 48 — 24 charges and 24
+nodes, against 36 before.
+
+**Every animation must rest on its declared value.** `base.css` sets no `animation-fill-mode`, so
+when reduced motion collapses an animation the element reverts to its *specified* value, not to
+the `to` keyframe. The charges end at `stroke-dashoffset: 0`, which is also their base; the nodes
+declare `opacity: 0.3` on the rule and deviate around it with `animation-direction: alternate`; and
+the emerging clip declares the *revealed* state on the rule, with the keyframes running up to it —
+had that been the other way round, asking for less movement would have emptied the band. A
+trace animated on from nothing would freeze **invisible**, and the band would be blank for
+everyone who asked for less movement. `hero_circuit()` and the reduced-motion pass in
+`tools/test_motion.py` are what hold that.
+
+**The mobile navigation panel's circuit was deliberately left in the older design.** It is not a
+title band, it is only on screen while the menu is open, and `tools/test_nav.py` asserts on its
+sixteen charges by name. The two are no longer a matched pair; that is a decision, not drift.
+
+---
+
 ## Writing new motion
 
 Ask three questions before you start:
@@ -189,9 +241,9 @@ Ask three questions before you start:
 Then:
 
 - Put keyframes that more than one page uses in `assets/css/animations.css`.
-  Keyframes belonging to one component live with that component — the circuitry's
-  are in `assets/css/layout.css` and `assets/css/components.css`, the hero mesh's
-  in `assets/css/pages/home.css`. A page-specific animation in the shared sheet is
+  Keyframes belonging to one component live with that component — the title band's
+  circuit (`hero-charge`, `hero-pulse`) is in `assets/css/layout.css`, the dock's in
+  `assets/css/components.css`, the hero mesh's in `assets/css/pages/home.css`. A page-specific animation in the shared sheet is
   bytes every other page downloads and never uses.
 - Put behaviour in a module registered on `window.Tech4Time`.
 - Check `matchMedia("(prefers-reduced-motion: reduce)")` before starting anything.
