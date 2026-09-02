@@ -1041,6 +1041,262 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
             "the sphere — that is long enough for a person to see")
 
 
+# The mesh is measured inside an <iframe> of the width being tested, because
+# Firefox silently clamps a window narrower than about 500px (ADR 0015) and the
+# canvas has to be right at phone widths too.
+MESH_PROBE = r"""
+var width = arguments[0], url = arguments[1];
+
+var frame = document.getElementById('mesh-probe');
+if (!frame) {
+  frame = document.createElement('iframe');
+  frame.id = 'mesh-probe';
+  frame.style.border = '0';
+  frame.style.height = '900px';
+  document.body.appendChild(frame);
+}
+frame.style.width = width + 'px';
+
+var want = url + '#' + width;
+if (frame.getAttribute('data-showing') !== want) {
+  frame.setAttribute('data-showing', want);
+  frame.src = url;
+  return {loading: true};
+}
+var doc = frame.contentDocument;
+if (!doc || doc.readyState !== 'complete' || !doc.body) return {loading: true};
+var view = frame.contentWindow;
+
+var box = doc.querySelector('.hero-neural');
+if (!box) return {loading: true};             /* built on DOMContentLoaded */
+var canvas = box.querySelector('.hero-neural__canvas');
+if (!canvas) return {loading: true};
+
+var cs = view.getComputedStyle(box);
+var cbox = canvas.getBoundingClientRect();
+var hero = doc.querySelector('.hero');
+var root = doc.documentElement;
+
+return {
+  loading: false,
+  found: true,
+  inHero: !!(hero && hero.contains(box)),
+  canvasW: Math.round(cbox.width),
+  canvasH: Math.round(cbox.height),
+  heroW: Math.round(hero.getBoundingClientRect().width),
+  ariaHidden: box.getAttribute('aria-hidden'),
+  canvasAria: canvas.getAttribute('aria-hidden'),
+  events: cs.pointerEvents,
+  position: cs.position,
+  zIndex: cs.zIndex,
+  marked: doc.querySelectorAll('.hero-neural [data-reveal]').length,
+  h1Opacity: view.getComputedStyle(doc.querySelector('.hero__title')).opacity,
+  overflows: root.scrollWidth > root.clientWidth
+};
+"""
+
+# Counts what is in the hero. Used from both directions: under reduced motion
+# the mesh must be there and still, with scripting off it must not be there at
+# all.
+MESH_PRESENCE = """
+return {
+  containers: document.querySelectorAll('.hero-neural').length,
+  canvases: document.querySelectorAll('.hero-neural__canvas').length,
+  heroChildren: document.querySelectorAll('.hero > *').length
+};
+"""
+
+# Reads the canvas back. This is the one place in the repository where painted
+# pixels can be inspected at all: getImageData works because the page drew them
+# itself, so the canvas is not tainted. Every other check here — and every check
+# in check_dark_mode.py — sees computed CSS and never a pixel.
+CANVAS_INK = """
+var done = arguments[arguments.length - 1];
+document.documentElement.setAttribute('data-theme', arguments[0]);
+setTimeout(function () {
+  var c = document.querySelector('.hero-neural__canvas');
+  if (!c) { done({found: false, lit: 0, avg: 0}); return; }
+  var d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  var lit = 0, sum = 0;
+  /* A prime stride, so the sample cannot fall into step with any regularity
+     in the drawing. */
+  for (var i = 3; i < d.length; i += 4 * 37) {
+    if (d[i] > 8) { lit += 1; sum += d[i - 3] + d[i - 2] + d[i - 1]; }
+  }
+  done({found: true, lit: lit, avg: lit ? Math.round(sum / (lit * 3)) : 0});
+}, 600);
+"""
+
+# Two readings of the canvas a second apart. Identical means nothing redrew.
+CANVAS_MOVED = """
+var done = arguments[arguments.length - 1];
+function sample() {
+  var c = document.querySelector('.hero-neural__canvas');
+  if (!c) { return null; }
+  var d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  var acc = 0;
+  for (var i = 3; i < d.length; i += 4 * 53) {
+    acc = (acc + d[i] * (i % 251)) % 2147483647;
+  }
+  return acc;
+}
+var first = sample();
+setTimeout(function () { done({first: first, second: sample()}); }, 1000);
+"""
+
+
+def hero_mesh(b: Browser, origin: str, r: Results) -> None:
+    """
+    The neural mesh behind the home hero.
+
+    Decoration, which is precisely why it needs a test of its own: it carries
+    no content, so nothing else in this suite would notice if it stopped
+    rendering, and a silent disappearance on the site's most visited page is
+    the kind of fault found by a visitor rather than by a check.
+    """
+    print("\nthe hero's neural mesh")
+    b.go(origin + "/404.html")          # a host for the frame; it has no mesh
+
+    for width in (1440, 820, 390):
+        d = {"loading": True}
+        for _ in range(40):
+            d = b.js(MESH_PROBE, [width, origin + "/"])
+            if not d.get("loading"):
+                break
+            time.sleep(0.25)
+
+        if not d.get("found"):
+            r.check(f"{width}px — the mesh is built", False,
+                    "no .hero-neural container, or no canvas inside it")
+            continue
+
+        print(f"    {width:>4}px: canvas {d['canvasW']}x{d['canvasH']} "
+              f"in a {d['heroW']}px hero")
+
+        r.check(f"{width}px — the canvas covers the hero",
+                d["inHero"] and d["canvasW"] > 200 and d["canvasH"] > 200
+                and abs(d["canvasW"] - d["heroW"]) <= 2,
+                f"canvas is {d['canvasW']}x{d['canvasH']} in a "
+                f"{d['heroW']}px hero")
+        r.check(f"{width}px — nothing overflows sideways",
+                not d["overflows"],
+                "the document scrolls horizontally with the mesh in place")
+
+    r.check("the mesh is hidden from assistive technology",
+            d["ariaHidden"] == "true" and d["canvasAria"] == "true",
+            f"container aria-hidden={d['ariaHidden']!r}, "
+            f"canvas aria-hidden={d['canvasAria']!r}")
+    r.check("the mesh cannot be clicked or hovered",
+            d["events"] == "none", f"pointer-events: {d['events']}")
+    r.check("the mesh sits behind the hero's content",
+            d["position"] == "absolute" and d["zIndex"] == "-1",
+            f"position: {d['position']}, z-index: {d['zIndex']}")
+
+    # An opacity-0 hero delays LCP by the length of the animation, which is why
+    # structure() forbids a marker anywhere in .hero. Asserted again against the
+    # mesh, the newest thing in that section.
+    r.check("no part of the mesh carries a reveal marker",
+            d["marked"] == 0,
+            f"{d['marked']} elements inside .hero-neural are marked")
+    r.check("the headline is fully opaque with the mesh behind it",
+            d["h1Opacity"] == "1", f"h1 opacity is {d['h1Opacity']}")
+
+    # ---- the blind spot, closed -----------------------------------------
+    #
+    # A canvas cannot inherit a colour token, so neural.js reads the custom
+    # properties declared on .hero-neural and re-reads them when the theme
+    # changes. Nothing else in this repository could tell you whether that
+    # works: check_dark_mode measures computed CSS and never samples a pixel,
+    # so a canvas left painting light-mode grey on a dark page would ship in
+    # silence. These two readings are the only defence against that.
+    b.go(origin + "/")
+    time.sleep(1.5)
+    light = b.js_async(CANVAS_INK, ["light"])
+    dark = b.js_async(CANVAS_INK, ["dark"])
+
+    r.check("the canvas actually paints something",
+            light.get("found") and light["lit"] > 50 and dark["lit"] > 50,
+            f"light lit {light.get('lit')} samples, dark lit {dark.get('lit')}")
+
+    print(f"    canvas ink: light theme avg {light.get('avg')}, "
+          f"dark theme avg {dark.get('avg')} (0 black, 255 white)")
+    r.check("the canvas repaints itself in the other theme",
+            dark["avg"] > light["avg"] + 30,
+            f"ink averaged {light['avg']} in light and {dark['avg']} in dark — "
+            "too close to be two themes, so the canvas is not following the "
+            "colour tokens, and no other check here would notice")
+
+
+def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
+    """
+    What the mesh costs a frame, on the page it matters most on, and whether it
+    has the manners to stop.
+
+    No frame budget was measured on the home page before this: sphere_smoothness
+    watches Company Profile and nothing watched the front door. This is the only
+    continuous requestAnimationFrame loop a first-time visitor meets.
+
+    Measured against a page with no mesh taken moments earlier in the same
+    browser, for the reason set out at length in sphere_smoothness: an absolute
+    frame time says more about how busy the machine is than about the code.
+    """
+    print("\nwhat the hero mesh costs a frame")
+
+    b.go(origin + "/pages/careers/")
+    time.sleep(1.0)
+    base = b.js_async(FRAME_SAMPLER, [1800])
+
+    b.go(origin + "/")
+    # Long enough for terminal.js to finish typing, so this measures the mesh
+    # rather than the one-off animation running beside it.
+    time.sleep(4.0)
+    mesh = b.js_async(FRAME_SAMPLER, [1800])
+    moving = b.js_async(CANVAS_MOVED)
+
+    print(f"    a page with no mesh: {base['median']}ms median, "
+          f"{base['p95']}ms p95, {base['worst']}ms worst")
+    print(f"       the home page:    {mesh['median']}ms median, "
+          f"{mesh['p95']}ms p95, {mesh['worst']}ms worst")
+
+    gate = max(base["median"] * 2, 33.0)
+    print(f"    gate {gate:.0f}ms a frame (about 30fps); watching for "
+          f"{base['median'] + 3.0:.0f}ms")
+
+    r.check("the mesh keeps the frame rate up",
+            mesh["median"] <= gate,
+            f"{mesh['median']}ms a frame against {base['median']}ms on a page "
+            f"with no mesh, over a {gate:.0f}ms gate")
+    if mesh["median"] > base["median"] + 3.0:
+        print(f"          note: the mesh is {mesh['median']}ms against "
+              f"{base['median']}ms — inside the gate, above the 3ms we would "
+              f"like. Worth watching if it climbs.")
+
+    r.check("mesh frames are steady, not merely fast on average",
+            mesh["p95"] <= max(base["p95"] * 2, 50),
+            f"95th percentile frame was {mesh['p95']}ms against "
+            f"{base['p95']}ms without the mesh")
+    r.check("and the mesh never freezes",
+            mesh["worst"] <= 250,
+            f"worst frame was {mesh['worst']}ms against {base['worst']}ms "
+            "without the mesh")
+
+    # A vacuous pass to guard against: excellent frame times because nothing
+    # was being drawn.
+    r.check("the mesh was genuinely animating while it was measured",
+            moving["first"] is not None and moving["first"] != moving["second"],
+            "two readings of the canvas a second apart were identical, so the "
+            "frame times above measured a still picture")
+
+    # And the other half of the bargain: a loop nobody is looking at must stop.
+    b.js("window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'});")
+    time.sleep(1.5)
+    parked = b.js_async(CANVAS_MOVED)
+    r.check("the mesh stops when the hero is scrolled out of view",
+            parked["first"] == parked["second"],
+            "the canvas was still redrawing with the hero off screen, which is "
+            "a frame budget and a battery spent on nobody")
+
+
 def printing(b: Browser, origin: str, r: Results) -> None:
     """
     Printing never scrolls, so nothing would ever reveal and the page would come
@@ -1129,6 +1385,33 @@ def reduced_motion(drv_port: int, origin: str, r: Results) -> None:
         r.check("the terminal is fully printed at once, with no delays left",
                 d["lines"] == 9 and d["faded"] == 0,
                 f"{d['faded']} of {d['lines']} lines are still transparent")
+
+        # The mesh has to freeze into a still drawing rather than disappear.
+        # The reduced-motion block in base.css shortens every animation to
+        # nothing and lands it on its final frame; if that final frame were
+        # blank, asking for calm would cost you the hero's background.
+        # Reduced motion asks for stillness, not for blankness: the mesh is
+        # drawn exactly as it would be on any frame, and then left. So there
+        # are three things to prove — it is there, it is painted, and it does
+        # not move. The last is the one that matters: base.css cannot stop a
+        # requestAnimationFrame loop, so only the module itself can.
+        m = b.js(MESH_PRESENCE)
+        r.check("the mesh is drawn under reduced motion",
+                m["containers"] == 1 and m["canvases"] == 1,
+                f"{m['containers']} containers and {m['canvases']} canvases — "
+                "reduced motion should still get the picture, just held")
+
+        ink = b.js_async(CANVAS_INK, ["dark"])
+        r.check("and it is painted, not left blank",
+                ink.get("found") and ink["lit"] > 50,
+                f"only {ink.get('lit')} lit samples on the canvas, so the "
+                "still frame never got drawn")
+
+        held = b.js_async(CANVAS_MOVED)
+        r.check("but nothing on it moves",
+                held["first"] is not None and held["first"] == held["second"],
+                "two readings of the canvas a second apart differed, so a "
+                "loop is running for someone who asked for no motion")
     finally:
         b.quit()
 
@@ -1162,6 +1445,17 @@ def scripting_off(drv_port: int, origin: str, r: Results) -> None:
                     ids and not faded,
                     f"{len(faded)} of {len(sample)} are transparent with no "
                     "script running, which means content depends on JavaScript")
+
+        # The mesh is built entirely by script, so with scripting off there
+        # should be nothing of it in the page at all — no container, no empty
+        # decoration box. The hero is plain, deliberately.
+        b.go(origin + "/")
+        left = rq("POST", b.s + "/elements",
+                  {"using": "css selector", "value": ".hero-neural"})["value"]
+        r.check("/ — the hero is plain with no script running",
+                len(left) == 0,
+                f"{len(left)} mesh containers in the markup — the mesh is an "
+                "enhancement and must leave nothing behind when it cannot run")
     finally:
         b.quit()
 
@@ -1197,11 +1491,13 @@ def main() -> None:
         transitions_survive(browser, origin, results)
         shine(browser, origin, results)
         typed_terminal(browser, origin, results)
+        hero_mesh(browser, origin, results)
         sliders(browser, origin, results)
         counters(browser, origin, results)
         alternating_rows(browser, origin, results)
         tech_sphere(browser, origin, results)
         sphere_smoothness(browser, origin, results)
+        hero_frame_budget(browser, origin, results)
         printing(browser, origin, results)
         watchdog(browser, origin, results)
         browser.quit()

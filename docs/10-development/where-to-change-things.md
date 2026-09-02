@@ -76,6 +76,7 @@ publish overwrites it. [publish-api.md](server-side/publish-api.md)
 | Which elements reveal | `tools/apply_reveals.py` — a structural rule, not hand-marked |
 | Sliders on About / Company Profile | `assets/js/slider.js` |
 | The homepage terminal | `assets/js/terminal.js` |
+| The homepage hero's neural mesh | `assets/js/neural.js`; its colours in `assets/css/pages/home.css`. No markup, and no fallback |
 | The technology sphere | `assets/js/tech-sphere.js` |
 | Counting figures, client logos | `assets/js/animations.js` |
 | Contact form validation (convenience only) | `assets/js/forms.js` |

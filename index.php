@@ -97,7 +97,7 @@ $data = home_load();
 <link rel="stylesheet" href="/assets/css/layout.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
-<link rel="stylesheet" href="/assets/css/pages/home.css">
+<link rel="stylesheet" href="/assets/css/pages/home.css?v=2">
 
 <!-- Colour mode, applied before first paint to avoid a flash of the wrong
      theme. Deliberately NOT deferred; see the comment in the file itself. -->
@@ -950,6 +950,7 @@ $data = home_load();
 <script src="/assets/js/nav.js" defer></script>
 <script src="/assets/js/animations.js" defer></script>
 <script src="/assets/js/terminal.js" defer></script>
+<script src="/assets/js/neural.js" defer></script>
 <script src="/assets/js/main.js" defer></script>
 </body>
 </html>

@@ -59,6 +59,8 @@ OPTIONAL_SCRIPTS = {
     # Two pages have a slideshow, one has the terminal.
     "/assets/js/slider.js",
     "/assets/js/terminal.js",
+    # The hero mesh is the home page's alone.
+    "/assets/js/neural.js",
 }
 
 ARIA_CURRENT = re.compile(r'\s*aria-current="page"')
