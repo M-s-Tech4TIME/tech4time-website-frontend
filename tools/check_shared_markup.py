@@ -142,7 +142,13 @@ def main() -> None:
             "/assets/js/theme-toggle.js",
             "/assets/js/nav.js",
             "/assets/js/animations.js",
-            "/assets/js/main.js",
+            # The version query is part of the contract, not noise: .htaccess
+            # caches JS for a year, and MODULES in main.js is a hardcoded allow
+            # list. A page still pointing at the unversioned URL keeps whatever
+            # copy that visitor cached, and silently loses every module added
+            # since. So the string is pinned here and a page that drops it
+            # fails, rather than merely behaving oddly for returning visitors.
+            "/assets/js/main.js?v=2",
         ]
         if required != expected:
             issues.append(f"script tags differ:\n      expected: {expected}\n      found:    {required}")

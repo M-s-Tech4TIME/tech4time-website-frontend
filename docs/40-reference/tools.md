@@ -35,6 +35,7 @@ browser tests speak to geckodriver over its wire protocol — there is no Seleni
 | `inject_icons.py --check` | every page's inlined icon block is current |
 | `build_deploy_set.py --check` | the set of files bound for the server holds nothing it must not, and nothing is missing |
 | `verify_live.py <url>` | a deployed site still returns 403 for `lib/`, `content/` and dotted paths, still carries its headers, and still answers on `/api/publish.php` |
+| `check_cache_bust.py` | every stylesheet and script changed since `origin/main` is served from a URL that changed with it. Filenames are not content-hashed and `.htaccess` caches them for a year, so a changed file behind an unchanged URL reaches new visitors only — a release that looks complete from a clean cache and is absent for everybody who has been here before. Pass `--base` to compare against another revision |
 | `check_shared_lib.py` | the three files both repositories hold identically have not been edited here |
 | `check_shared_repos.py` | the same files, compared against **the other repository** rather than a local digest — plus every same-named tool, which must match unless `DIVERGENT` says why not. This is the only check anywhere that can see the two halves drift apart; `check_shared_lib.py` structurally cannot. Needs both repos present, or `--clone` |
 
