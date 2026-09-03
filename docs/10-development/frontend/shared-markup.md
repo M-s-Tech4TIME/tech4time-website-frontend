@@ -58,7 +58,7 @@ python3 tools/check_shared_markup.py
 | `footer.html` | the footer, **including the contact details**, and the back-to-top control |
 | `dock.html` | the floating dock |
 | `scripts.html` | the deferred script tags, in dependency order |
-| `hero-circuit.html` | the circuitry framing the title band: four corner clusters and a chevron band top and bottom, with a charge on three traces per corner and band half |
+| `hero-circuit.html` | the circuitry framing the title band: four corner clusters and a chevron band top and bottom, with a charge on every trace, painted by `circuit.js` on a canvas; the SVG carries 24 as the fallback |
 | `jsonld-base.html` | Organization + WebSite + ProfessionalService schema |
 
 ### Placeholders in `head.html`

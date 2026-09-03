@@ -61,6 +61,8 @@ OPTIONAL_SCRIPTS = {
     "/assets/js/terminal.js",
     # The hero mesh is the home page's alone.
     "/assets/js/neural.js",
+    # The charges in the title band; the two pages without a band omit it.
+    "/assets/js/circuit.js",
 }
 
 ARIA_CURRENT = re.compile(r'\s*aria-current="page"')
@@ -148,7 +150,7 @@ def main() -> None:
             # copy that visitor cached, and silently loses every module added
             # since. So the string is pinned here and a page that drops it
             # fails, rather than merely behaving oddly for returning visitors.
-            "/assets/js/main.js?v=2",
+            "/assets/js/main.js?v=3",
         ]
         if required != expected:
             issues.append(f"script tags differ:\n      expected: {expected}\n      found:    {required}")

@@ -92,6 +92,7 @@ Everything else is deferred, at the end of `<body>`.
 | `terminal.js` | the typed terminal session on the homepage |
 | `tech-sphere.js` | the draggable technology sphere on Company Profile |
 | `neural.js` | the drifting neural mesh behind the homepage hero |
+| `circuit.js` | the charges running through the title band's circuitry, on the fourteen pages that have one. Reads its geometry out of the SVG already in the page and paints on one canvas, because the same thing in CSS cost a CPU core — [motion.md](motion.md#the-mistake-this-band-is-shaped-around) |
 | `forms.js` | contact form convenience validation |
 | `dashboard.js` | the tabbed panels on the service detail pages |
 | `main.js` | bootstrap; runs each module's `init()` |

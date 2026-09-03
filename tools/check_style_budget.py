@@ -202,6 +202,15 @@ def main() -> int:
         print(f"check_style_budget: {args.seconds}s per page, "
               f"ceiling {args.ceiling:.0f}ms of style per second\n")
         for path in pages:
+            # Loaded twice and the first thrown away. A cold first load pays
+            # for parsing, JIT and first rasterisation, and charging that to
+            # the page under test makes a fast page look slow and, worse,
+            # makes whichever build is measured second look better than the
+            # one measured first. Every wrong conclusion reached while finding
+            # the fault this tool exists for came from skipping this.
+            for _ in range(2):
+                c.call("Page.navigate", {"url": f"http://127.0.0.1:{web}{path}"})
+                time.sleep(SETTLE)
             c.call("Page.navigate", {"url": f"http://127.0.0.1:{web}{path}"})
             time.sleep(SETTLE)          # past load, and past any one-shot reveal
 

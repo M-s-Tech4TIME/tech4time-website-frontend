@@ -208,13 +208,30 @@ from that same origin uncovers each trace from its root outward. Six animated el
 the two hundred it would take to draw every trace on individually. The four corners are given no
 stagger: they emerge together.
 
-**A charge is one `<use>`, and never a group of them.** This is a performance contract, and it was
-learned the hard way — see *The mistake this band is shaped around* below. Each charge is a single
-`<use>` of a single trace, carrying the animation itself. Three traces in each cluster and three in
-each band half carry one: **24** in all, against 216 drawn. The density here is the *static*
-drawing, which is rasterised once; movement is the expensive part and is spent sparingly.
+**The charges are painted on a canvas, and the SVG's own are the fallback.** `circuit.js` reads
+every trace's geometry out of the SVG that is already in the page — there is no second copy of the
+drawing — and paints a charge on **all 216** of them on a single `<canvas>`. Once it is measured
+and drawing it adds `hero-circuit--canvas`, which switches the SVG's charges and junction dots off.
+Until then, and for ever without JavaScript, the SVG's **24** CSS charges run instead. The two are
+never both live, and `hero_circuit()` checks that in both directions.
 
-**The four clusters share three durations**, which everywhere else on this site would be the fault
+Why the trouble: a charge in CSS is a style recalculation per animated trace per frame, and 216 of
+those is a CPU core. A canvas has no style to recalculate. It costs slightly more while the band is
+on screen and **less** overall, because CSS animations keep running when scrolled past and the
+canvas stops — measured 187 ms/s against 126 with the band visible, and 135 against 175 once
+scrolled below it.
+
+Three things that were needed to make it pay, none of them optional:
+
+- **The junction dots moved onto the canvas too.** Left in the SVG they were the only thing still
+  animating there, which kept the whole document rendering at 60 fps whatever the canvas did.
+- **30 frames a second at 1× device pixels.** A charge crossing a trace over four seconds is not
+  made smoother by drawing it twice as often, and this halves the cost of the layer.
+- **It stops when the band is off screen**, and when the tab is hidden. Note that an
+  `IntersectionObserver` measures against the *top-level* viewport, so inside an off-screen iframe
+  it correctly stops — which reads as a blank canvas if you are testing through one.
+
+**The fallback's four clusters share three durations**, which everywhere else on this site would be the fault
 being avoided. Here it is measured: twelve distinct durations are twelve distinct computed styles,
 which the browser can then share between no two elements — 55ms of style recalculation per second
 against 35ms for the same twenty-four charges on three. The clusters are mirror images of each
