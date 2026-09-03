@@ -90,7 +90,7 @@ $reach   = contact_shown_reach($data);
      docs/20-deployment/routine-deploys.md, "Cache busting" -->
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/layout.css?v=3">
+<link rel="stylesheet" href="/assets/css/layout.css?v=4">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
 <link rel="stylesheet" href="/assets/css/pages/contact.css">
@@ -1221,6 +1221,7 @@ $reach   = contact_shown_reach($data);
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
      silently skips every module added since — no error, no console line,
      just a feature that is not there. -->
-<script src="/assets/js/main.js?v=2" defer></script>
+<script src="/assets/js/circuit.js" defer></script>
+<script src="/assets/js/main.js?v=3" defer></script>
 </body>
 </html>

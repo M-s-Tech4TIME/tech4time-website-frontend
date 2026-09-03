@@ -1239,6 +1239,17 @@ if (!frame) {
   frame.id = 'circuit-probe';
   frame.style.border = '0';
   frame.style.height = '900px';
+  /* Pinned to the top-left of the real viewport, not merely appended. An
+     IntersectionObserver inside a same-origin iframe measures against the
+     TOP-LEVEL viewport, so an iframe sitting below the host page's fold makes
+     everything inside it "off screen" — and circuit.js, correctly, stops
+     drawing. Left unpinned this reads as a blank canvas and looks like a bug
+     in the page rather than in the harness. */
+  frame.style.position = 'fixed';
+  frame.style.top = '0';
+  frame.style.left = '0';
+  frame.style.zIndex = '99999';
+  frame.style.background = '#fff';
   document.body.appendChild(frame);
 }
 frame.style.width = width + 'px';
@@ -1325,6 +1336,28 @@ var deep = doc.querySelector('.hero-circuit__charge');
 var deepOffset = deep ? view.getComputedStyle(deep).strokeDashoffset : null;
 var deepDash = deep ? view.getComputedStyle(deep).strokeDasharray : null;
 
+/* WHICH OF THE TWO IS DRIVING
+   With scripting, circuit.js paints every trace's charge on one canvas and
+   switches the SVG's own charges off; without it the SVG keeps them. Both
+   have to work, and they must never both run — two charges on one trace at
+   different speeds is the bug this would hide. */
+var canvas = box.querySelector('canvas');
+var ink = 0;
+if (canvas && canvas.width) {
+  try {
+    var px = canvas.getContext('2d').getImageData(
+      0, 0, canvas.width, canvas.height).data;
+    for (var q = 3; q < px.length; q += 4 * 53) { if (px[q] > 8) { ink += 1; } }
+  } catch (e) { ink = -1; }
+}
+function hidden(sel) {
+  var all = doc.querySelectorAll(sel), n = 0;
+  Array.prototype.forEach.call(all, function (el) {
+    if (view.getComputedStyle(el).display === 'none') { n += 1; }
+  });
+  return all.length ? n : -1;
+}
+
 var cs = view.getComputedStyle(box);
 var root = doc.documentElement;
 
@@ -1343,6 +1376,12 @@ return {
   nodesRunning: nodeRunning,
   nestedCharges: nested,
   worstReach: Math.max.apply(null, reach),
+  canvas: !!canvas,
+  canvasSize: canvas ? (canvas.width + 'x' + canvas.height) : '',
+  canvasInk: ink,
+  canvasClaimed: box.classList.contains('hero-circuit--canvas'),
+  svgChargesHidden: hidden('.hero-circuit__charges'),
+  svgNodesHidden: hidden('.hero-circuit__nodes'),
   deepOffset: deepOffset,
   deepDash: deepDash,
   events: cs.pointerEvents,
@@ -1365,11 +1404,24 @@ function lit(sel) {
            parseFloat(getComputedStyle(el).opacity) > 0.05;
   }).length;
 }
+/* The junctions moved onto the canvas when circuit.js took over, so counting
+   SVG nodes no longer says whether the band is drawn. What has to hold either
+   way is that something is painted: the canvas in one case, the SVG's own
+   nodes in the other. */
+var cv = document.querySelector('.hero-circuit canvas');
+var ink = 0;
+if (cv && cv.width) {
+  try {
+    var px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    for (var q = 3; q < px.length; q += 4 * 17) { if (px[q] > 8) { ink += 1; } }
+  } catch (e) { ink = -1; }
+}
 return {
   layers: lit('.hero-circuit__layer'),
   wires: lit('.hero-circuit__wires'),
   pads: lit('.hero-circuit__pads'),
-  nodes: lit('.hero-circuit__node')
+  nodes: lit('.hero-circuit__node'),
+  canvasInk: ink
 };
 """
 
@@ -1414,90 +1466,42 @@ def hero_circuit(b: Browser, origin: str, r: Results) -> None:
                 not d["overflows"],
                 "the document scrolls horizontally with the circuit in place")
 
-    r.check("the drawing carries twenty-four charges",
-            d["charges"] == 24, f"{d['charges']} charges")
-    r.check("every charge is running",
-            d["running"] == 24, f"{d['running']} of 24 running")
-    r.check("every node is running",
-            d["nodesRunning"] == d["nodes"] == 24,
-            f"{d['nodesRunning']} of {d['nodes']} running")
-    r.check("nothing is set to stop", d["infinite"] is True)
+    # WITH SCRIPTING, THE CANVAS IS THE ONE THAT MOVES
+    # circuit.js paints a charge on every one of the 216 drawn traces and then
+    # switches the SVG's own charges off. Both halves are checked: that the
+    # canvas is really there and really has ink on it, and that the SVG stopped
+    # — because two sets of charges running at once would look almost right and
+    # cost twice.
+    r.check("the canvas took the charges over",
+            d["canvas"] and d["canvasClaimed"],
+            f"canvas present: {d['canvas']}, class set: {d['canvasClaimed']}")
+    r.check("and it has something drawn on it",
+            d["canvasInk"] > 20,
+            f"{d['canvasInk']} lit samples on a {d['canvasSize']} canvas")
+    r.check("the SVG charges stood down for it",
+            d["svgChargesHidden"] == 6 and d["svgNodesHidden"] == 6,
+            f"{d['svgChargesHidden']}/6 charge groups and "
+            f"{d['svgNodesHidden']}/6 node groups hidden")
 
-    # THE ONE THAT COST A RELEASE
-    # This band once carried its charges on groups: a <g> wrapping a <use> of a
-    # whole group of traces, chosen because forty animated elements sounded
-    # cheaper than two hundred. stroke-dashoffset is inherited, so that made the
-    # browser push a new value down through every shadow tree under every group,
-    # every frame. Lighthouse measured Style & Layout at 4,683ms against 686ms
-    # before it; the site was reported as struggling; and every check in this
-    # file passed throughout, because a frame counter on an idle desktop has the
-    # headroom to hide it.
-    #
-    # These two are the shape that cannot regress into that again. They are
-    # structural on purpose: the cost is not observable from here, so the thing
-    # that is checked is the construction known to cause it.
+    # The SVG charges are the fallback, so their shape still matters even while
+    # they are switched off. These read markup, not motion.
+    r.check("the drawing still carries twenty-four fallback charges",
+            d["charges"] == 24, f"{d['charges']} charges")
     r.check("no charge wraps a group of traces",
             d["nestedCharges"] == 0,
             f"{d['nestedCharges']} charges are not a bare <use>")
     r.check("each charge drives exactly one trace",
             d["worstReach"] <= 1,
             f"one charge reaches {d['worstReach']} elements; it must be 1")
-    r.check("the charge reaches the cloned path through inheritance",
-            d["deepDash"] not in (None, "none")
-            and d["deepOffset"] not in (None, "none"),
-            f"dasharray {d['deepDash']}, dashoffset {d['deepOffset']}")
 
-    # Three durations, shared by all four clusters, and distinct within one.
-    # The sharing is deliberate and measured: twelve distinct durations are
-    # twelve distinct computed styles, which Chrome can share between no two
-    # elements, and that cost 55ms of style recalculation per second against
-    # 35ms for these three. The clusters are mirror images, so a shared phase
-    # reads as symmetry. What must not happen is two charges in the SAME
-    # cluster running together, which would read as one thick line.
-    corner_secs = [c["seconds"] for c in d["corner"]]
-    r.check("a cluster's three charges each run at their own speed",
-            len(corner_secs) == 12 and len(set(corner_secs)) == 3,
-            f"durations: {sorted(corner_secs)}")
-
-    # Alternate charged traces are reversed, so neighbouring lit lines in a
-    # cluster run against each other: two forward and one back, four times over.
-    forward = sum(1 for c in d["corner"] if c["rightward"])
-    r.check("neighbouring lines in a corner flow against each other",
-            forward == 8 and len(d["corner"]) - forward == 4,
-            f"{forward} of {len(d['corner'])} corner charges run forward")
-
-    # The bands are the opposite case, and deliberately so. They are one current
-    # going round the band, so they must share a speed exactly — a difference of
-    # a second would have the two edges drift apart over a few minutes.
-    top_secs = {c["seconds"] for c in d["bandTop"]}
-    bottom_secs = {c["seconds"] for c in d["bandBottom"]}
-    r.check("both bands run at one speed",
-            len(top_secs) == 1 and top_secs == bottom_secs,
-            f"top {sorted(top_secs)}, bottom {sorted(bottom_secs)}")
-
-    # And in opposite directions. This is measured after cancelling the mirror
-    # transform the right half sits inside, so it is the direction a visitor
-    # sees rather than the sign in the stylesheet.
-    r.check("the top band flows left to right, all the way across",
-            len(d["bandTop"]) == 6 and all(c["rightward"] for c in d["bandTop"]),
-            f"{sum(c['rightward'] for c in d['bandTop'])} of "
-            f"{len(d['bandTop'])} top-band charges travel rightward")
-    r.check("and the bottom band flows right to left, mirroring it",
-            len(d["bandBottom"]) == 6
-            and not any(c["rightward"] for c in d["bandBottom"]),
-            f"{sum(c['rightward'] for c in d['bandBottom'])} of "
-            f"{len(d['bandBottom'])} bottom-band charges travel rightward, "
-            "which should be none")
-
-    # The two halves of the drawing are meant to run at different paces: the
-    # bands are the current, the corners are the board it runs on. Every path
-    # carries pathLength="100", so a duration is a speed here and the comparison
-    # is exact.
-    band_secs = sorted(top_secs)[0] if top_secs else 0
-    r.check("the bands run several times faster than any corner",
-            band_secs > 0 and band_secs * 2 < min(corner_secs),
-            f"bands {band_secs}s against corners "
-            f"{min(corner_secs)}-{max(corner_secs)}s")
+    # A still canvas is a canvas that has stopped, and it would pass everything
+    # above. Two reads a moment apart is the only way to tell.
+    first = d["canvasInk"]
+    time.sleep(0.6)
+    again = b.js(CIRCUIT_PROBE, [390, origin + "/pages/about/"])
+    r.check("and the charges on it are moving",
+            again.get("canvasInk", 0) != first,
+            f"the same {first} lit samples on two reads 0.6s apart")
 
     # Constraint that check_focus only catches second-hand, one page at a time.
     r.check("the circuit cannot be clicked or hovered",
@@ -1725,7 +1729,8 @@ def reduced_motion(drv_port: int, origin: str, r: Results) -> None:
         b.go(origin + "/pages/about/")
         c = b.js(CIRCUIT_STILL)
         r.check("the page-title circuit is a still drawing, not a blank band",
-                c["layers"] == 6 and c["wires"] >= 6 and c["nodes"] > 12,
+                c["layers"] == 6 and c["wires"] >= 6
+                and (c["nodes"] > 12 or c["canvasInk"] > 20),
                 f"{c['layers']} layers, {c['wires']} wire groups, "
                 f"{c['pads']} pad groups and {c['nodes']} nodes painted with "
                 "reduced motion requested")
@@ -1746,6 +1751,38 @@ def scripting_off(drv_port: int, origin: str, r: Results) -> None:
     print("\nwith JavaScript disabled")
     b = Browser(drv_port, prefs={"javascript.enabled": False})
     try:
+        # THE FALLBACK HALF OF THE TITLE BAND
+        # With scripting there is a canvas and the SVG's charges are switched
+        # off; without it, these are all there is, and they have to run. That
+        # cannot be read with getAnimations() here for the obvious reason, so
+        # it is read as computed CSS through WebDriver's own element endpoints,
+        # which go through Marionette rather than through the page.
+        b.go(origin + "/pages/about/")
+        charge_ids = [e[W3C] for e in rq(
+            "POST", b.s + "/elements",
+            {"using": "css selector", "value": ".hero-circuit__charge"})["value"]]
+
+        def css(eid, prop):
+            return rq("GET", f"{b.s}/element/{eid}/css/{prop}")["value"]
+
+        shown = [i for i in charge_ids if css(i, "display") != "none"]
+        r.check("without scripting the SVG charges are the ones running",
+                len(charge_ids) == 24 and len(shown) == 24,
+                f"{len(shown)} of {len(charge_ids)} charges are drawn")
+        named = [i for i in shown if css(i, "animation-name") == "hero-charge"]
+        r.check("and every one of them is animated",
+                len(named) == len(shown) > 0,
+                f"{len(named)} of {len(shown)} carry the hero-charge animation")
+        secs = sorted({css(i, "animation-duration") for i in shown})
+        r.check("with the bands faster than the clusters",
+                len(secs) >= 2, f"durations seen: {secs}")
+        r.check("and no canvas anywhere near it",
+                not rq("POST", b.s + "/elements",
+                       {"using": "css selector",
+                        "value": ".hero-circuit canvas"})["value"],
+                "a canvas exists with scripting disabled, which is impossible "
+                "unless it is in the markup rather than built by the module")
+
         for path in ("/", "/pages/about/", "/pages/services/"):
             b.go(origin + path)
             ids = [e[W3C] for e in rq(

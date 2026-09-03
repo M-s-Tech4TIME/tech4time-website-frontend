@@ -12,7 +12,8 @@
   "use strict";
 
   var MODULES = ["theme", "nav", "animations", "forms", "dashboard",
-                 "techSphere", "slider", "terminal", "neural"];
+                 "techSphere", "slider", "terminal", "neural",
+                 "circuit"];
 
   /**
    * Keep the footer copyright current.

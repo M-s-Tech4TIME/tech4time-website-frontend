@@ -497,6 +497,9 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  /* Read by circuit.js, which paints the charges. Declared here so the colour
+     lives with the rest of the drawing's and follows the theme by itself. */
+  --charge-ink: var(--accent-text);
   /* Inherited, so it covers every shape inside. Without it the artwork sits in
      front of the title for hit-testing and check_focus.py reports the focus
      ring as covered. */
@@ -757,6 +760,40 @@
 
 .hero-circuit__layer--band-bottom .hero-circuit__charge--mirrored {
   animation-direction: normal;
+}
+
+/* --- the charges, once a canvas has taken them over ----------------------- */
+
+/* THE SVG CHARGES ARE THE FALLBACK, AND THEY ARE SWITCHED OFF LAST
+   circuit.js adds this class only after its canvas is measured and drawing.
+   Until then — and forever, without JavaScript — the CSS charges below run,
+   so the band is never left with no charge at all. Once the canvas is up they
+   are display:none, which cancels their animations outright: that is the
+   point, because a charge on every one of 216 traces is affordable on a
+   canvas and was not affordable as 216 style recalculations a frame.
+   docs/10-development/frontend/motion.md */
+.hero-circuit--canvas .hero-circuit__charges,
+.hero-circuit--canvas .hero-circuit__nodes {
+  display: none;
+}
+
+.hero-circuit__charge-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Measured NEUTRAL, and kept anyway: 37ms of style recalculation per second
+     against 40ms without, which is inside the noise. It is here because
+     telling the browser that a leaf which repaints thirty times a second
+     cannot affect anything outside itself is true and costs nothing, not
+     because it was shown to buy anything.
+
+     An earlier note here claimed it halved the cost. That was a measurement
+     run without warm-up, where the uncontained case went first and paid for a
+     cold cache. It did not survive being measured properly. */
+  contain: layout paint style;
 }
 
 /* --- the junctions ------------------------------------------------------- */
