@@ -21,7 +21,7 @@ script failing to load. That state is never "the content is missing".
 | Company Profile | experience figures count up | the real figures, which are in the markup |
 | Company Profile | client logos arrive a row at a time | all of them, in place |
 | Company Profile | a technology sphere you can take hold of and turn | a grid of logos with alt text |
-| Pages with a title band | circuitry emerging from all four corners and along the top and bottom edges, a charge running every trace | the same circuit, still |
+| Pages with a title band | circuitry emerging from all four corners and along the top and bottom edges, a charge running three traces in each corner and band | the same circuit, still |
 | Home hero | clusters of nodes drifting across the hero, linking to whatever comes in reach | nothing — a plain hero, which is the intended appearance (reduced motion keeps the picture, held still) |
 
 ---
@@ -208,29 +208,73 @@ from that same origin uncovers each trace from its root outward. Six animated el
 the two hundred it would take to draw every trace on individually. The four corners are given no
 stagger: they emerge together.
 
-**A charge on every trace, without a timer on every trace.** `stroke-dashoffset` is an inherited
-property, so a charge here is a `<g>` carrying the animation over a `<use>` of a *group* of traces:
-every path inside it lights, and the browser animates one element rather than thirty. Six such
-groups per corner and four per band half put a moving charge on all 216 drawn traces for **forty**
-animated elements — fewer than the charges and nodes of the sparser drawing before it. That
-inheritance is load-bearing and invisible when it breaks: the artwork would look identical and only
-a handful of lines would still move, so `hero_circuit()` checks both that every declared trace is
-named by a charge group and that the browser has actually computed a dash on a `<use>` inside one.
+**A charge is one `<use>`, and never a group of them.** This is a performance contract, and it was
+learned the hard way — see *The mistake this band is shaped around* below. Each charge is a single
+`<use>` of a single trace, carrying the animation itself. Three traces in each cluster and three in
+each band half carry one: **24** in all, against 216 drawn. The density here is the *static*
+drawing, which is rasterised once; movement is the expensive part and is spent sparingly.
+
+**The four clusters share three durations**, which everywhere else on this site would be the fault
+being avoided. Here it is measured: twelve distinct durations are twelve distinct computed styles,
+which the browser can then share between no two elements — 55ms of style recalculation per second
+against 35ms for the same twenty-four charges on three. The clusters are mirror images of each
+other, so a shared phase reads as the board lighting symmetrically. Within one cluster the three
+still differ, because two charges at one speed in one corner would read as a single thick line.
+
+`hero_circuit()` checks the shape rather than the cost — that no charge wraps a group, and that
+each drives exactly one trace — because the cost is not observable from a browser test.
 
 **Neighbouring lines flow against each other.** Consecutive traces are dealt round-robin into the
 six groups, so no two neighbours share one, and the odd groups carry `--back`, which reverses them.
 That is what makes a cluster read as a working board rather than a fan of parallel arrows.
 
 **The bands are the current; the corners are the board.** Each band runs its whole circuit in 4s,
-every corner group somewhere between 12s and 35s — three to nine times slower. Every path carries
+every corner charge somewhere between 12s and 35s — three to nine times slower. Every path carries
 `pathLength="100"`, so a duration *is* a speed here regardless of how long the path really is, and
 `hero_circuit()` compares the two directly.
 
 **Density is free; motion is not.** A static trace is rasterised once. A charge animates
 `stroke-dashoffset`, which is not compositor-accelerated and repaints its path every frame, on
-fourteen pages, above the fold, for as long as the tab is open. Grouping is what buys the density:
-216 charged traces cost forty timers, and `hero_frame_budget()` holds the result to an absolute
-ceiling rather than to a multiple of a baseline the circuit itself is part of.
+fourteen pages, above the fold, for as long as the tab is open.
+
+### The mistake this band is shaped around
+
+The charges were once carried on groups: a `<g>` wrapping a `<use>` of a *whole group* of traces,
+on the reasoning that forty animated elements must be cheaper than two hundred. **That reasoning
+was wrong, and it shipped.**
+
+`stroke-dashoffset` is an *inherited* property. Animating it on a group makes the browser push the
+new value down through every `<use>` shadow tree beneath it, every frame — so the "forty elements"
+were really several hundred nodes of inherited-style propagation per frame. Measured with
+Lighthouse on `/pages/about/`:
+
+Read from the browser's own counter — Chrome's `RecalcStyleDuration`, on a page left alone with
+nothing clicked or scrolled. This is what the page costs simply by being open:
+
+| | `/pages/about/` | `/pages/services/` |
+|---|---|---|
+| before the circuit was replaced | 38 ms/s | 35 ms/s |
+| **charges on groups (shipped 2026-09-03)** | **895 ms/s** | **842 ms/s** |
+| 24 charges, flattened, 12 durations | 55 ms/s | — |
+| **24 charges, flattened, 3 durations (now)** | **38 ms/s** | **29 ms/s** |
+
+895 ms of style recalculation per second is most of a CPU core, spent forever, on fourteen pages.
+Three things are worth keeping from that table. Flattening was the larger half of the fault, not a
+refinement. Sharing durations across the four clusters was worth another 20 ms/s, because distinct
+computed values defeat the browser's style-sharing cache. And the cost is close to linear in the
+number of charges — about 1.1 ms/s each — so raising it is a decision with a price attached.
+
+**Masks and clip-paths were measured and are not the problem** — removing all six changed nothing
+outside noise. They were the obvious suspects and they were innocent; the numbers said so before
+anything was changed on their account.
+
+**No frame-rate test in this repository noticed any of it.** `hero_frame_budget()` reported 17 ms
+median throughout, because an idle desktop has the headroom to burn most of a core on style
+recalculation and still hit 60 fps. The person who noticed was the user, on the live site.
+
+That gap is now covered by **`tools/check_style_budget.py`**, which asks Chrome directly rather
+than counting frames. Run it whenever you change how much of this drawing moves — and note that a
+frame counter, including the ones in this file, will tell you nothing.
 
 **The pen is widened as the drawing shrinks.** An SVG stroke scales with its drawing. A corner
 renders at `width / 260` — 0.92 on a desktop, 0.40 on a phone — and the band is worse, because

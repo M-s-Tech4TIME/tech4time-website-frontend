@@ -102,7 +102,7 @@ $data = home_load();
      docs/20-deployment/routine-deploys.md, "Cache busting" -->
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/layout.css?v=2">
+<link rel="stylesheet" href="/assets/css/layout.css?v=3">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
 <link rel="stylesheet" href="/assets/css/pages/home.css?v=2">

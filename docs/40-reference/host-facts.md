@@ -115,6 +115,22 @@ which is the worst way to discover a mail problem.
 
 ### Performance — lab, measured 2026-08-27
 
+> **These figures predate the release of 2026-09-03** and no longer describe the site as it is
+> served. That release added a `<canvas>` animation to the home page hero and replaced the title
+> band's decoration on fourteen pages with a much denser drawing carrying 216 animated traces. The
+> home page gained about 21 KB of JavaScript and each interior page about 2.6 KB gzipped, and the
+> front door now runs an animation loop it did not run before.
+>
+> Nothing here has been shown to have got worse. The frame budget on the pages that changed was
+> measured before and after and did not move — 17 ms median, 18 ms p95 — and an unthrottled
+> browser against the live host on 2026-09-03 gave FCP 768 ms and load 800 ms on the home page
+> over HTTP/2, 18 requests, 148.8 KB transferred. **But that is not the same measurement**: it has
+> no CPU or network throttling, and it is not LCP.
+>
+> Re-running Lighthouse needs a Chrome. There is none on the development machine, and the
+> PageSpeed Insights API refuses anonymous calls at quota, so this needs either an API key or a
+> local Chrome. Until then, **quote the date, not the numbers.**
+
 Lighthouse 12.8.2 against `https://tech4time.bd/`, mobile form factor, simulated Slow 4G. INP is
 not a load metric and Lighthouse does not report it, so it was measured separately: a real Chrome
 at 390×844 under Slow 4G **and 4× CPU throttling**, with the navigation toggle and the theme toggle
@@ -220,11 +236,14 @@ its own sign-in is being proven — *admin-activation.md* (in tech4time-website-
 3. **Consider `p=quarantine`**, once a week or two of those reports show every legitimate
    sender passing — not before, because at `p=none` a failure is visible and at `p=quarantine` it
    is silently binned
-4. **FIELD-measured** LCP, CLS and INP. Lab figures against the live host were taken on
-   2026-08-27 and are below; field figures come from CrUX, which needs 28 days of real traffic and
-   therefore cannot exist yet. Re-check `pagespeed.web.dev` once the site has been visited for a
-   month
-5. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
+4. **Re-run the lab measurement.** The figures below were taken on 2026-08-27 and predate the
+   2026-09-03 release, which put an animation loop on the home page and a far denser drawing on
+   every title band. Needs a Chrome — either locally or a PageSpeed Insights API key, since the
+   anonymous quota is exhausted
+5. **FIELD-measured** LCP, CLS and INP. Field figures come from CrUX, which needs 28 days of real
+   traffic and therefore cannot exist yet. Re-check `pagespeed.web.dev` once the site has been
+   visited for a month
+6. If `mail()` proves unreliable, the fix is authenticated SMTP against the host's own mail server —
    not more `mail()` retries
 
 Items that stood here and are done, recorded above rather than pending: `tools/host-probe.php` ran

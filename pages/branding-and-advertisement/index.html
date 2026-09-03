@@ -64,7 +64,7 @@
      docs/20-deployment/routine-deploys.md, "Cache busting" -->
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/layout.css?v=2">
+<link rel="stylesheet" href="/assets/css/layout.css?v=3">
 <link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/animations.css">
 <link rel="stylesheet" href="/assets/css/pages/branding.css">
@@ -385,24 +385,44 @@
          The corners use xMinYMin meet instead: a cluster of 45 degree elbows
          must not shear, and it has to stay pinned to its own corner.
 
-         A CHARGE ON EVERY TRACE, WITHOUT A TIMER ON EVERY TRACE
-         stroke-dashoffset is inherited, and animating it is not compositor
-         accelerated: each animated element repaints its path every frame, on
-         fourteen pages, above the fold, for as long as the tab is open. So a
-         charge here is a <g> carrying the animation over a <use> of a group of
-         traces. Every trace inside it lights; the browser animates one element
-         rather than thirty. Six such groups per corner and four per band half
-         put a moving charge on all 216 drawn traces for forty animated
-         elements - fewer than the sum of the charges and nodes they replace.
+         A CHARGE IS ONE <use>, AND NEVER A GROUP OF THEM
+         This layer once carried the charge on a <g> wrapping a <use> of a
+         *group* of traces, on the reasoning that forty animated elements must
+         beat two hundred. That reasoning was wrong, and measurably so.
+         stroke-dashoffset is an inherited property: animating it on a group
+         makes the browser push the new value down through every <use> shadow
+         tree beneath it, every frame. Lighthouse put the page's Style & Layout
+         work at 4,683ms against 686ms before it, and the site was reported as
+         struggling. Flattening it to one <use> per charged trace cut that by
+         about 1,500ms on its own; charging one trace in five rather than all
+         of them cut another 1,000ms.
 
-         Consecutive traces are dealt round-robin into those six groups, so
-         neighbours are never in the same one. The odd groups run reversed,
-         which is why adjacent lines in a corner flow against each other.
+         So: the charge goes directly on the <use> that draws the trace, and it
+         is deliberately not on every trace. The density here is the STATIC
+         drawing, which costs one rasterisation; movement is the expensive part
+         and is spent sparingly - three traces in each cluster and three in each
+         band half, 24 against 216 drawn.
 
-         Every corner group runs on its own duration, as the dock's charges do,
-         so the four corners never settle back into an arrangement anyone has
-         already seen. The two bands are the deliberate exception: one speed,
-         opposite directions, because they are one current going round. -->
+         The cost is close to linear in that number: about 1.1ms of style
+         recalculation per second per charge, on top of a 25ms floor that is the
+         static drawing. 24 charges measure 39ms/s, which is BELOW the 52ms/s
+         this page cost before the circuitry was ever replaced. 48 would be
+         83ms/s and 216 about 300ms/s, which is what was shipped and reported.
+         If you raise it, measure - tools/check_style_budget.py, and read the
+         table in docs/10-development/frontend/motion.md first.
+
+         THE FOUR CORNERS SHARE THREE DURATIONS, AND THAT IS ALSO MEASURED
+         Everywhere else on this site a shared duration is the fault being
+         avoided. Here it is deliberate: twelve distinct durations give twelve
+         distinct computed styles, and Chrome can then share none of them
+         between elements. That measured 55ms of style recalculation per second
+         against 35ms for the same twenty-four charges on three shared ones -
+         and the four clusters are mirror images of each other, so sharing a
+         phase reads as the board lighting symmetrically rather than as four
+         copies of one loop. Within a cluster the three still differ.
+
+         The two bands are the other deliberate exception: one speed, opposite
+         directions, because they are one current going round. -->
     <div class="hero-circuit" aria-hidden="true">
       <svg class="hero-circuit__layer hero-circuit__layer--band-top" viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false">
         <defs>
@@ -437,12 +457,6 @@
         <path id="hc-c28" pathLength="100" d="M162 36L182 36L182 48"/>
         <path id="hc-c29" pathLength="100" d="M36 162L36 182L48 182"/>
         <g id="hc-corner-wires"><use href="#hc-c0"/><use href="#hc-c1"/><use href="#hc-c2"/><use href="#hc-c3"/><use href="#hc-c4"/><use href="#hc-c5"/><use href="#hc-c6"/><use href="#hc-c7"/><use href="#hc-c8"/><use href="#hc-c9"/><use href="#hc-c10"/><use href="#hc-c11"/><use href="#hc-c12"/><use href="#hc-c13"/><use href="#hc-c14"/><use href="#hc-c15"/><use href="#hc-c16"/><use href="#hc-c17"/><use href="#hc-c18"/><use href="#hc-c19"/><use href="#hc-c20"/><use href="#hc-c21"/><use href="#hc-c22"/><use href="#hc-c23"/><use href="#hc-c24"/><use href="#hc-c25"/><use href="#hc-c26"/><use href="#hc-c27"/><use href="#hc-c28"/><use href="#hc-c29"/></g>
-        <g id="hc-corner-chg0"><use href="#hc-c0"/><use href="#hc-c6"/><use href="#hc-c12"/><use href="#hc-c18"/><use href="#hc-c24"/></g>
-        <g id="hc-corner-chg1"><use href="#hc-c1"/><use href="#hc-c7"/><use href="#hc-c13"/><use href="#hc-c19"/><use href="#hc-c25"/></g>
-        <g id="hc-corner-chg2"><use href="#hc-c2"/><use href="#hc-c8"/><use href="#hc-c14"/><use href="#hc-c20"/><use href="#hc-c26"/></g>
-        <g id="hc-corner-chg3"><use href="#hc-c3"/><use href="#hc-c9"/><use href="#hc-c15"/><use href="#hc-c21"/><use href="#hc-c27"/></g>
-        <g id="hc-corner-chg4"><use href="#hc-c4"/><use href="#hc-c10"/><use href="#hc-c16"/><use href="#hc-c22"/><use href="#hc-c28"/></g>
-        <g id="hc-corner-chg5"><use href="#hc-c5"/><use href="#hc-c11"/><use href="#hc-c17"/><use href="#hc-c23"/><use href="#hc-c29"/></g>
         <g id="hc-corner-pads"><circle cx="58" cy="102" r="3.4"/><circle cx="56" cy="88" r="3.4"/><circle cx="114" cy="62" r="3.4"/><circle cx="122" cy="68" r="3.4"/><circle cx="118" cy="80" r="3.4"/><circle cx="160" cy="58" r="3.4"/><circle cx="158" cy="62" r="3.4"/><circle cx="162" cy="70" r="3.4"/><circle cx="196" cy="54" r="3.4"/><circle cx="238" cy="44" r="3.4"/><circle cx="242" cy="32" r="3.4"/><circle cx="102" cy="58" r="3.4"/><circle cx="88" cy="56" r="3.4"/><circle cx="62" cy="114" r="3.4"/><circle cx="68" cy="122" r="3.4"/><circle cx="80" cy="118" r="3.4"/><circle cx="58" cy="160" r="3.4"/><circle cx="62" cy="158" r="3.4"/><circle cx="70" cy="162" r="3.4"/><circle cx="54" cy="196" r="3.4"/><circle cx="64" cy="66" r="3.4"/><circle cx="66" cy="64" r="3.4"/><circle cx="98" cy="86" r="3.4"/><circle cx="86" cy="98" r="3.4"/><circle cx="114" cy="72" r="3.4"/><circle cx="72" cy="114" r="3.4"/><circle cx="84" cy="98" r="3.4"/><circle cx="98" cy="84" r="3.4"/><circle cx="182" cy="48" r="3.4"/><circle cx="48" cy="182" r="3.4"/><rect x="88" y="92" width="10" height="6" rx="1"/><rect x="146" y="74" width="6" height="10" rx="1"/><rect x="54" y="126" width="10" height="6" rx="1"/><rect x="118" y="110" width="6" height="10" rx="1"/><rect x="200" y="60" width="10" height="6" rx="1"/><rect x="36" y="100" width="10" height="6" rx="1"/><rect x="74" y="148" width="6" height="10" rx="1"/><rect x="172" y="92" width="10" height="6" rx="1"/><rect x="108" y="154" width="10" height="6" rx="1"/><rect x="30" y="168" width="6" height="10" rx="1"/></g>
         <g id="hc-corner-rings"><circle cx="140" cy="46" r="5"/><circle cx="46" cy="140" r="5"/><circle cx="206" cy="96" r="4.2"/><circle cx="96" cy="206" r="4.2"/><circle cx="176" cy="128" r="4"/><circle cx="128" cy="176" r="4"/><path d="M180 14v15"/><path d="M189 14v15"/><path d="M198 14v15"/><path d="M207 14v15"/><path d="M216 14v15"/><path d="M225 14v15"/><path d="M14 180h15"/><path d="M14 189h15"/><path d="M14 198h15"/><path d="M14 207h15"/><path d="M14 216h15"/><path d="M14 225h15"/><path d="M138 100v12"/><path d="M146 100v12"/><path d="M154 100v12"/><path d="M162 100v12"/><path d="M170 100v12"/><path d="M100 138h12"/><path d="M100 146h12"/><path d="M100 154h12"/><path d="M100 162h12"/><path d="M100 170h12"/><path d="M222 62v11"/><path d="M230 62v11"/><path d="M238 62v11"/><path d="M246 62v11"/></g>
         <path id="hc-b0" pathLength="100" d="M-100 132L-18 -12"/>
@@ -471,10 +485,6 @@
         <path id="hc-b23" pathLength="100" d="M0 100h96l24-20h180"/>
         <g id="hc-band-half"><use href="#hc-b0"/><use href="#hc-b1"/><use href="#hc-b2"/><use href="#hc-b3"/><use href="#hc-b4"/><use href="#hc-b5"/><use href="#hc-b6"/><use href="#hc-b7"/><use href="#hc-b8"/><use href="#hc-b9"/><use href="#hc-b10"/><use href="#hc-b11"/><use href="#hc-b12"/><use href="#hc-b13"/><use href="#hc-b14"/><use href="#hc-b15"/><use href="#hc-b16"/><use href="#hc-b17"/><use href="#hc-b18"/><use href="#hc-b19"/><use href="#hc-b20"/><use href="#hc-b21"/><use href="#hc-b22"/><use href="#hc-b23"/></g>
         <g id="hc-band-wires"><use href="#hc-band-half"/><use href="#hc-band-half" transform="translate(1440,0) scale(-1,1)"/></g>
-        <g id="hc-band-chg0"><use href="#hc-b0"/><use href="#hc-b4"/><use href="#hc-b8"/><use href="#hc-b12"/><use href="#hc-b16"/><use href="#hc-b20"/></g>
-        <g id="hc-band-chg1"><use href="#hc-b1"/><use href="#hc-b5"/><use href="#hc-b9"/><use href="#hc-b13"/><use href="#hc-b17"/><use href="#hc-b21"/></g>
-        <g id="hc-band-chg2"><use href="#hc-b2"/><use href="#hc-b6"/><use href="#hc-b10"/><use href="#hc-b14"/><use href="#hc-b18"/><use href="#hc-b22"/></g>
-        <g id="hc-band-chg3"><use href="#hc-b3"/><use href="#hc-b7"/><use href="#hc-b11"/><use href="#hc-b15"/><use href="#hc-b19"/><use href="#hc-b23"/></g>
         <g id="hc-band-pads-half"><rect x="-79" y="85" width="8" height="8" rx="1"/><rect x="65" y="85" width="8" height="8" rx="1"/><rect x="209" y="85" width="8" height="8" rx="1"/><rect x="353" y="85" width="8" height="8" rx="1"/><rect x="497" y="85" width="8" height="8" rx="1"/><rect x="641" y="85" width="8" height="8" rx="1"/><rect x="14" y="16" width="9" height="9" rx="1"/><rect x="14" y="38" width="9" height="9" rx="1"/><rect x="14" y="60" width="9" height="9" rx="1"/><rect x="14" y="82" width="9" height="9" rx="1"/><path d="M-4 40L4 48L-4 56L-12 48Z"/><path d="M140 40L148 48L140 56L132 48Z"/><path d="M284 40L292 48L284 56L276 48Z"/><path d="M428 40L436 48L428 56L420 48Z"/><path d="M572 40L580 48L572 56L564 48Z"/><path d="M716 40L724 48L716 56L708 48Z"/><circle cx="62" cy="17" r="3.2"/><circle cx="152" cy="79" r="3.4"/><circle cx="239" cy="43" r="4"/><circle cx="254" cy="17" r="3.2"/><circle cx="446" cy="17" r="3.2"/><circle cx="632" cy="79" r="3.4"/><circle cx="638" cy="17" r="3.2"/><circle cx="719" cy="43" r="4"/></g>
         <g id="hc-band-pads"><use href="#hc-band-pads-half"/><use href="#hc-band-pads-half" transform="translate(1440,0) scale(-1,1)"/></g>
         <g id="hc-band-rings-half"><circle cx="206" cy="46" r="4.6"/><circle cx="474" cy="66" r="4.6"/><circle cx="120" cy="80" r="4"/><circle cx="352" cy="30" r="4.4"/></g>
@@ -484,15 +494,13 @@
         <g class="hero-circuit__pads"><use href="#hc-band-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-band-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1" href="#hc-b0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2" href="#hc-b8"/>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3" href="#hc-b16"/>
           <g transform="translate(1440,0) scale(-1,1)">
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1" href="#hc-b0"/>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2" href="#hc-b8"/>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3" href="#hc-b16"/>
           </g>
         </g>
         <g class="hero-circuit__nodes">
@@ -507,15 +515,13 @@
         <g class="hero-circuit__pads"><use href="#hc-band-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-band-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p1" href="#hc-b0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p2" href="#hc-b8"/>
+          <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--p3" href="#hc-b16"/>
           <g transform="translate(1440,0) scale(-1,1)">
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1"><use href="#hc-band-chg0"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2"><use href="#hc-band-chg1"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3"><use href="#hc-band-chg2"/></g>
-            <g class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p4"><use href="#hc-band-chg3"/></g>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p1" href="#hc-b0"/>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p2" href="#hc-b8"/>
+            <use class="hero-circuit__charge hero-circuit__charge--band hero-circuit__charge--mirrored hero-circuit__charge--p3" href="#hc-b16"/>
           </g>
         </g>
         <g class="hero-circuit__nodes">
@@ -530,12 +536,9 @@
         <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--c1"><use href="#hc-corner-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c3"><use href="#hc-corner-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c4 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c5"><use href="#hc-corner-chg4"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c6 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--c1" href="#hc-c0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back" href="#hc-c10"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c3" href="#hc-c20"/>
         </g>
         <g class="hero-circuit__nodes">
           <circle class="hero-circuit__node hero-circuit__node--i" cx="56" cy="44" r="3.6"/>
@@ -549,12 +552,9 @@
         <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--c7"><use href="#hc-corner-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c8 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c9"><use href="#hc-corner-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c10 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c11"><use href="#hc-corner-chg4"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c12 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--c1" href="#hc-c0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back" href="#hc-c10"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c3" href="#hc-c20"/>
         </g>
         <g class="hero-circuit__nodes">
           <circle class="hero-circuit__node hero-circuit__node--m" cx="56" cy="44" r="3.6"/>
@@ -568,12 +568,9 @@
         <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--c13"><use href="#hc-corner-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c14 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c15"><use href="#hc-corner-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c16 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c17"><use href="#hc-corner-chg4"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c18 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--c1" href="#hc-c0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back" href="#hc-c10"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c3" href="#hc-c20"/>
         </g>
         <g class="hero-circuit__nodes">
           <circle class="hero-circuit__node hero-circuit__node--q" cx="56" cy="44" r="3.6"/>
@@ -587,12 +584,9 @@
         <g class="hero-circuit__pads"><use href="#hc-corner-pads"/></g>
         <g class="hero-circuit__rings"><use href="#hc-corner-rings"/></g>
         <g class="hero-circuit__charges">
-          <g class="hero-circuit__charge hero-circuit__charge--c19"><use href="#hc-corner-chg0"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c20 hero-circuit__charge--back"><use href="#hc-corner-chg1"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c21"><use href="#hc-corner-chg2"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c22 hero-circuit__charge--back"><use href="#hc-corner-chg3"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c23"><use href="#hc-corner-chg4"/></g>
-          <g class="hero-circuit__charge hero-circuit__charge--c24 hero-circuit__charge--back"><use href="#hc-corner-chg5"/></g>
+          <use class="hero-circuit__charge hero-circuit__charge--c1" href="#hc-c0"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c2 hero-circuit__charge--back" href="#hc-c10"/>
+          <use class="hero-circuit__charge hero-circuit__charge--c3" href="#hc-c20"/>
         </g>
         <g class="hero-circuit__nodes">
           <circle class="hero-circuit__node hero-circuit__node--u" cx="56" cy="44" r="3.6"/>

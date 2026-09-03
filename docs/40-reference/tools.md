@@ -39,6 +39,8 @@ browser tests speak to geckodriver over its wire protocol — there is no Seleni
 | `check_shared_lib.py` | the three files both repositories hold identically have not been edited here |
 | `check_shared_repos.py` | the same files, compared against **the other repository** rather than a local digest — plus every same-named tool, which must match unless `DIVERGENT` says why not. This is the only check anywhere that can see the two halves drift apart; `check_shared_lib.py` structurally cannot. Needs both repos present, or `--clone` |
 
+| `check_style_budget.py` | how much style recalculation each page does **while sitting still** — nothing clicked, nothing scrolled. Needs Chrome. This is the only check here that can see a page burning a CPU core at a steady 60fps, which is what shipped on 2026-09-03 and what every frame-rate suite missed |
+
 ## Checks that need a browser
 
 | Script | Proves |
