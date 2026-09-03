@@ -39,10 +39,11 @@
   /* The clusters are slower than the bands — they are the board, not the
      current — and the three speeds differ so lit neighbours never pair up. */
   var CORNER_SECONDS = [12, 13, 14];
-  /* How finely a path is sampled, in viewBox units. Small enough that a 45
-     degree elbow is not visibly cut across, large enough that the whole
-     drawing is a few thousand points rather than tens of thousands. */
-  var SAMPLE = 5;
+  /* How finely a path is sampled, in viewBox units. These traces are runs of
+     straight line joined by right angles and 45 degree elbows, so sampling
+     finer than the elbows buys nothing and costs a lineTo per point per frame
+     for as long as the page is open. */
+  var SAMPLE = 12;
   /* This is decoration behind a title, drawn in thin strokes of a single
      colour. Rasterising it at two or three device pixels per CSS pixel buys
      nothing anybody can see here and costs in direct proportion. */
@@ -290,8 +291,10 @@
   Circuit.prototype.draw = function (seconds) {
     var ctx = this.ctx, groups = this.groups, g, i, t, phase, from, to, list;
     ctx.clearRect(0, 0, this.w, this.h);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    /* Butt caps and miter joins: a round cap is a curve to rasterise at both
+       ends of every lit stretch, and at this weight nobody can tell. */
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "miter";
     ctx.strokeStyle = this.ink;
     ctx.lineWidth = 2.6;
 

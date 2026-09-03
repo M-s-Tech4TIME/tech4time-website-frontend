@@ -62,7 +62,7 @@ OPTIONAL_SCRIPTS = {
     # The hero mesh is the home page's alone.
     "/assets/js/neural.js",
     # The charges in the title band; the two pages without a band omit it.
-    "/assets/js/circuit.js",
+    "/assets/js/circuit.js?v=2",
 }
 
 ARIA_CURRENT = re.compile(r'\s*aria-current="page"')
