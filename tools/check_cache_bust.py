@@ -102,8 +102,12 @@ def main() -> int:
         print("Fetch it first, or pass --base. Nothing was checked.")
         return 2
 
-    changed = [line for line in git("diff", "--name-only", f"{base}...HEAD").split("\n")
-               if WATCHED.match(line)]
+    # Committed AND uncommitted. A check that only reads history tells you about
+    # the mistake after you have made it; the point is to catch it while the
+    # working tree is still the thing you are looking at.
+    names = set(git("diff", "--name-only", f"{base}...HEAD").split("\n"))
+    names |= set(git("diff", "--name-only", base).split("\n"))
+    changed = sorted(n for n in names if WATCHED.match(n))
     if not changed:
         print(f"check_cache_bust: no stylesheet or script changed since {base}.")
         return 0

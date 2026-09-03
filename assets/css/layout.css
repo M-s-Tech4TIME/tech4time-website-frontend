@@ -701,35 +701,24 @@
   stroke-width: 3.6;
 }
 
-/* The twenty-four corner groups each run on their own number of seconds, so the
-   four corners never settle back into an arrangement anyone has seen. They are
-   the slow half of the drawing: the bands run their whole circuit in 4s, three
-   to nine times faster, which is the difference in pace the artwork is meant to
-   have — the bands are the current, the corners are the board it runs on. */
+/* Three durations, shared by all four clusters — and that sharing is measured,
+   not lazy. Giving the twelve corner charges twelve distinct durations gives
+   them twelve distinct computed styles, which Chrome can then share between no
+   two elements: 55ms of style recalculation per second against 35ms for the
+   same twenty-four charges on three. The clusters are mirror images anyway, so
+   a shared phase reads as the board lighting symmetrically.
+
+   They are the slow half of the drawing: the bands run their whole circuit in
+   4s, three to five times faster, which is the difference in pace the artwork
+   is meant to have — the bands are the current, the corners are the board it
+   runs on.
+
+   Adding a charge costs about 1.1ms of style recalculation per second, every
+   second the page is open. Run tools/check_style_budget.py, and read the table
+   in docs/10-development/frontend/motion.md, before raising the count. */
 .hero-circuit__charge--c1 { animation-duration: 12s; }
 .hero-circuit__charge--c2 { animation-duration: 13s; }
 .hero-circuit__charge--c3 { animation-duration: 14s; }
-.hero-circuit__charge--c4 { animation-duration: 15s; }
-.hero-circuit__charge--c5 { animation-duration: 16s; }
-.hero-circuit__charge--c6 { animation-duration: 17s; }
-.hero-circuit__charge--c7 { animation-duration: 18s; }
-.hero-circuit__charge--c8 { animation-duration: 19s; }
-.hero-circuit__charge--c9 { animation-duration: 20s; }
-.hero-circuit__charge--c10 { animation-duration: 21s; }
-.hero-circuit__charge--c11 { animation-duration: 22s; }
-.hero-circuit__charge--c12 { animation-duration: 23s; }
-.hero-circuit__charge--c13 { animation-duration: 24s; }
-.hero-circuit__charge--c14 { animation-duration: 25s; }
-.hero-circuit__charge--c15 { animation-duration: 26s; }
-.hero-circuit__charge--c16 { animation-duration: 27s; }
-.hero-circuit__charge--c17 { animation-duration: 28s; }
-.hero-circuit__charge--c18 { animation-duration: 29s; }
-.hero-circuit__charge--c19 { animation-duration: 30s; }
-.hero-circuit__charge--c20 { animation-duration: 31s; }
-.hero-circuit__charge--c21 { animation-duration: 32s; }
-.hero-circuit__charge--c22 { animation-duration: 33s; }
-.hero-circuit__charge--c23 { animation-duration: 34s; }
-.hero-circuit__charge--c24 { animation-duration: 35s; }
 
 /* Consecutive traces are dealt round-robin into the six groups, so no two
    neighbours share one. Reversing the odd groups is therefore what makes

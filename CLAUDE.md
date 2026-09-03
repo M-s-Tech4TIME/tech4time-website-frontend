@@ -126,6 +126,10 @@ Touched CSS, markup or motion? Also `test_motion.py`, `test_nav.py`, `test_theme
 `check_hover.py`, `check_dark_mode.py`, `check_responsive.py`, `check_focus.py` — these need
 Firefox and geckodriver, and leave processes behind if interrupted (`pkill firefox geckodriver`).
 
+Changed how much of the page **moves**? Also **`python3 tools/check_style_budget.py`** (needs
+Chrome). None of the suites above can see a page burning a CPU core while holding 60fps — that
+shipped on 2026-09-03 and a person noticed it before any check did.
+
 [docs/10-development/testing.md](docs/10-development/testing.md)
 
 ---

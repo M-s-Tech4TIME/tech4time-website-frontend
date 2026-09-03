@@ -1299,30 +1299,29 @@ Array.prototype.forEach.call(nodes, function (n) {
   });
 });
 
-/* Whether the charge actually reaches every trace. A charge is a <g> holding a
-   <use> of a group of traces, relying on stroke-dashoffset being inherited; if
-   that ever stopped being true the drawing would still be there and only the
-   charges on four traces would move. So: the set of traces the charge groups
-   name, against the set the wires layer draws. */
-function named(prefix, groups) {
-  var seen = {};
-  groups.forEach(function (g) {
-    var host = doc.getElementById(prefix + g);
-    if (!host) { return; }
-    Array.prototype.forEach.call(host.querySelectorAll('use'), function (u) {
-      seen[u.getAttribute('href')] = true;
-    });
-  });
-  return Object.keys(seen).length;
-}
-function drawnTraces(id) {
-  var host = doc.getElementById(id);
-  return host ? host.querySelectorAll('use').length : 0;
-}
+/* THE SHAPE OF THE CHARGE, WHICH IS A PERFORMANCE CONTRACT
+   stroke-dashoffset is inherited. Animating it on a <g> that wraps a <use> of
+   a group of traces makes the browser push the animated value down through
+   every shadow tree beneath it on every frame, and that is not a small cost:
+   it took this page's Style & Layout work from 686ms to 4,683ms and the site
+   was reported as struggling. Nothing about the drawing looked different, and
+   no frame counter here noticed.
 
-/* And that the inheritance is live, not merely declared: read the offset the
-   browser has actually computed on a path deep inside a charge group. */
-var deep = doc.querySelector('.hero-circuit__charge use');
+   So each charge must be exactly one <use> of one trace. These two numbers are
+   what that reduces to, and they are checked because the failure is invisible:
+   how many charges carry a nested group, and how many traces each charge
+   reaches. Both must be zero and one. */
+var nested = 0, reach = [];
+Array.prototype.forEach.call(charges, function (c) {
+  if (c.tagName.toLowerCase() !== 'use') { nested += 1; }
+  var href = c.getAttribute('href') || '';
+  var target = href.charAt(0) === '#' ? doc.getElementById(href.slice(1)) : null;
+  reach.push(target ? target.querySelectorAll('use, path, g').length : -1);
+});
+
+/* And that the dash actually reaches the cloned path: the styling is on the
+   <use>, and only inheritance carries it into the shadow tree. */
+var deep = doc.querySelector('.hero-circuit__charge');
 var deepOffset = deep ? view.getComputedStyle(deep).strokeDashoffset : null;
 var deepDash = deep ? view.getComputedStyle(deep).strokeDasharray : null;
 
@@ -1342,10 +1341,8 @@ return {
   infinite: infinite,
   nodes: nodes.length,
   nodesRunning: nodeRunning,
-  cornerTraces: drawnTraces('hc-corner-wires'),
-  cornerCharged: named('hc-corner-chg', [0, 1, 2, 3, 4, 5]),
-  bandTraces: drawnTraces('hc-band-half'),
-  bandCharged: named('hc-band-chg', [0, 1, 2, 3]),
+  nestedCharges: nested,
+  worstReach: Math.max.apply(null, reach),
   deepOffset: deepOffset,
   deepDash: deepDash,
   events: cs.pointerEvents,
@@ -1417,46 +1414,57 @@ def hero_circuit(b: Browser, origin: str, r: Results) -> None:
                 not d["overflows"],
                 "the document scrolls horizontally with the circuit in place")
 
-    r.check("the drawing carries forty charges",
-            d["charges"] == 40, f"{d['charges']} charges")
+    r.check("the drawing carries twenty-four charges",
+            d["charges"] == 24, f"{d['charges']} charges")
     r.check("every charge is running",
-            d["running"] == 40, f"{d['running']} of 40 running")
+            d["running"] == 24, f"{d['running']} of 24 running")
     r.check("every node is running",
             d["nodesRunning"] == d["nodes"] == 24,
             f"{d['nodesRunning']} of {d['nodes']} running")
     r.check("nothing is set to stop", d["infinite"] is True)
 
-    # THE ONE THAT WOULD FAIL SILENTLY
-    # A charge is a <g> over a <use> of a group of traces, and it lights them by
-    # inheritance: stroke-dashoffset is an inherited property, so animating it
-    # on the group reaches every path inside. That is what puts a charge on all
-    # 216 traces for forty animated elements. If it ever stopped holding, the
-    # drawing would look unchanged and only a handful of lines would move.
-    r.check("every trace in a corner is inside a charge group",
-            d["cornerCharged"] == d["cornerTraces"] > 0,
-            f"{d['cornerCharged']} of {d['cornerTraces']} corner traces charged")
-    r.check("every trace in a band is inside a charge group",
-            d["bandCharged"] == d["bandTraces"] > 0,
-            f"{d['bandCharged']} of {d['bandTraces']} band traces charged")
-    r.check("the charge reaches the traces through inheritance",
+    # THE ONE THAT COST A RELEASE
+    # This band once carried its charges on groups: a <g> wrapping a <use> of a
+    # whole group of traces, chosen because forty animated elements sounded
+    # cheaper than two hundred. stroke-dashoffset is inherited, so that made the
+    # browser push a new value down through every shadow tree under every group,
+    # every frame. Lighthouse measured Style & Layout at 4,683ms against 686ms
+    # before it; the site was reported as struggling; and every check in this
+    # file passed throughout, because a frame counter on an idle desktop has the
+    # headroom to hide it.
+    #
+    # These two are the shape that cannot regress into that again. They are
+    # structural on purpose: the cost is not observable from here, so the thing
+    # that is checked is the construction known to cause it.
+    r.check("no charge wraps a group of traces",
+            d["nestedCharges"] == 0,
+            f"{d['nestedCharges']} charges are not a bare <use>")
+    r.check("each charge drives exactly one trace",
+            d["worstReach"] <= 1,
+            f"one charge reaches {d['worstReach']} elements; it must be 1")
+    r.check("the charge reaches the cloned path through inheritance",
             d["deepDash"] not in (None, "none")
             and d["deepOffset"] not in (None, "none"),
-            f"dasharray {d['deepDash']}, dashoffset {d['deepOffset']} "
-            "on a use inside a charge group")
+            f"dasharray {d['deepDash']}, dashoffset {d['deepOffset']}")
 
-    # The corners must never resynchronise: equal durations there would make the
-    # four of them visibly repeat as one loop.
+    # Three durations, shared by all four clusters, and distinct within one.
+    # The sharing is deliberate and measured: twelve distinct durations are
+    # twelve distinct computed styles, which Chrome can share between no two
+    # elements, and that cost 55ms of style recalculation per second against
+    # 35ms for these three. The clusters are mirror images, so a shared phase
+    # reads as symmetry. What must not happen is two charges in the SAME
+    # cluster running together, which would read as one thick line.
     corner_secs = [c["seconds"] for c in d["corner"]]
-    r.check("no two corner charges share a duration",
-            len(set(corner_secs)) == len(corner_secs) == 24,
+    r.check("a cluster's three charges each run at their own speed",
+            len(corner_secs) == 12 and len(set(corner_secs)) == 3,
             f"durations: {sorted(corner_secs)}")
 
-    # Consecutive traces are dealt round-robin into six groups, and the odd ones
-    # are reversed, so neighbouring lines in a cluster run against each other.
+    # Alternate charged traces are reversed, so neighbouring lit lines in a
+    # cluster run against each other: two forward and one back, four times over.
     forward = sum(1 for c in d["corner"] if c["rightward"])
     r.check("neighbouring lines in a corner flow against each other",
-            forward == len(d["corner"]) - forward == 12,
-            f"{forward} of {len(d['corner'])} corner groups run forward")
+            forward == 8 and len(d["corner"]) - forward == 4,
+            f"{forward} of {len(d['corner'])} corner charges run forward")
 
     # The bands are the opposite case, and deliberately so. They are one current
     # going round the band, so they must share a speed exactly — a difference of
@@ -1471,11 +1479,11 @@ def hero_circuit(b: Browser, origin: str, r: Results) -> None:
     # transform the right half sits inside, so it is the direction a visitor
     # sees rather than the sign in the stylesheet.
     r.check("the top band flows left to right, all the way across",
-            len(d["bandTop"]) == 8 and all(c["rightward"] for c in d["bandTop"]),
+            len(d["bandTop"]) == 6 and all(c["rightward"] for c in d["bandTop"]),
             f"{sum(c['rightward'] for c in d['bandTop'])} of "
             f"{len(d['bandTop'])} top-band charges travel rightward")
     r.check("and the bottom band flows right to left, mirroring it",
-            len(d["bandBottom"]) == 8
+            len(d["bandBottom"]) == 6
             and not any(c["rightward"] for c in d["bandBottom"]),
             f"{sum(c['rightward'] for c in d['bandBottom'])} of "
             f"{len(d['bandBottom'])} bottom-band charges travel rightward, "
