@@ -21,6 +21,7 @@ store they read from is outside the document root entirely.
 | [`company.php`](#companyphp) | what this side does with the company profile | `contract`, `store` |
 | [`about.php`](#aboutphp) | what this side does with the about page | `contract`, `store` |
 | [`home.php`](#homephp) | what this side does with the home page | `contract`, `store` |
+| [`services.php`](#servicesphp) | the services index and its six detail pages | `contract`, `store`, `html` |
 | [`publish.php`](#publishphp) **shared** | how a document is signed and checked on the wire | `private`, `contract` |
 | [`publish_client.php`](#publish_clientphp) *(backend)* | sending one | `publish` |
 | [`footer-fingerprint.php`](#footer-fingerprintphp) *(frontend, generated)* | what this site's footers currently say | — |
@@ -253,6 +254,52 @@ read "SOC and CIRT". A seventh card is now a seventh entry by being a seventh ca
 is absent from both.
 
 **`tools/apply_reveals.py` does not govern this page either**, for the same reason.
+
+### `services.php`
+
+`services_load()` · `services_save()` · `services_validate()` *(backend)* ·
+the renderers *(frontend)*
+
+**This is the only library that draws more than one page.** One document,
+`content/services.json`, holds the services index *and* all six detail pages beneath it. That is
+forced rather than chosen: a seventh service has to be addable from the editor, and
+`CONTRACT_DOCUMENTS` is a constant in code — so a service cannot be its own document and has to be
+a row in a list. See the note over `services_defaults()` in `contract.php`.
+
+Keeping the drawing in one file follows from the same fact. The six detail pages are one template
+with six sets of words: they load the same stylesheet,
+`assets/css/pages/service-detail.css`, and it contains no per-service rule. A seventh service
+needs no new CSS.
+
+**Every field on these pages is plain text.** There is no rich-text field at all — seven pages of
+headings, one-line summaries and short list entries, and not one of the 137 solution cards holds a
+paragraph anybody would want a link inside. See the `services` branch of `contract_sanitise()`.
+
+**Three things are drawn and never stored**, which is what keeps them from drifting out of step
+with the cards they describe:
+
+- the detail card beside each ring is that layer's **first card**, redrawn;
+- every node on the ring is a projection of a card — its id, its icon, and its name for the screen
+  reader;
+- *"12 Solutions"* under a layer heading is the **card count**.
+
+All three were verified against the shipped markup at the migration: 24 layers, 24 rings, no
+exceptions.
+
+**A solution card's id is stored, never minted from its name.** Sixty-three of the 137 cards carry
+an id that does not follow from the card's title — `sol-cloud-design-private-cloud` on a card
+called *"Private Cloud Design & Implementation"*. They were written by hand, and they are the
+fragment a saved deep link holds the card by, so `services_identify()` leaves a real id alone and
+mints only into empty ones.
+
+**The index's group lists are authored, not derived from the detail pages.** The index says
+*"Offensive Security & Penetration Testing (Metasploit, Burp Suite)"* where the detail page says
+*"Offensive Security & Penetration Testing"*, and the HRaaS block lists four engagement models
+against the detail page's thirty-three resource types. They are two different summaries of one
+practice; flattening them into one would lose the shorter.
+
+**`tools/apply_reveals.py` does not govern these pages**, for the reason it does not govern the
+home page: it skips anything built with a PHP loop. The reveal markers are emitted by the renderer.
 
 ### `publish.php`
 

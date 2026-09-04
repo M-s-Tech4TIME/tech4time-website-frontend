@@ -41,13 +41,13 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 |---|---|---|
 | Home | `index.php` | at the repository root — **dynamic**, renders `content/home.json` |
 | About | `pages/about/index.php` | **dynamic** — renders `content/about.json` |
-| Services hub | `pages/services/index.html` | |
-| — Cybersecurity | `pages/services/cybersecurity/index.html` | |
-| — Software development | `pages/services/software-development/index.html` | |
-| — Cloud infrastructure | `pages/services/cloud-infrastructure/index.html` | |
-| — HR solutions | `pages/services/hr-solutions/index.html` | |
-| — IT consultancy & training | `pages/services/it-consultancy-training/index.html` | |
-| — IT equipment supply | `pages/services/it-equipment-supply/index.html` | |
+| Services hub | `pages/services/index.php` | **dynamic** — renders `content/services.json` |
+| — Cybersecurity | `pages/services/cybersecurity/index.php` | **dynamic** — the same document |
+| — Software development | `pages/services/software-development/index.php` | **dynamic** — the same document |
+| — Cloud infrastructure | `pages/services/cloud-infrastructure/index.php` | **dynamic** — the same document |
+| — HR solutions | `pages/services/hr-solutions/index.php` | **dynamic** — the same document |
+| — IT consultancy & training | `pages/services/it-consultancy-training/index.php` | **dynamic** — the same document |
+| — IT equipment supply | `pages/services/it-equipment-supply/index.php` | **dynamic** — the same document |
 | Company profile | `pages/company-profile/index.php` | **dynamic** — renders `content/company.json` |
 | Careers | `pages/careers/index.php` | **dynamic** — renders `content/careers.json` |
 | Contact | `pages/contact/index.php` | **dynamic** — renders `content/contact.json` |
@@ -56,7 +56,14 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 | Privacy policy | `pages/privacy-policy/index.html` | |
 | Not found | `404.html` | at the repository root |
 
-Fourteen static, two dynamic. Adding one: [adding-a-page.md](../10-development/frontend/adding-a-page.md).
+Four static, twelve dynamic. Adding one:
+[adding-a-page.md](../10-development/frontend/adding-a-page.md).
+
+**The seven services pages are one document, not seven.** `content/services.json` holds the index
+*and* every detail page under it, because a seventh service has to be addable from the editor and
+`CONTRACT_DOCUMENTS` is a constant in code — so a service is a row in a list rather than a document
+of its own. `lib/services.php` draws all seven; each page file carries only its own head and the
+shared chrome.
 
 **Every page carries its own copy of the header and footer**, because runtime `fetch()` partials are
 forbidden. `tools/templates/` holds the canonical copies and `check_shared_markup.py` proves no page

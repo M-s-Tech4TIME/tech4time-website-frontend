@@ -203,11 +203,17 @@ The same shape.
 | `status` | `shown` or `hidden` |
 
 **The specialities repeat the six service names that also appear on the home page and
-`/pages/services/`.** The home page now has a content source of its own, so the taxonomy lives in
-**three** places — `content/about.json`, `content/home.json` and `pages/services/index.html` — with
-no owner. The home page's `Service` ItemList used to be a fourth and is now generated from
-`services.items`, so that copy is gone. The remaining three are to be reconciled when the services
-page comes under management; nothing enforces that they agree today.
+`/pages/services/`.** All three now have a content source, so the taxonomy lives in **three**
+documents — `content/about.json`, `content/home.json` and `content/services.json` — and still has
+no owner. The home page's `Service` ItemList used to be a fourth and is generated from
+`services.items`; each detail page's `Service` block used to be another and is now generated from
+its own layers.
+
+Bringing the services pages under management did not reconcile the three, and deliberately so: they
+are three different summaries at three different lengths, and the known disagreement is real
+content rather than drift — `content/home.json` calls one service *Human Resource Provision* where
+the services index calls it *HRaaS*. Nothing enforces that they agree, and a rename in one is still
+worth a look at the other two.
 
 **About's why-us cards and the company profile's `principles` express overlapping ideas** — Robust
 Security and Security First, Client-Centric Approach and Client Partnership — and are deliberately

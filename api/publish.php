@@ -45,6 +45,7 @@ require_once __DIR__ . '/../lib/contact.php';
 require_once __DIR__ . '/../lib/company.php';
 require_once __DIR__ . '/../lib/about.php';
 require_once __DIR__ . '/../lib/home.php';
+require_once __DIR__ . '/../lib/services.php';
 
 /**
  * Where each document lands, by name.
@@ -61,11 +62,12 @@ require_once __DIR__ . '/../lib/home.php';
  * that has no home here is a 500 rather than a silent overwrite.
  */
 const PUBLISH_FILES = [
-    'careers' => CAREERS_FILE,
-    'contact' => CONTACT_FILE,
-    'company' => COMPANY_FILE,
-    'about'   => ABOUT_FILE,
-    'home'    => HOME_FILE,
+    'careers'  => CAREERS_FILE,
+    'contact'  => CONTACT_FILE,
+    'company'  => COMPANY_FILE,
+    'about'    => ABOUT_FILE,
+    'home'     => HOME_FILE,
+    'services' => SERVICES_FILE,
 ];
 
 header('Content-Type: application/json; charset=utf-8');
