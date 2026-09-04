@@ -65,7 +65,7 @@ UPLOAD                          DO NOT UPLOAD
   lib/                            .git/
   contact-handler.php             content/          ← after the first deploy
   .htaccess                       admin/            ← nothing, ever
-  robots.txt  sitemap.xml
+  robots.txt  sitemap.php
   site.webmanifest
 ```
 

@@ -15,12 +15,15 @@ tech4time-website/
 ├── contact-handler.php     where the enquiry form posts
 ├── .htaccess               security headers, caching, clean URLs, blocking
 ├── robots.txt              crawl rules
-├── sitemap.xml             submitted to Search Console
+├── sitemap.php             generated; served at /sitemap.xml, which is what
+│                           Search Console was given and must not change
 ├── site.webmanifest        PWA manifest (the one .json that stays public)
 ├── .gitattributes          line endings and diff behaviour
 ├── .gitignore              includes the private store, as a backstop
 │
-├── pages/                  the other fifteen pages; three are .php
+├── pages/                  the other fourteen pages; eleven are .php
+│   └── services/detail.php a renderer, not a page: it serves any service
+│                           that has no directory of its own
 ├── assets/                 css, js, fonts, icons, images — all self-hosted
 ├── lib/                    server-side PHP
 ├── api/publish.php         where the backend's content arrives

@@ -57,7 +57,7 @@ UPLOAD = [
     "index.php",          # the home page, rendered from content/home.json
     "404.html",
     "robots.txt",
-    "sitemap.xml",
+    "sitemap.php",       # generated: /sitemap.xml is a rewrite onto this
     "site.webmanifest",
     "contact-handler.php",
     "api/",               # where the admin host pushes content in
@@ -97,6 +97,16 @@ REQUIRED = [
     "pages/contact/index.php",
     "pages/company-profile/index.php",
     "pages/about/index.php",
+    "pages/services/index.php",
+    # Every service added in the editor is served by this one file. Without it
+    # the six still answer, from their own directories, and a seventh 404s —
+    # a failure that shows up only for content that did not exist when the
+    # deploy was checked.
+    "pages/services/detail.php",
+    "lib/services.php",   # and the bands of all seven are drawn by this
+    # /sitemap.xml is a rewrite onto this file. Missing, the sitemap 404s and
+    # Search Console reports the whole site's index as failing to refresh.
+    "sitemap.php",
     "api/publish.php",    # the only route content takes to the live site
 ]
 

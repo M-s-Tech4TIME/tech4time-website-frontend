@@ -79,7 +79,7 @@ python3 tools/check_focus.py           # tab every page: the ring is visible and
 | `check_docs.py` | every tool, library and admin section is documented; no doc cites a path that does not exist; no internal link is broken; no doc quotes a constant that has changed |
 | `audit_pages.py` | per page: title and meta description, heading order, `alt` text, landmark roles, no repeated `id`, a label on every form control and an accessible name on every link and button, canonical URL, structured data, internal links resolve, the markup nests, and **nothing carries an inline `style=` or `on…=` attribute** — the CSP refuses those silently, so the page looks right and the behaviour is simply gone |
 | `build_deploy_set.py --check` | the upload set holds no `content/`, `tools/`, `docs/` or key, keeps the `.htaccess` that blocks them, and carries a seed for **every** document the contract defines, with no job posts in the careers one |
-| `verify_live.py <url>` | run **after** a deploy, against the real host: the pages answer 200, `lib/`, `content/`, `tools/` and `/.git/` answer 403, and the security headers are present |
+| `verify_live.py <url>` | run **after** a deploy, against the real host: the pages answer 200, `lib/`, `content/`, `tools/` and `/.git/` answer 403, and the security headers are present. It also reads three **bodies** and one **redirect**, because a status alone cannot tell a generated sitemap from a stale file — and because `.htaccess` is the half of the services route that no local test can reach |
 
 ### The HTTP tests
 
@@ -87,7 +87,7 @@ These start a real PHP server on a spare port and drive it over HTTP.
 
 | Script | Proves |
 |---|---|
-| `test_publish.py` | `api/publish.php` driven over real HTTP with real signatures: the happy path, then **every way past it that does not involve holding the key** — no signature, another key's signature, a tampered body, an old timestamp, a replay, a lower revision, a different `contract_version`, and a `<script>` from a sender that signed correctly. Also that **every field the model declares reaches the visitor**, by sending a marker through each one and reading it back off the public page |
+| `test_publish.py` | `api/publish.php` driven over real HTTP with real signatures: the happy path, then **every way past it that does not involve holding the key** — no signature, another key's signature, a tampered body, an old timestamp, a replay, a lower revision, a different `contract_version`, and a `<script>` from a sender that signed correctly. Also that **every field the model declares reaches the visitor**, by sending a marker through each one and reading it back off the public page. And that **a service added in the editor becomes a page**: an address with no file behind it, its own head, a line in the sitemap, a link from the index, and a 404 when it is hidden or removed |
 | `test_contact_handler.py` | method check, honeypot, every validation rule, CR/LF injection into each field, the assembled message, non-ASCII round trips, the rate limit, and the no-JavaScript HTML response |
 | `test_store.py` | `lib/store.php`: telling apart missing, unreadable and corrupt; the atomic write; and the rule that a damaged file is never copied over a good `.bak`, because the backup is what damage is recovered from |
 

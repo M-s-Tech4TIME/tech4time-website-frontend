@@ -23,11 +23,19 @@ tech4time-website-backend).
 addable from the editor and `CONTRACT_DOCUMENTS` is a constant in code. If the page you are adding
 is another of something that already exists, add a row rather than a document.
 
-**A row is not yet a URL.** The six service pages each keep a real `pages/services/<slug>/index.php`
-— two lines of their own and a shared renderer — because `audit_pages.py`, `check_shared_markup.py`
-and `inject_icons.py` all enumerate pages by walking the filesystem. A service added in the admin at
-a slug with no directory has no page until one exists; giving it one is a small developer follow-up,
-and a general route for them is parked work rather than done.
+**A row is a URL.** The six service pages each keep a real `pages/services/<slug>/index.php`,
+because `audit_pages.py`, `check_shared_markup.py` and `inject_icons.py` all enumerate pages by
+walking the filesystem, and a page they can see is a page they check. A service added in the admin
+at a slug with **no** directory is served by `pages/services/detail.php` instead: `.htaccess`
+rewrites `/pages/services/<slug>/` onto it when the request matches no file and no directory, and
+`tools/dev-router.php` carries the same route for the local server. The page it draws is
+byte-for-byte the page a directory would have drawn — same renderer, same chrome — and a slug the
+document does not have, or whose service is hidden, answers 404.
+
+So adding a service needs no developer at all. What a directory still buys is the filesystem walk:
+`audit_pages.py` reads the document and audits directory-less services through `detail.php` anyway,
+but `check_shared_markup.py` and `inject_icons.py` have nothing to look at. Promoting a service to
+its own directory is therefore optional tidying, not a prerequisite for it to work.
 
 The rest of this page covers a static page.
 
@@ -102,7 +110,9 @@ A page nothing links to is a page nobody finds, and `audit_pages.py` reports it 
 - **A top-level page** → the header nav in `tools/templates/header.html`, if it belongs there. The
   header carries six routes and stays legible on purpose; the footer is where the rest live.
 
-Then add it to `sitemap.xml`.
+Then add it to the sitemap — `SITEMAP_STATIC` in `sitemap.php`, which is served at
+`/sitemap.xml`. **A service does not need this**: every service is read from the document and listed
+automatically, which is the reason the sitemap is generated rather than typed.
 
 ## 6. Check
 
@@ -151,7 +161,7 @@ is the signal to move it.
 - [ ] Description 150–160 characters and unique
 - [ ] Canonical URL correct
 - [ ] Linked from the hub, the footer, or the header
-- [ ] Added to `sitemap.xml`
+- [ ] Added to `SITEMAP_STATIC` in `sitemap.php` (not needed for a service)
 - [ ] Icons injected, reveals applied
 - [ ] Listed in `repository-map.md`
 - [ ] Every check passes

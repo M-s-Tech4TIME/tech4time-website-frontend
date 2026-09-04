@@ -117,6 +117,7 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 | The shape of ANY editable document | `lib/contract.php` — **and the form and the renderer with it**, and the same file in the backend |
 | A service, its solutions, or the services page | **`https://admin.tech4time.bd/?s=services`** — not a file, and not here |
 | How a services page is drawn | `lib/services.php` — one renderer behind all seven pages |
+| Adding a whole new service | **the editor** — it needs no file here. `pages/services/detail.php` serves any slug the document has |
 | What HTML is allowed in rich text | `lib/html.php` — the sanitiser |
 | How JSON is read and written | `lib/store.php` |
 
@@ -162,7 +163,8 @@ What is still here, because the public site uses it for the contact form:
 | Keeping `/api/` out of search results | `.htaccess` section 9 |
 | Enabling HSTS | `.htaccess` — uncomment, **after** the site is live on HTTPS |
 | Crawl rules | `robots.txt` |
-| The sitemap | `sitemap.xml` |
+| The sitemap's fixed pages | `SITEMAP_STATIC` in `sitemap.php` — served at `/sitemap.xml` |
+| The sitemap's service pages | nowhere: they are read from `content/services.json` |
 
 > `.htaccess` is not read by the local dev server. Changes there can only be verified on the host.
 > [security-model.md](../40-reference/security-model.md)

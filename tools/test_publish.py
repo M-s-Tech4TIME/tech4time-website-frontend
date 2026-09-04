@@ -41,6 +41,7 @@ Every test runs against a COPY of the real data files, which are restored
 afterwards whether the run passes or fails.
 """
 
+import copy
 import hashlib
 import hmac
 import json
@@ -150,6 +151,27 @@ def publish(base: str, key: bytes, document: str, data: dict,
     header = sign(key, body, stamp)
     return post(base, tamper if tamper is not None else body,
                 {"X-T4T-Timestamp": str(stamp), "X-T4T-Signature": header})
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """An opener that reports a redirect instead of following it.
+
+    urllib follows 301s by default, which would turn "this address redirects
+    to the clean one" into "this address answers 200" and prove nothing.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def get_unfollowed(base: str, path: str) -> tuple[int, str]:
+    """The status and Location of a request, with the redirect left alone."""
+    opener = urllib.request.build_opener(NoRedirect)
+    try:
+        with opener.open(base + path, timeout=15) as response:
+            return response.status, response.headers.get("Location", "")
+    except urllib.error.HTTPError as e:
+        return e.code, e.headers.get("Location", "")
 
 
 def get(base: str, path: str) -> tuple[int, str]:
@@ -336,6 +358,7 @@ def run(base: str, key: bytes, r: Results) -> None:
     about_round_trip(base, key, r)
     home_round_trip(base, key, r)
     services_round_trip(base, key, r)
+    services_seventh(base, key, r)
 
 
 def contact_switches(base: str, key: bytes, r: Results) -> None:
@@ -963,6 +986,158 @@ def services_round_trip(base: str, key: bytes, r: Results) -> None:
             "eye" in defined and "shield-alt" in defined,
             "the sprite is worked out at render time, so a newly chosen icon "
             "arrives with the card that chose it")
+
+
+def services_seventh(base: str, key: bytes, r: Results) -> None:
+    """A service that exists only in the document, and the page it gets.
+
+    WHAT THIS IS FOR
+    The six services shipped as directories, and every tool here finds a page
+    by walking the filesystem. A service added in the editor has no directory
+    and never will — nothing in this repository runs when content is published
+    — so everything that makes a page a page has to work for a row instead: an
+    address that resolves, a head that names itself, a place in the sitemap, a
+    404 when it is hidden, and a link from the index.
+
+    None of that is proved by the round trip above, which only ever edits
+    services that already have somewhere to live.
+
+    The .htaccess rewrite is NOT exercised here: the local server does not read
+    .htaccess, and tools/dev-router.php carries the same route so this can be
+    tested at all. tools/verify_live.py is what asks the host whether its half
+    of the route works.
+    """
+    print("\na seventh service, which has no directory")
+
+    slug = "quantum-readiness"
+    r.check("the slug being added really has no directory here",
+            not (ROOT / "pages" / "services" / slug).is_dir(),
+            "the point of the test is a service with nowhere to live")
+
+    def sitemap_services(xml: str) -> list[str]:
+        return re.findall(
+            r"<loc>https://tech4time\.bd/pages/services/([a-z0-9-]+)/</loc>", xml)
+
+    _, before = get(base, "/sitemap.xml")
+    listed_before = sitemap_services(before)
+
+    data = json.loads(SERVICES.read_text())
+    data["revision"] = 40
+
+    seventh = copy.deepcopy(data["services"]["items"][0])
+    seventh["id"] = "seventh-service"
+    seventh["slug"] = slug
+    seventh["name"] = f"{MARK} Quantum"
+    seventh["status"] = "shown"
+    seventh["meta"]["title"] = f"{MARK}-7th-tab"
+    seventh["meta"]["description"] = f"{MARK}-7th-desc"
+    seventh["meta"]["share_title"] = f"{MARK}-7th-share"
+    seventh["hero"]["title"] = f"{MARK}-7th-hero"
+    seventh["hero"]["subtitle"] = f"{MARK}-7th-sub"
+    seventh["cta"]["title"] = f"{MARK}-7th-cta"
+    data["services"]["items"].append(seventh)
+
+    # On the index the way the editor would put it there: a block that names
+    # the service, and a nav card that jumps to the block.
+    data["blocks"]["items"].append({
+        "id": "seventh-block", "service": slug, "icon": "server",
+        "title": f"{MARK}-7th-block", "intro": f"{MARK}-7th-intro",
+        "status": "shown", "groups": [],
+        # A block links to its service page through a button, exactly as the
+        # six do. Adding a service and forgetting this leaves a page that is
+        # reachable and a home page that never mentions it, which is why
+        # content-runbook.md lists the button as part of adding a service.
+        "buttons": [{"id": "seventh-button", "label": f"{MARK}-7th-button",
+                     "href": f"/pages/services/{slug}/", "icon": "arrow-right",
+                     "style": "secondary", "status": "shown"}]})
+    data["nav"]["items"].append({
+        "id": "seventh-nav", "block": "seventh-block", "icon": "cloud",
+        "title": f"{MARK}-7th-nav", "text": f"{MARK}-7th-navtext",
+        "status": "shown"})
+
+    status, answer = publish(base, key, "services", data)
+    r.check("a service can be added to the document",
+            status == 200 and answer.get("ok") is True, f"{status} {answer}")
+
+    clean = f"/pages/services/{slug}/"
+    status, page = get(base, clean)
+    r.check("and its page answers at an address with no file behind it",
+            status == 200, f"status {status}")
+    r.check("with the hero it was given", f"{MARK}-7th-hero" in page)
+    r.check("and its own <title>", f"<title>{MARK}-7th-tab</title>" in page)
+    r.check("and its own description",
+            f'name="description" content="{MARK}-7th-desc"' in page)
+
+    r.check("the canonical is the clean address, not the .php one",
+            f'<link rel="canonical" href="https://tech4time.bd{clean}">' in page,
+            "a page reachable at two addresses is a duplicate-content problem")
+    r.check("and so is og:url",
+            f'<meta property="og:url" content="https://tech4time.bd{clean}">' in page)
+
+    r.check("it is a whole page, not a fragment",
+            page.count("<main") == 1 and "</html>" in page)
+    r.check("with the bands the other six have",
+            f"{MARK}-7th-cta" in page and "page-hero__title" in page)
+
+    # The sprite is worked out from the document at render time, so a page
+    # nobody wrote a comment for still gets its icons.
+    used = set(re.findall(r'<use href="#([a-z0-9-]+)"', page))
+    defined = set(re.findall(r'<symbol id="([^"]+)"', page))
+    defined |= set(re.findall(r'\bid="((?:hc|dock)-[^"]+)"', page))
+    r.check("every icon it points at is inlined in it",
+            not (used - defined), sorted(used - defined))
+
+    _, index = get(base, "/pages/services/")
+    r.check("the index links to it", clean in index,
+            "a service nobody can navigate to is not added")
+    r.check("and shows the block that was added with it",
+            f"{MARK}-7th-block" in index)
+
+    status, sitemap = get(base, "/sitemap.xml")
+    r.check("the sitemap answers at the address robots.txt names",
+            status == 200 and "<urlset" in sitemap, f"status {status}")
+    r.check("and lists the new service",
+            f"<loc>https://tech4time.bd{clean}</loc>" in sitemap,
+            "a page no sitemap names is a page a crawler is not told about")
+    # Relative, not absolute: the round trip above leaves the document holding
+    # whichever services it was testing with, and a count typed in here would
+    # be a fact about that test rather than about this one.
+    listed_after = sitemap_services(sitemap)
+    r.check("adding one service adds exactly one line to the sitemap",
+            listed_after == listed_before + [slug],
+            f"{listed_before} -> {listed_after}")
+
+    status, location = get_unfollowed(base, f"/pages/services/detail.php?service={slug}")
+    r.check("asked for by its .php name, the page redirects to the clean one",
+            status == 301 and location == clean, f"{status} {location}")
+
+    print("\nand it can be taken away again")
+
+    data["revision"] = 41
+    data["services"]["items"][-1]["status"] = "hidden"
+    publish(base, key, "services", data)
+
+    status, _ = get(base, clean)
+    r.check("hidden, its page answers 404", status == 404, f"status {status}")
+    _, index = get(base, "/pages/services/")
+    r.check("and the index stops linking to it", clean not in index)
+    r.check("and the block that named it goes too", f"{MARK}-7th-block" not in index)
+    _, sitemap = get(base, "/sitemap.xml")
+    r.check("and the sitemap stops naming it", clean not in sitemap,
+            "a sitemap naming a 404 is a crawl error against the whole site")
+
+    data["revision"] = 42
+    data["services"]["items"].pop()
+    publish(base, key, "services", data)
+    status, _ = get(base, clean)
+    r.check("removed outright, it is still a 404", status == 404, f"status {status}")
+
+    status, _ = get(base, "/pages/services/no-such-thing/")
+    r.check("a slug the document never had is a 404 too", status == 404,
+            f"status {status}")
+    status, _ = get(base, "/pages/services/cybersecurity/")
+    r.check("and the six that have directories are untouched", status == 200,
+            f"status {status}")
 
 
 def home_round_trip(base: str, key: bytes, r: Results) -> None:
