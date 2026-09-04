@@ -21,7 +21,7 @@ adding or changing a field on the careers or contact page.
 Every editable field exists in three places, and all three must agree:
 
 ```
-    lib/contact.php                the MODEL
+    lib/contract.php               the MODEL  (byte-identical in both repos)
     contact_defaults()             fields, defaults, validation
            │
            ├──────────────────────────────────┐
@@ -57,7 +57,7 @@ miss exactly the fields most likely to be forgotten.
 
 Say you are adding a WhatsApp number to each office.
 
-### 1. The model — `lib/contact.php`
+### 1. The model — `lib/contract.php`
 
 ```php
 function contact_office_defaults(): array
@@ -162,7 +162,7 @@ body fields — the ones most likely to drift — after which the check would an
 
 **What is done instead.** `tech4time-website-backend/tools/test_careers_admin.py` asks PHP for the model, posts a distinct
 marker into every field it declares, saves through the real editor, then loads the public page and
-requires every marker to come out. A field added to `lib/careers.php` is covered the moment it
+requires every marker to come out. A field added to `lib/contract.php` is covered the moment it
 exists, and covered strictly: the default is that it must come back verbatim, and a field that
 cannot carry a marker — a date, a URL, the generated `id` — has to be written into `SHAPED_FIELDS`
 with the reason and what to look for instead.

@@ -8,13 +8,26 @@ From nothing to a page that passes every check. About twenty minutes.
 
 ## Decide first: static or dynamic?
 
-**Static `.html`** — the right answer for almost everything. Fourteen of the sixteen pages are
-static. Content changes by editing the file and redeploying.
+**Static `.html`** — now the smaller half. **Four** of the sixteen pages are static: the resource
+certifications, branding and advertisement, the privacy policy and the 404. Content changes by
+editing the file and redeploying.
 
-**Dynamic `.php`** — only when the page says something that changes on its own schedule, without a
-redeploy. Two pages qualify: job posts appear and expire, and contact details change. Making a page
-dynamic means building an editor for it, a content model, and a renderer — see
-*adding-an-editor.md* (in tech4time-website-backend).
+**Dynamic `.php`** — **twelve** of the sixteen, and the right answer whenever the page says
+something that changes on its own schedule, without a redeploy: the home page, about, careers,
+contact, the company profile, the services index and the six service pages. Making a page dynamic
+means building an editor for it, a content model, and a renderer — see *adding-an-editor.md* (in
+tech4time-website-backend).
+
+**A page does not always need a document of its own.** The six service pages are rows of
+`content/services.json`, one template with six sets of words, because a seventh service has to be
+addable from the editor and `CONTRACT_DOCUMENTS` is a constant in code. If the page you are adding
+is another of something that already exists, add a row rather than a document.
+
+**A row is not yet a URL.** The six service pages each keep a real `pages/services/<slug>/index.php`
+— two lines of their own and a shared renderer — because `audit_pages.py`, `check_shared_markup.py`
+and `inject_icons.py` all enumerate pages by walking the filesystem. A service added in the admin at
+a slug with no directory has no page until one exists; giving it one is a small developer follow-up,
+and a general route for them is parked work rather than done.
 
 The rest of this page covers a static page.
 

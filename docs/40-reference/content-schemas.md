@@ -2,12 +2,15 @@
 
 **Applies to:** both
 
-The two JSON files the dynamic pages render from, field by field.
+The **six** JSON files the dynamic pages render from, field by field. Twelve of the sixteen pages,
+because `content/services.json` carries seven of them.
 
-**The defaults functions are the definition of the shape**, not these files —
-`careers_load()` in `lib/careers.php`, and `contact_defaults()` / `contact_office_defaults()` /
-`contact_reach_defaults()` in `lib/contact.php`. A JSON file is one instance of a shape, and an
-optional field that happens to be absent from it is still a field.
+**The defaults functions are the definition of the shape**, not these files — `careers_defaults()`,
+`contact_defaults()`, `company_defaults()`, `about_defaults()`, `home_defaults()` and
+`services_defaults()`, all in **`lib/contract.php`**, which the two repositories hold
+byte-identical. (They lived in `lib/careers.php` and `lib/contact.php` until the repository split;
+the prose here said so for some time after it stopped being true.) A JSON file is one instance of a
+shape, and an optional field that happens to be absent from it is still a field.
 
 Changing a shape means changing three things together — the model, the form and the renderer.
 [content-model.md](../10-development/server-side/content-model.md).
@@ -274,6 +277,99 @@ there is no second copy of the six to keep true — there was, and it had drifte
 
 **Both halves of a destination picture are counted by `home_images()`**, so an unused-file sweep
 cannot offer to delete a dark image the moment it is uploaded.
+
+## `content/services.json`
+
+**One document, seven pages.** The services index *and* every service page under it. That is forced
+rather than chosen: a seventh service has to be addable from the editor, and `CONTRACT_DOCUMENTS` is
+a constant in code — so a service cannot be its own document and has to be a row in a list.
+
+```json
+{
+  "updated":  "…",
+  "revision": 0,
+  "meta":     { "title": "…", "description": "…", "share_title": "…" },
+  "hero":     { "title": "…", "subtitle": "…" },
+  "nav":      { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…", "items": [] },
+  "blocks":   { "status": "shown", "items": [] },
+  "ossf":     { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…", "items": [] },
+  "cta":      { "status": "shown", "title": "…", "text": "…",
+                "label": "…", "href": "…", "icon": "…" },
+  "services": { "items": [] }
+}
+```
+
+A `nav` row is `{ id, block, icon, title, text, status }` — `block` names the **block** it scrolls
+to, which is not the service's slug: the HRaaS block is `id="hraas"` and its service is
+`hr-solutions`.
+
+A `blocks` row is `{ id, service, icon, title, intro, status, groups[], buttons[] }`, where a group
+is `{ id, title, width, items[], status }` and a button is
+`{ id, label, href, icon, style, status }`. `service` names the row in `services.items` the block
+belongs to.
+
+An `ossf` row is `{ id, icon, title, text, status }`. The number beside a stage is its position.
+
+A `services` row is **one whole page**:
+
+```json
+{
+  "id": "…", "slug": "…", "name": "…", "status": "shown",
+  "schema_type": "…", "schema_description": "…",
+  "meta":   { "title": "…", "description": "…", "share_title": "…" },
+  "hero":   { "title": "…", "subtitle": "…" },
+  "core":   { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…",
+              "note": { "text": "…", "link_label": "…", "link_href": "…" },
+              "items": [] },
+  "layers": { "status": "shown", "eyebrow": "…", "title": "…", "lead": "…",
+              "labels": { "purpose": "…", "features": "…", "tags": "…",
+                          "count_one": "…", "count_many": "…" },
+              "items": [] },
+  "cta":    { "status": "shown", "title": "…", "text": "…",
+              "label": "…", "href": "…", "icon": "…" }
+}
+```
+
+A `layers` row is `{ id, icon, title, tab_text, text, hub_label, status, cards[] }` and a card is
+`{ id, icon, name, category, desc, purpose, features[], tags[], status }`.
+
+**Four things are drawn and never stored.** They are what keeps them from drifting out of step with
+what they describe, which is what they are for:
+
+| Drawn | From |
+|---|---|
+| the card beside each ring | that layer's **first** shown card |
+| every node on the ring | a card — its id, its icon, and its name for the screen reader |
+| *"12 Solutions"* under a layer heading | the shown card count, in `count_one` / `count_many` |
+| the `Service` graph's offer catalogue | the layer list — empty when the band is hidden |
+
+**A solution card's `id` is stored, never minted from its name.** Sixty-three of the 137 that
+shipped carry an id that does not follow from the card's title —
+`sol-cloud-design-private-cloud` on a card called *"Private Cloud Design & Implementation"*. They
+were written by hand, and they are the fragment a saved deep link holds the card by.
+
+**A layer's `id` is stored bare and rendered with a prefix** — `reactive` becomes
+`id="layer-reactive"`, which is what the tab links to.
+
+**`labels` are per page, not per card.** Every card on the cloud page is headed *"What it
+includes"* and *"Technologies"*. An empty `features` label means the page's cards show no ticked
+list at all; three of the six do not.
+
+**`schema_type` is not the name.** It is schema.org's word for the practice, and on two of the six
+it differs: HRaaS is `IT Staffing`, IT Consultancy & Training is `IT Consulting`.
+
+**The index's group lists are authored, not derived from the detail pages.** The index says
+*"Offensive Security & Penetration Testing (Metasploit, Burp Suite)"* where the detail page says
+*"Offensive Security & Penetration Testing"*, and the HRaaS block lists four engagement models
+against that page's thirty-three resource types. They are two summaries of one practice at two
+lengths; flattening them into one would lose the shorter.
+
+**Hiding a service hides the whole of it.** Its page answers 404, and its block and the nav card
+that jumps to that block both leave the index — otherwise hiding would only produce a broken link.
+The alternating tint follows the blocks a visitor can **see**, so the stripe stays correct when one
+is switched off.
+
+**There are no pictures on any of these pages, and no rich text anywhere in the document.**
 
 ## Which pictures get a light/dark pair, and which do not
 

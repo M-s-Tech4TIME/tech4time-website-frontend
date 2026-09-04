@@ -606,8 +606,16 @@ function services_schema(array $service, string $origin): array
     $url  = rtrim($origin, '/') . '/pages/services/' . $service['slug'] . '/';
     $name = $service['name'];
 
+    /* A HIDDEN BAND HAS NO CATALOGUE. The offer catalogue is the layers, and
+       the layers are not on the page when the band is switched off -- so
+       listing them here would tell a crawler about content a reader cannot
+       find, and every URL in it would be an anchor to nothing. Hiding has to
+       mean the same thing to both audiences. */
     $catalog = [];
-    foreach (services_rows_shown($service['layers']['items']) as $layer) {
+    $layers  = ($service['layers']['status'] ?? 'shown') === 'hidden'
+        ? [] : services_rows_shown($service['layers']['items']);
+
+    foreach ($layers as $layer) {
         $catalog[] = [
             '@type' => 'OfferCatalog',
             'name'  => $layer['title'],

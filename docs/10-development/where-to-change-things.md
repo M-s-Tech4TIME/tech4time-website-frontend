@@ -114,15 +114,18 @@ off. [javascript.md](frontend/javascript.md) · [motion.md](frontend/motion.md)
 | Who enquiries are sent to, and who they come from | `MAIL_TO` / `MAIL_FROM` in `contact-handler.php` |
 | Contact form validation | `contact-handler.php` — the server side is the real one |
 | The contact form's rate limit | `contact-handler.php`, using `lib/throttle.php` |
-| The shape of a job post | `lib/careers.php` — **and the form and the renderer with it** |
-| The shape of the contact page | `lib/contact.php` — **and the form and the renderer with it** |
+| The shape of ANY editable document | `lib/contract.php` — **and the form and the renderer with it**, and the same file in the backend |
+| A service, its solutions, or the services page | **`https://admin.tech4time.bd/?s=services`** — not a file, and not here |
+| How a services page is drawn | `lib/services.php` — one renderer behind all seven pages |
 | What HTML is allowed in rich text | `lib/html.php` — the sanitiser |
 | How JSON is read and written | `lib/store.php` |
 
 > Changing a content shape means changing three files together — the model, the form and the
 > renderer. Something fails the build if one is left behind: `check_content_model.py` for contact,
-> `test_publish.py` for careers, which sends a marker through every declared field and reads
-> it back off the page. [content-model.md](server-side/content-model.md)
+> `test_publish.py` for everything else, which sends a marker through every declared field and
+> reads it back off the page. `lib/contract.php` is byte-identical across both repositories, so
+> after editing it run `check_shared_lib.py --update` and copy the file *and* the manifest across.
+> [content-model.md](server-side/content-model.md)
 
 ---
 
