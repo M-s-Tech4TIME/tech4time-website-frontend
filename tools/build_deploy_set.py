@@ -44,6 +44,7 @@ import fnmatch
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -287,6 +288,30 @@ def check(paths: list[str], out_dir: Path) -> tuple[int, int]:
             assert_(f"the {name} seed is readable JSON", True)
         except (OSError, ValueError) as exc:
             assert_(f"the {name} seed is readable JSON", False, str(exc))
+
+    # Every shipped .php file must COMPILE with short_open_tag=On.
+    #
+    # It is off by default in php-cli and on by default on this host, as on
+    # most cPanel installs, and the difference is invisible until a deploy:
+    # with it on, PHP reads the "<?" of a literal "<?xml" as an open tag and
+    # tries to run the rest as code. The file then fails to compile, so the
+    # response is a 500 with an empty body and a stack trace nobody gets to
+    # see. sitemap.php shipped that way and took the sitemap down; every check
+    # in this repository passed first, because every one of them runs php the
+    # way the laptop has it configured rather than the way the server does.
+    php = shutil.which("php")
+    if php is None:
+        assert_("php is available to parse the shipped files", False,
+                "install php-cli — this check cannot run without it")
+    else:
+        for rel in sorted(p for p in paths if p.endswith(".php")):
+            result = subprocess.run(
+                [php, "-d", "short_open_tag=1", "-l", str(ROOT / rel)],
+                capture_output=True, text=True)
+            assert_(f"{rel} parses with short_open_tag=On",
+                    result.returncode == 0,
+                    result.stdout.strip().splitlines()[0]
+                    if result.stdout.strip() else result.stderr.strip())
 
     try:
         data = json.loads((out_dir / "seed" / "careers.json").read_text())

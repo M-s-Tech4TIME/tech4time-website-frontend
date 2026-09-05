@@ -146,9 +146,20 @@ function x(string $value): string
     return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
 }
 
+/* BOTH of these are echoed, and neither may be written as literal output.
+   With short_open_tag=On -- which is off by default in php-cli and ON on this
+   host, as it is on most cPanel installs -- PHP reads the "<?" of "<?xml" as
+   an open tag and tries to run what follows as code. The file then fails to
+   COMPILE, so nothing runs, the response is a 500 with an empty body, and no
+   amount of reading the code explains it because the code is fine.
+
+   The declaration was echoed for this reason from the start; the stylesheet
+   line was not, and it took the sitemap down on the first deploy.
+   build_deploy_set.py --check now parses every shipped .php file with
+   short_open_tag=On, so this cannot reach the host again. */
 echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
+echo '<?xml-stylesheet type="text/xsl" href="/assets/xsl/sitemap.xsl"?>', "\n";
 ?>
-<?xml-stylesheet type="text/xsl" href="/assets/xsl/sitemap.xsl"?>
 <!--
   Tech4TIME sitemap.
 
