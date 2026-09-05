@@ -64,6 +64,24 @@ if ($path === '/sitemap.xml') {
     return true;
 }
 
+/* Apache's DirectorySlash, and the first of .htaccess section 3's two service
+   rules. On the host a directory asked for without its trailing slash is
+   redirected to the slash — Apache does it for a real directory, and the
+   rewrite at section 3 does it for a service that has no directory. The
+   built-in server does neither, and answered 200 at both addresses: a link
+   written without the slash looked right here and cost a redirect in
+   production, and the page had two addresses locally where the host gives it
+   one. */
+if ($path !== '/' && !str_ends_with($path, '/')
+        && (is_dir($target)
+            || (!is_file($target)
+                && preg_match('#^/pages/services/[a-z0-9-]+$#', $path)))) {
+    $query = (string)($_SERVER['QUERY_STRING'] ?? '');
+    http_response_code(301);
+    header('Location: ' . $path . '/' . ($query !== '' ? '?' . $query : ''));
+    return true;
+}
+
 /* Apache's DirectoryIndex, in its order. */
 if (is_dir($target)) {
     foreach (['index.php', 'index.html'] as $name) {

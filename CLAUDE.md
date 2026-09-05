@@ -91,7 +91,8 @@ services index and all six service pages, plus the contact handler, `sitemap.php
 `api/publish.php`.
 
 `tools/dev-router.php` is what makes the local server behave like the host — DirectoryIndex across
-both extensions, the services route, the sitemap's address, and the paths `.htaccess` refuses.
+both extensions, the trailing slash Apache's DirectorySlash adds, the services route, the
+sitemap's address, and the paths `.htaccess` refuses.
 It is **not** a complete stand-in: `.htaccess` itself is never read locally, so the rewrite rules
 can only be verified against the live host with `tools/verify_live.py`.
 
