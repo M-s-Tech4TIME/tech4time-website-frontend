@@ -100,10 +100,62 @@
     RewriteCond %{THE_REQUEST} \s/(.*/)?index\.(html|php)[\s?] [NC]
     RewriteRule ^(.*/)?index\.(html|php)$ /%1 [R=301,L]
 
+    # ----------------------------------------------------------------------
+    # The sitemap is generated, and its ADDRESS MUST NOT CHANGE
+    # /sitemap.xml is the URL robots.txt names and the one submitted to Search
+    # Console, and a sitemap is a URL a crawler remembers. It stopped being a
+    # static file when services became rows in a document rather than files in
+    # this repository; it did not stop being that address.
+    #
+    # The rewrite is internal and unconditional: unconditional so that a
+    # sitemap.xml left behind on the host by an older deploy cannot shadow the
+    # generated one, internal so the address a crawler holds still answers.
+    #
+    # The first rule sends anyone who asks for /sitemap.php by name to the real
+    # address, so the sitemap is not served at two URLs. It is guarded on
+    # THE_REQUEST — the original request line, which an internal rewrite does
+    # not change — because matching the rewritten path instead would send the
+    # second rule's output straight back into the first, forever.
+    # ----------------------------------------------------------------------
+    RewriteCond %{THE_REQUEST} \s/sitemap\.php[\s?] [NC]
+    RewriteRule ^sitemap\.php$ /sitemap.xml [R=301,L]
+
+    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+
     # Send /pages/about -> /pages/about/  (only where the directory exists)
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteCond %{REQUEST_URI} !/$
     RewriteRule ^(.*)$ /$1/ [R=301,L]
+
+    # ----------------------------------------------------------------------
+    # A service page that has no directory
+    # The six services were built as directories and are still served by them:
+    # both conditions below are !-f and !-d, so a request that resolves to
+    # something real never reaches these rules. A SEVENTH service, added in the
+    # editor, exists only inside content/services.json — nothing in this
+    # repository runs when content is published and the editor cannot create
+    # directories here — so its clean URL matches nothing on disk and is routed
+    # to the shared renderer instead.
+    #
+    # pages/services/detail.php answers 404 for a slug the document does not
+    # have, or whose service is hidden, so this does not turn every unknown
+    # address under /pages/services/ into a page.
+    #
+    # The rule is duplicated in tools/dev-router.php, which serves the local
+    # preview: neither file reads the other, and a route that exists in only
+    # one of them is a route that works in only one place.
+    # ----------------------------------------------------------------------
+
+    # First to the trailing slash, so the address has the same shape as the six.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^pages/services/([a-z0-9-]+)$ /pages/services/$1/ [R=301,L]
+
+    # Then to the renderer. Internal: the address the visitor sees does not
+    # change, and detail.php redirects anyone who asks for it by name.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^pages/services/([a-z0-9-]+)/$ /pages/services/detail.php?service=$1 [L,QSA]
 </IfModule>
 
 <IfModule mod_dir.c>

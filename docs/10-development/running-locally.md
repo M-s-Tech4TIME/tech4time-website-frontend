@@ -18,9 +18,10 @@ It prints a menu of the pages worth visiting and reminds you how to undo content
 stops it.
 
 Under the hood it is `php -S localhost:8000 -t . tools/dev-router.php`. The router exists to make
-one machine behave like the other: it resolves `/pages/services/` to
-`pages/services/index.html` and `/pages/careers/` to `index.php` the way `.htaccess` does on
-Apache, so a URL that works here works there.
+one machine behave like the other: it resolves a directory request to the `index.php` or
+`index.html` inside it, the way `.htaccess` does on Apache, so a URL that works here works there.
+It also redirects an address asked for without its trailing slash, which Apache does by itself
+and the built-in server does not — without it a page has one address on the host and two here.
 
 It binds to localhost only.
 

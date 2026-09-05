@@ -41,6 +41,7 @@ Every test runs against a COPY of the real data files, which are restored
 afterwards whether the run passes or fails.
 """
 
+import copy
 import hashlib
 import hmac
 import json
@@ -65,6 +66,7 @@ CONTACT = ROOT / "content" / "contact.json"
 COMPANY = ROOT / "content" / "company.json"
 ABOUT = ROOT / "content" / "about.json"
 HOME = ROOT / "content" / "home.json"
+SERVICES = ROOT / "content" / "services.json"
 
 MARK = "PUBLISHMARK"
 
@@ -149,6 +151,27 @@ def publish(base: str, key: bytes, document: str, data: dict,
     header = sign(key, body, stamp)
     return post(base, tamper if tamper is not None else body,
                 {"X-T4T-Timestamp": str(stamp), "X-T4T-Signature": header})
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """An opener that reports a redirect instead of following it.
+
+    urllib follows 301s by default, which would turn "this address redirects
+    to the clean one" into "this address answers 200" and prove nothing.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def get_unfollowed(base: str, path: str) -> tuple[int, str]:
+    """The status and Location of a request, with the redirect left alone."""
+    opener = urllib.request.build_opener(NoRedirect)
+    try:
+        with opener.open(base + path, timeout=15) as response:
+            return response.status, response.headers.get("Location", "")
+    except urllib.error.HTTPError as e:
+        return e.code, e.headers.get("Location", "")
 
 
 def get(base: str, path: str) -> tuple[int, str]:
@@ -334,6 +357,8 @@ def run(base: str, key: bytes, r: Results) -> None:
     company_round_trip(base, key, r)
     about_round_trip(base, key, r)
     home_round_trip(base, key, r)
+    services_round_trip(base, key, r)
+    services_seventh(base, key, r)
 
 
 def contact_switches(base: str, key: bytes, r: Results) -> None:
@@ -738,6 +763,383 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
             str(stored["story"]["items"][0]["image"]))
 
 
+def services_round_trip(base: str, key: bytes, r: Results) -> None:
+    """Every field the services model declares, set and read off SEVEN pages.
+
+    THIS IS WHAT check_content_model.py POINTS AT, for the reason
+    about_round_trip() is and more so: this document draws seven pages and
+    every part of all seven is a loop, so a regex over the renderer finds
+    $card and $group rather than a field name. Put a distinguishable value in
+    every field, publish it, and look for it in the HTML a visitor would get.
+
+    It also checks the four things the renderer DRAWS rather than stores — the
+    card beside the ring, the ring's nodes, the count, and the Service graph.
+    Those cannot be proved by a marker, because nothing types them; they are
+    proved by being consistent with the cards they come from.
+    """
+    print("\nthe services pages travel the same road")
+
+    data = json.loads(SERVICES.read_text())
+    data["revision"] = 30
+
+    data["meta"]["title"] = f"{MARK}-tab"
+    data["meta"]["description"] = f"{MARK}-desc"
+    data["meta"]["share_title"] = f"{MARK}-share"
+    data["hero"]["title"] = f"{MARK}-hero"
+    data["hero"]["subtitle"] = f"{MARK}-sub"
+
+    data["nav"]["eyebrow"] = f"{MARK}-nav-eyebrow"
+    data["nav"]["title"] = f"{MARK}-nav-title"
+    data["nav"]["lead"] = f"{MARK}-nav-lead"
+    data["nav"]["items"] = [{
+        "id": "mark-nav", "block": "mark-block", "icon": "cloud",
+        "title": f"{MARK}-nav-card", "text": f"{MARK}-nav-text", "status": "shown"}]
+
+    data["blocks"]["items"] = [{
+        "id": "mark-block", "service": "cybersecurity", "icon": "server",
+        "title": f"{MARK}-block-title", "intro": f"{MARK}-block-intro",
+        "status": "shown",
+        "groups": [{"id": "mark-group", "title": f"{MARK}-group-title",
+                    "width": "wide", "items": [f"{MARK}-group-item"],
+                    "status": "shown"}],
+        "buttons": [{"id": "mark-button", "label": f"{MARK}-button-label",
+                     "href": "/pages/services/cybersecurity/", "icon": "arrow-right",
+                     "style": "secondary", "status": "shown"}]}]
+
+    data["ossf"]["eyebrow"] = f"{MARK}-ossf-eyebrow"
+    data["ossf"]["title"] = f"{MARK}-ossf-title"
+    data["ossf"]["lead"] = f"{MARK}-ossf-lead"
+    data["ossf"]["items"] = [{
+        "id": "mark-stage", "icon": "crosshairs", "title": f"{MARK}-stage-title",
+        "text": f"{MARK}-stage-text", "status": "shown"}]
+
+    data["cta"]["title"] = f"{MARK}-cta-title"
+    data["cta"]["text"] = f"{MARK}-cta-text"
+    data["cta"]["label"] = f"{MARK}-cta-label"
+    data["cta"]["href"] = "/pages/contact/"
+    data["cta"]["icon"] = "calendar-check"
+
+    # Two solutions, so the ring has more than one node and the card beside it
+    # can be seen to be the FIRST rather than "the only one there was".
+    cards = [
+        {"id": "sol-mark-one", "icon": "shield-alt", "name": f"{MARK}-card-one",
+         "category": f"{MARK}-card-cat", "desc": f"{MARK}-card-desc",
+         "purpose": f"{MARK}-card-purpose", "features": [f"{MARK}-card-feature"],
+         "tags": [f"{MARK}-card-tag"], "status": "shown"},
+        {"id": "sol-mark-two", "icon": "lock", "name": f"{MARK}-card-two",
+         "category": "", "desc": "", "purpose": "",
+         "features": [], "tags": [], "status": "shown"},
+    ]
+
+    data["services"]["items"] = [{
+        # The slug is one of the six that HAVE a directory. A service at a
+        # slug of its own needs a route, which is the next piece of work and
+        # not this one -- see plans/ and the note in adding-a-page.md.
+        "id": "cybersecurity", "slug": "cybersecurity", "name": f"{MARK}-svc-name",
+        "status": "shown",
+        "schema_type": f"{MARK}-svc-type",
+        "schema_description": f"{MARK}-svc-schema-desc",
+        "meta": {"title": f"{MARK}-svc-tab", "description": f"{MARK}-svc-desc",
+                 "share_title": f"{MARK}-svc-share"},
+        "hero": {"title": f"{MARK}-svc-hero", "subtitle": f"{MARK}-svc-sub"},
+        "core": {"status": "shown", "eyebrow": f"{MARK}-core-eyebrow",
+                 "title": f"{MARK}-core-title", "lead": f"{MARK}-core-lead",
+                 "note": {"text": f"{MARK}-note-text",
+                          "link_label": f"{MARK}-note-label",
+                          "link_href": "/pages/services/"},
+                 "items": [{"id": "mark-core", "icon": "code",
+                            "title": f"{MARK}-core-card", "text": f"{MARK}-core-text",
+                            "status": "shown"}]},
+        "layers": {"status": "shown", "eyebrow": f"{MARK}-lay-eyebrow",
+                   "title": f"{MARK}-lay-title", "lead": f"{MARK}-lay-lead",
+                   "labels": {"purpose": f"{MARK}-lab-purpose",
+                              "features": f"{MARK}-lab-features",
+                              "tags": f"{MARK}-lab-tags",
+                              "count_one": f"{MARK}-one",
+                              "count_many": f"{MARK}-many"},
+                   "items": [{"id": "mark-layer", "icon": "eye",
+                              "title": f"{MARK}-layer-title",
+                              "tab_text": f"{MARK}-layer-tab",
+                              "text": f"{MARK}-layer-text",
+                              "hub_label": f"{MARK}-hub", "status": "shown",
+                              "cards": cards}]},
+        "cta": {"status": "shown", "title": f"{MARK}-svc-cta-title",
+                "text": f"{MARK}-svc-cta-text", "label": f"{MARK}-svc-cta-label",
+                "href": "/pages/contact/", "icon": "calendar-check"},
+    }]
+
+    status, answer = publish(base, key, "services", data)
+    r.check("the services document publishes",
+            status == 200 and answer.get("ok") is True, f"{status} {answer}")
+
+    _, index = get(base, "/pages/services/")
+    missing = [k for k in (
+        "tab", "desc", "share", "hero", "sub",
+        "nav-eyebrow", "nav-title", "nav-lead", "nav-card", "nav-text",
+        "block-title", "block-intro", "group-title", "group-item", "button-label",
+        "ossf-eyebrow", "ossf-title", "ossf-lead", "stage-title", "stage-text",
+        "cta-title", "cta-text", "cta-label",
+    ) if f"{MARK}-{k}" not in index]
+    r.check("every field the index declares reaches the page",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    _, page = get(base, "/pages/services/cybersecurity/")
+    missing = [k for k in (
+        "svc-tab", "svc-desc", "svc-share", "svc-hero", "svc-sub",
+        "svc-type", "svc-schema-desc", "svc-name",
+        "core-eyebrow", "core-title", "core-lead", "core-card", "core-text",
+        "note-text", "note-label",
+        "lay-eyebrow", "lay-title", "lay-lead",
+        "lab-purpose", "lab-features", "lab-tags",
+        "layer-title", "layer-tab", "layer-text", "hub",
+        "card-one", "card-two", "card-cat", "card-desc", "card-purpose",
+        "card-feature", "card-tag",
+        "svc-cta-title", "svc-cta-text", "svc-cta-label",
+    ) if f"{MARK}-{k}" not in page]
+    r.check("every field a service page declares reaches it",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    print("\nwhat the renderer draws rather than stores")
+    r.check("the card beside the ring is the layer's FIRST card",
+            page.count(f"{MARK}-card-one") > page.count(f"{MARK}-card-two"),
+            "it is drawn twice — in the grid and beside the ring — where the "
+            "second card is drawn once")
+    r.check("it carries no id of its own",
+            'class="tool-card tool-card--detail" id=' not in page,
+            "two elements with one id would make the fragment link ambiguous")
+    r.check("the ring has one node per card",
+            page.count('class="soc-map__node"') == 2,
+            str(page.count('class="soc-map__node"')))
+    r.check("each node names the card it opens",
+            'data-solution="sol-mark-one"' in page
+            and 'data-solution="sol-mark-two"' in page)
+    r.check("the ring is sized by the count",
+            'class="soc-map soc-map--n2 soc-map--sm"' in page)
+    r.check("the count is the number of cards, in the words given",
+            f'class="layer__count">2 {MARK}-many<' in page,
+            "it is derived, so it cannot disagree with the cards below it")
+
+    graph = [b for b in json_ld(page) if b.get("@type") == "Service"]
+    r.check("the Service graph is generated from the page", len(graph) == 1,
+            f"{len(graph)} Service blocks")
+    if graph:
+        svc = graph[0]
+        r.check("it takes the name and the type it was given",
+                svc.get("name") == f"{MARK}-svc-name"
+                and svc.get("serviceType") == f"{MARK}-svc-type",
+                f"{svc.get('name')} / {svc.get('serviceType')}")
+        catalog = svc.get("hasOfferCatalog", {}).get("itemListElement", [])
+        r.check("its offer catalogue IS the layers",
+                [c.get("name") for c in catalog] == [f"{MARK}-layer-title"],
+                str(catalog))
+        r.check("and each entry links to the layer's anchor",
+                catalog and catalog[0].get("url", "").endswith("#layer-mark-layer"),
+                str(catalog))
+
+    print("\nhiding removes a thing from every place it appears")
+    data["revision"] = 31
+    data["services"]["items"][0]["layers"]["items"][0]["cards"][1]["status"] = "hidden"
+    publish(base, key, "services", data)
+    _, page = get(base, "/pages/services/cybersecurity/")
+    r.check("a hidden solution leaves the grid", f"{MARK}-card-two" not in page)
+    r.check("and the ring", page.count('class="soc-map__node"') == 1)
+    r.check("and the count follows it",
+            f'class="layer__count">1 {MARK}-one<' in page,
+            "and takes the singular, because there is one of it now")
+
+    data["revision"] = 32
+    data["services"]["items"][0]["layers"]["status"] = "hidden"
+    publish(base, key, "services", data)
+    _, page = get(base, "/pages/services/cybersecurity/")
+    r.check("a hidden band leaves the page", f"{MARK}-layer-title" not in page)
+    r.check("and the rest of the page stays", f"{MARK}-core-card" in page)
+
+    print("\nhiding a service hides the whole of it")
+    data["revision"] = 33
+    data["services"]["items"][0]["layers"]["status"] = "shown"
+    data["services"]["items"][0]["status"] = "hidden"
+    publish(base, key, "services", data)
+    status, page = get(base, "/pages/services/cybersecurity/")
+    r.check("its page answers 404", status == 404, f"status {status}")
+    _, index = get(base, "/pages/services/")
+    r.check("its block leaves the index", f"{MARK}-block-title" not in index,
+            "otherwise the index links to a page that 404s")
+    r.check("and so does the card that jumped to that block",
+            f"{MARK}-nav-card" not in index)
+
+    data["revision"] = 34
+    data["services"]["items"][0]["status"] = "shown"
+    publish(base, key, "services", data)
+    status, _ = get(base, "/pages/services/cybersecurity/")
+    r.check("showing it again brings the page back", status == 200, f"status {status}")
+
+    print("\nthe sprite carries what the document asked for")
+    _, page = get(base, "/pages/services/cybersecurity/")
+    used = set(re.findall(r'<use href="#([a-z0-9-]+)"', page))
+    defined = set(re.findall(r'<symbol id="([^"]+)"', page))
+    # The hero circuit and the dock both point <use> at their OWN <defs>.
+    # Those are local references and have no business in the sprite.
+    defined |= set(re.findall(r'\bid="((?:hc|dock)-[^"]+)"', page))
+    r.check("every symbol the page points at is inlined in it",
+            not (used - defined), sorted(used - defined))
+    r.check("an icon chosen in the document is among them",
+            "eye" in defined and "shield-alt" in defined,
+            "the sprite is worked out at render time, so a newly chosen icon "
+            "arrives with the card that chose it")
+
+
+def services_seventh(base: str, key: bytes, r: Results) -> None:
+    """A service that exists only in the document, and the page it gets.
+
+    WHAT THIS IS FOR
+    The six services shipped as directories, and every tool here finds a page
+    by walking the filesystem. A service added in the editor has no directory
+    and never will — nothing in this repository runs when content is published
+    — so everything that makes a page a page has to work for a row instead: an
+    address that resolves, a head that names itself, a place in the sitemap, a
+    404 when it is hidden, and a link from the index.
+
+    None of that is proved by the round trip above, which only ever edits
+    services that already have somewhere to live.
+
+    The .htaccess rewrite is NOT exercised here: the local server does not read
+    .htaccess, and tools/dev-router.php carries the same route so this can be
+    tested at all. tools/verify_live.py is what asks the host whether its half
+    of the route works.
+    """
+    print("\na seventh service, which has no directory")
+
+    slug = "quantum-readiness"
+    r.check("the slug being added really has no directory here",
+            not (ROOT / "pages" / "services" / slug).is_dir(),
+            "the point of the test is a service with nowhere to live")
+
+    def sitemap_services(xml: str) -> list[str]:
+        return re.findall(
+            r"<loc>https://tech4time\.bd/pages/services/([a-z0-9-]+)/</loc>", xml)
+
+    _, before = get(base, "/sitemap.xml")
+    listed_before = sitemap_services(before)
+
+    data = json.loads(SERVICES.read_text())
+    data["revision"] = 40
+
+    seventh = copy.deepcopy(data["services"]["items"][0])
+    seventh["id"] = "seventh-service"
+    seventh["slug"] = slug
+    seventh["name"] = f"{MARK} Quantum"
+    seventh["status"] = "shown"
+    seventh["meta"]["title"] = f"{MARK}-7th-tab"
+    seventh["meta"]["description"] = f"{MARK}-7th-desc"
+    seventh["meta"]["share_title"] = f"{MARK}-7th-share"
+    seventh["hero"]["title"] = f"{MARK}-7th-hero"
+    seventh["hero"]["subtitle"] = f"{MARK}-7th-sub"
+    seventh["cta"]["title"] = f"{MARK}-7th-cta"
+    data["services"]["items"].append(seventh)
+
+    # On the index the way the editor would put it there: a block that names
+    # the service, and a nav card that jumps to the block.
+    data["blocks"]["items"].append({
+        "id": "seventh-block", "service": slug, "icon": "server",
+        "title": f"{MARK}-7th-block", "intro": f"{MARK}-7th-intro",
+        "status": "shown", "groups": [],
+        # A block links to its service page through a button, exactly as the
+        # six do. Adding a service and forgetting this leaves a page that is
+        # reachable and a home page that never mentions it, which is why
+        # content-runbook.md lists the button as part of adding a service.
+        "buttons": [{"id": "seventh-button", "label": f"{MARK}-7th-button",
+                     "href": f"/pages/services/{slug}/", "icon": "arrow-right",
+                     "style": "secondary", "status": "shown"}]})
+    data["nav"]["items"].append({
+        "id": "seventh-nav", "block": "seventh-block", "icon": "cloud",
+        "title": f"{MARK}-7th-nav", "text": f"{MARK}-7th-navtext",
+        "status": "shown"})
+
+    status, answer = publish(base, key, "services", data)
+    r.check("a service can be added to the document",
+            status == 200 and answer.get("ok") is True, f"{status} {answer}")
+
+    clean = f"/pages/services/{slug}/"
+    status, page = get(base, clean)
+    r.check("and its page answers at an address with no file behind it",
+            status == 200, f"status {status}")
+    r.check("with the hero it was given", f"{MARK}-7th-hero" in page)
+    r.check("and its own <title>", f"<title>{MARK}-7th-tab</title>" in page)
+    r.check("and its own description",
+            f'name="description" content="{MARK}-7th-desc"' in page)
+
+    r.check("the canonical is the clean address, not the .php one",
+            f'<link rel="canonical" href="https://tech4time.bd{clean}">' in page,
+            "a page reachable at two addresses is a duplicate-content problem")
+    r.check("and so is og:url",
+            f'<meta property="og:url" content="https://tech4time.bd{clean}">' in page)
+
+    r.check("it is a whole page, not a fragment",
+            page.count("<main") == 1 and "</html>" in page)
+    r.check("with the bands the other six have",
+            f"{MARK}-7th-cta" in page and "page-hero__title" in page)
+
+    # The sprite is worked out from the document at render time, so a page
+    # nobody wrote a comment for still gets its icons.
+    used = set(re.findall(r'<use href="#([a-z0-9-]+)"', page))
+    defined = set(re.findall(r'<symbol id="([^"]+)"', page))
+    defined |= set(re.findall(r'\bid="((?:hc|dock)-[^"]+)"', page))
+    r.check("every icon it points at is inlined in it",
+            not (used - defined), sorted(used - defined))
+
+    _, index = get(base, "/pages/services/")
+    r.check("the index links to it", clean in index,
+            "a service nobody can navigate to is not added")
+    r.check("and shows the block that was added with it",
+            f"{MARK}-7th-block" in index)
+
+    status, sitemap = get(base, "/sitemap.xml")
+    r.check("the sitemap answers at the address robots.txt names",
+            status == 200 and "<urlset" in sitemap, f"status {status}")
+    r.check("and lists the new service",
+            f"<loc>https://tech4time.bd{clean}</loc>" in sitemap,
+            "a page no sitemap names is a page a crawler is not told about")
+    # Relative, not absolute: the round trip above leaves the document holding
+    # whichever services it was testing with, and a count typed in here would
+    # be a fact about that test rather than about this one.
+    listed_after = sitemap_services(sitemap)
+    r.check("adding one service adds exactly one line to the sitemap",
+            listed_after == listed_before + [slug],
+            f"{listed_before} -> {listed_after}")
+
+    status, location = get_unfollowed(base, f"/pages/services/detail.php?service={slug}")
+    r.check("asked for by its .php name, the page redirects to the clean one",
+            status == 301 and location == clean, f"{status} {location}")
+
+    print("\nand it can be taken away again")
+
+    data["revision"] = 41
+    data["services"]["items"][-1]["status"] = "hidden"
+    publish(base, key, "services", data)
+
+    status, _ = get(base, clean)
+    r.check("hidden, its page answers 404", status == 404, f"status {status}")
+    _, index = get(base, "/pages/services/")
+    r.check("and the index stops linking to it", clean not in index)
+    r.check("and the block that named it goes too", f"{MARK}-7th-block" not in index)
+    _, sitemap = get(base, "/sitemap.xml")
+    r.check("and the sitemap stops naming it", clean not in sitemap,
+            "a sitemap naming a 404 is a crawl error against the whole site")
+
+    data["revision"] = 42
+    data["services"]["items"].pop()
+    publish(base, key, "services", data)
+    status, _ = get(base, clean)
+    r.check("removed outright, it is still a 404", status == 404, f"status {status}")
+
+    status, _ = get(base, "/pages/services/no-such-thing/")
+    r.check("a slug the document never had is a 404 too", status == 404,
+            f"status {status}")
+    status, _ = get(base, "/pages/services/cybersecurity/")
+    r.check("and the six that have directories are untouched", status == 200,
+            f"status {status}")
+
+
 def home_round_trip(base: str, key: bytes, r: Results) -> None:
     """Every field the home model declares, set and then read off the page.
 
@@ -951,6 +1353,19 @@ def home_round_trip(base: str, key: bytes, r: Results) -> None:
             str(stored["destinations"]["items"][0]["image"]))
 
 
+def json_ld(page: str) -> list:
+    """Every ld+json block on the page, parsed. A services page carries three:
+    the shared Organization graph, the breadcrumb trail, and the Service."""
+    out = []
+    for raw in re.findall(r'<script type="application/ld\+json">(.*?)</script>',
+                          page, re.S):
+        try:
+            out.append(json.loads(raw))
+        except ValueError:
+            continue
+    return out
+
+
 def itemlist_of(page: str):
     """The Service ItemList block, parsed. There are two ld+json blocks."""
     for raw in re.findall(r'<script type="application/ld\+json">(.*?)</script>',
@@ -985,6 +1400,7 @@ def main() -> None:
         company_backup = COMPANY.read_text() if COMPANY.is_file() else None
         about_backup = ABOUT.read_text() if ABOUT.is_file() else None
         home_backup = HOME.read_text() if HOME.is_file() else None
+        services_backup = SERVICES.read_text() if SERVICES.is_file() else None
 
         server = subprocess.Popen(
             ["php", "-S", f"127.0.0.1:{port}", "-t", str(ROOT),
@@ -1019,7 +1435,7 @@ def main() -> None:
             # of, and is refused as not-newer. home.json was that one.
             for path, backup in ((CAREERS, careers_backup), (CONTACT, contact_backup),
                                  (COMPANY, company_backup), (ABOUT, about_backup),
-                                 (HOME, home_backup)):
+                                 (HOME, home_backup), (SERVICES, services_backup)):
                 if backup is not None:
                     path.write_text(backup)
                 bak = path.with_suffix(".json.bak")

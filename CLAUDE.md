@@ -43,11 +43,13 @@ its record before acting.
 
 | | |
 |---|---|
-| `pages/` `index.php` | the sixteen pages — five are `.php` and render from `content/` |
+| `pages/` `index.php` | the sixteen pages — twelve are `.php` and render from `content/` |
+| `pages/services/detail.php` | not a page: it serves any service the editor added that has no directory |
+| `sitemap.php` | generated, and served at `/sitemap.xml` — the address must not change |
 | `assets/` | css, js, fonts, icons, images — all self-hosted |
 | `lib/` | server-side PHP: rendering, the contract, the publish format |
 | `api/publish.php` | where the backend's content arrives. The only thing here that writes |
-| `content/` | the replica the four dynamic pages render from |
+| `content/` | the replica the dynamic pages render from |
 | `tools/` | build, audit and test scripts — never deployed |
 | `docs/` | the documentation |
 | `plans/` | parked designs — not deployed, and not yet true. `docs/` is for what is |
@@ -84,8 +86,15 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 python3 tools/serve.py          # http://localhost:8000  — NOT python3 -m http.server
 ```
 
-Five things need PHP: the home page, the careers page, the contact page, the contact handler, and
+Most of the site needs PHP now: the home page, about, careers, contact, the company profile, the
+services index and all six service pages, plus the contact handler, `sitemap.php` and
 `api/publish.php`.
+
+`tools/dev-router.php` is what makes the local server behave like the host — DirectoryIndex across
+both extensions, the trailing slash Apache's DirectorySlash adds, the services route, the
+sitemap's address, and the paths `.htaccess` refuses.
+It is **not** a complete stand-in: `.htaccess` itself is never read locally, so the rewrite rules
+can only be verified against the live host with `tools/verify_live.py`.
 
 To watch content actually arrive, run the backend's `serve.py` beside this one and point it here:
 
@@ -116,7 +125,8 @@ content-hashed and `.htaccess` caches them for a year, so a changed file behind 
 ships to new visitors only. Bump the version query in `tools/templates/` **and** in all sixteen
 pages: `propagate_shared.py` does not carry `head.html` or `scripts.html`.
 
-Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and
+Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` **and
+`test_publish_asset.py`** — the second endpoint is easy to forget, and CI runs it — **and
 `check_shared_lib.py --update`, and copy the changed file to the backend.**
 
 Touched the contact handler? Also `test_contact_handler.py`. Touched `lib/store.php`? Also

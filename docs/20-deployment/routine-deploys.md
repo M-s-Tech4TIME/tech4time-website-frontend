@@ -26,7 +26,7 @@ UPLOAD                            NEVER UPLOAD
   lib/                              references/
   contact-handler.php               *.md   *.py
   .htaccess                         admin/            ← nothing, ever
-  robots.txt   sitemap.xml
+  robots.txt   sitemap.php
   site.webmanifest
 ```
 

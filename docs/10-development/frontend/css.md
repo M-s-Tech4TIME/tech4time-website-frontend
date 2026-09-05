@@ -16,7 +16,7 @@ layout.css      page scaffolding — containers, grids, sections
 components.css  buttons, cards, forms, navigation, the shared furniture
 animations.css  keyframes and reveal states
 pages/<name>.css   optional, one page only
-sitemap.css     the browser-facing view of sitemap.xml, and nothing else
+sitemap.css     the browser-facing view of the sitemap, and nothing else
 ```
 
 There is no `admin.css` here. The editor's stylesheet moved with the editor —

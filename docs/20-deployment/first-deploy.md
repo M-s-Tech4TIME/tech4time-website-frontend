@@ -36,10 +36,10 @@ Full detail in [cpanel-host-setup.md](cpanel-host-setup.md). The short version:
 
 ```
 public_html/
-├── index.html   404.html
+├── index.php    404.html
 ├── pages/  assets/  lib/  api/  content/
 ├── contact-handler.php
-├── .htaccess    robots.txt   sitemap.xml   site.webmanifest
+├── .htaccess    robots.txt   sitemap.php   site.webmanifest
 ```
 
 Everything else stays here: `tools/`, `docs/`, `references/`, `.git/`, `.claude/`, `.gitignore`,
@@ -49,8 +49,8 @@ Rather than pick those out by hand, build the upload set and check it:
 
 ```bash
 zip -r /tmp/tech4time-deploy.zip \
-  index.html 404.html contact-handler.php \
-  .htaccess robots.txt sitemap.xml site.webmanifest \
+  index.php 404.html contact-handler.php \
+  .htaccess robots.txt sitemap.php site.webmanifest \
   pages assets lib api content \
   -x '*/.DS_Store' -x '*.bak'
 
@@ -154,7 +154,8 @@ certificate.
 
 ## 8. Search engines
 
-- [ ] Submit `sitemap.xml` in Google Search Console
+- [ ] Submit `/sitemap.xml` in Google Search Console — the address is a rewrite
+      onto `sitemap.php`, and it is the address that must stay put
 - [ ] Confirm `/api/publish.php` answers **405** to a GET, and carries `X-Robots-Tag: noindex`
       rather than by `robots.txt`, deliberately: listing it in `robots.txt` advertises it
 
