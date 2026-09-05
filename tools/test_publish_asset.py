@@ -77,6 +77,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ENDPOINT = "/api/publish.php"
+# The endpoint under test. It is named here rather than glued onto the base at
+# each call site, because gluing it on is what went wrong: post() appends
+# ENDPOINT itself, so a caller passing base + "/api/publish-asset.php" asked for
+# /api/publish-asset.php/api/publish.php. Both Apache and `php -S` answer that by
+# running the first script and calling the rest PATH_INFO, so every check here
+# passed while testing an address the backend never sends to — it posts to
+# PUBLISH_ASSET_PATH in tech4time-website-backend/lib/publish_client.php, which
+# is this exact path and nothing after it.
+ASSET_ENDPOINT = "/api/publish-asset.php"
 
 UPLOADS = ROOT / "uploads"
 ROUTER = ROOT / "tools" / "dev-router.php"
@@ -139,8 +148,9 @@ def envelope(document: str, data: dict, version: int = 1) -> dict:
     }
 
 
-def post(base: str, body: bytes, headers: dict) -> tuple[int, dict]:
-    req = urllib.request.Request(base + ENDPOINT, data=body, method="POST")
+def post(base: str, body: bytes, headers: dict,
+         endpoint: str = ENDPOINT) -> tuple[int, dict]:
+    req = urllib.request.Request(base + endpoint, data=body, method="POST")
     req.add_header("Content-Type", "application/json")
     for name, value in headers.items():
         req.add_header(name, value)
@@ -197,11 +207,11 @@ def send(base: str, key: bytes, blob: bytes, *, mime="image/png",
     signature = sign(sign_with or key, blob, ts)
     if tamper:
         blob = blob + b"\x00"
-    return post(base + "/api/publish-asset.php", blob, {
+    return post(base, blob, {
         "Content-Type": mime,
         "X-T4T-Timestamp": str(ts),
         "X-T4T-Signature": signature,
-    })
+    }, ASSET_ENDPOINT)
 
 
 def held() -> list[str]:
@@ -258,8 +268,8 @@ def run(base: str, key: bytes, r: Results) -> None:
             not (ROOT / "x.php").exists() and not (ROOT / "uploads.php").exists())
 
     print("\nnothing else gets in")
-    status, answer = post(base + "/api/publish-asset.php", PNG,
-                          {"Content-Type": "image/png"})
+    status, answer = post(base, PNG,
+                          {"Content-Type": "image/png"}, ASSET_ENDPOINT)
     r.check("an unsigned picture is refused",
             status == 401 and answer.get("code") == "no-signature", f"{status} {answer}")
     r.check("and it reveals nothing about what is here", "asset" not in answer)
@@ -324,7 +334,7 @@ def run(base: str, key: bytes, r: Results) -> None:
                 f"{status} {answer}")
 
     print("\nsize and method")
-    status, answer = post(base + "/api/publish-asset.php", b"", {})
+    status, answer = post(base, b"", {}, ASSET_ENDPOINT)
     status2, answer2 = get(base, "/api/publish-asset.php")
     r.check("GET is refused", status2 == 405, str(status2))
 

@@ -125,7 +125,8 @@ content-hashed and `.htaccess` caches them for a year, so a changed file behind 
 ships to new visitors only. Bump the version query in `tools/templates/` **and** in all sixteen
 pages: `propagate_shared.py` does not carry `head.html` or `scripts.html`.
 
-Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` — **and
+Touched `api/publish.php`, `lib/contract.php` or `lib/publish.php`? Also `test_publish.py` **and
+`test_publish_asset.py`** — the second endpoint is easy to forget, and CI runs it — **and
 `check_shared_lib.py --update`, and copy the changed file to the backend.**
 
 Touched the contact handler? Also `test_contact_handler.py`. Touched `lib/store.php`? Also

@@ -35,6 +35,7 @@ python3 tools/check_shared_repos.py      # the three files both halves hold iden
 
 ```bash
 python3 tools/test_publish.py          # the one endpoint that writes, over HTTP
+python3 tools/test_publish_asset.py    # the other one — pictures arrive there
 python3 tools/test_contact_handler.py  # the enquiry form's endpoint
 python3 tools/test_store.py            # the JSON store itself
 ```
