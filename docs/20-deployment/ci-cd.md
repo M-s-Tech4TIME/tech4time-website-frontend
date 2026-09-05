@@ -107,7 +107,7 @@ parallel:
 
 | Job | What runs | Needs |
 |---|---|---|
-| `checks` | the seven static checks, plus `build_deploy_set.py --check` | python, php |
+| `checks` | the static checks, `build_deploy_set.py --check` (which parses every shipped `.php` with the host's `short_open_tag`), and `check_cache_bust.py` against `origin/main` | python, php |
 | `php` | the three suites that drive a real PHP server, including the publish endpoint | php |
 | `firefox` | the eight browser suites, all of them, then a verdict | firefox, geckodriver, Pillow |
 

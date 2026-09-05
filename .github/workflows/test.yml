@@ -38,6 +38,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check_cache_bust.py compares this commit against origin/main, and a
+          # shallow clone has neither the ref nor the history to do it.
+          fetch-depth: 0
 
       # Printed, not asserted. The host runs PHP 8.2.33 and the runner will
       # drift ahead of it; that is worth seeing in the log rather than
@@ -56,6 +60,14 @@ jobs:
       - run: python3 tools/audit_pages.py
       - run: python3 tools/inject_icons.py --check
       - run: python3 tools/build_deploy_set.py --check
+
+      # Filenames here are not content-hashed and .htaccess caches CSS, JS and
+      # fonts for a year, so a changed asset behind an unchanged URL reaches
+      # new visitors only. The rule is a version query bumped by hand, this is
+      # the mechanism that checks it, and it has caught the miss twice. It was
+      # in the pre-commit list and not here, which made it a rule kept by
+      # remembering again for anything that arrived by pull request.
+      - run: python3 tools/check_cache_bust.py
       # The four files both repositories hold identically, compared against a
       # digest committed HERE. Hygiene, not a guarantee -- the guarantee is
       # CONTRACT_VERSION, checked at run time by api/publish.php against what
