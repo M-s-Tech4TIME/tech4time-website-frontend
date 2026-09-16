@@ -31,6 +31,7 @@ that name the admin name the other repository too.
 | The technology list, or the principles | `https://admin.tech4time.bd/?s=company` |
 | The company profile's headings and copy | `https://admin.tech4time.bd/?s=company` |
 | The about page's sections, specialities and why-us cards | `https://admin.tech4time.bd/?s=about` |
+| An accreditation badge — ISO 27001, SOC 2 and the like | `https://admin.tech4time.bd/?s=about`, the Accreditations band. Ships hidden; switch it on once a badge is on it. **Not** `?s=certifications`, which is the Resource Certifications page and lists people's qualifications |
 | **Any page's browser-tab title, search description or share card** | `https://admin.tech4time.bd/?s=seo` |
 | Whether a page appears in search at all, and where it sits in the sitemap | `https://admin.tech4time.bd/?s=seo` |
 | The Organization details a search engine reads — legal name, slogan, opening hours, social profiles | `https://admin.tech4time.bd/?s=seo&site=identity` |

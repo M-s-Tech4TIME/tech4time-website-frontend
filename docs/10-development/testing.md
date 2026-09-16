@@ -79,7 +79,8 @@ regression, not a missing improvement.** The browser is required to assume the p
 viewport, so it takes the widest rung on every screen.
 
 Changed a number in `CONTRACT_IMAGE_SLOTS`? **Measure it, do not estimate it** — "If you are
-measuring geometry" below has the technique, and two of the seven are not where anybody would guess.
+measuring geometry" below has the technique, and three of the eight are not where anybody would
+guess.
 
 ## When you touched the header, the footer or the dock
 
@@ -230,17 +231,26 @@ looked like a live layout bug and were not. Scrolling one image into view does n
 ones between it and the fold stay unloaded, so "all complete" never arrives and every page times
 out. Set `loading = 'eager'` on all of them, return, then poll until `complete && naturalWidth`.
 
-**The widest point is often not the widest screen.** Two of the seven slots peak somewhere in the
+**The widest point is often not the widest screen.** Two of the eight slots peak somewhere in the
 middle, because a breakpoint takes the picture out of a full-width column:
 
 | Slot | Widest at | And at 1440 |
 |---|---|---|
 | `about.story` | **693px @ 768** — the last single-column width | 534px |
 | `company.clients` | **249px @ 360** — the grid drops to one column | 126px |
+| `about.accreditations` | **282px @ 376** — the last width one badge fills the row | 174px |
 
-Sampling only 320 and 1440 would have missed both and shipped a picture too small on exactly the
-width that needed it most. Sample across the breakpoints, in both themes — a lockup hidden by
-`display: none` in one theme measures zero in it.
+Sampling only 320 and 1440 would have missed the first two and shipped a picture too small on
+exactly the width that needed it most. Sample across the breakpoints, in both themes — a lockup
+hidden by `display: none` in one theme measures zero in it.
+
+**And count the rows, not just the widths.** `about.accreditations` was measured at three row
+counts before a number was written down, and it needed to be: with the `1fr` maximum `.clients`
+uses, the same badge came back 318px on a desktop holding three badges and about 1200px holding
+one — `auto-fit` collapses the tracks nothing sits in and divides the row between what is left, so
+the width depended on how many rows the editor had added. Measure with one row, a few, and many.
+If the answer moves, that is a finding about the CSS rather than a number to write down: here it
+sent a `max-width` onto the tile.
 
 ### If you are measuring time
 

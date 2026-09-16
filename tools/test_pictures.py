@@ -103,6 +103,12 @@ SEATS = [
     # branch of contact_flag_picture(), so it is the branch worth testing.
     ("contact.offices",    "contact",  ("offices", "items", 0, "image"),
      "pages/contact/index.php"),
+    # The accreditations wall. Its row is the only one on the about page whose
+    # picture is NOT a story illustration, so it is also the check that
+    # about_picture()'s slot argument is actually being passed rather than
+    # falling back to its default.
+    ("about.accreditations", "about",   ("accreditations", "items", 0, "image"),
+     "pages/about/index.php"),
 ]
 
 
@@ -132,12 +138,37 @@ def slot_sizes() -> dict:
 
 
 def put(doc: str, seat: tuple, value) -> None:
+    """Write one picture record into a document, making room for it if needed.
+
+    A seat names a row that the SHIPPED document usually already has, and for
+    six of the eight it does. The accreditations wall ships empty on purpose --
+    a heading over an empty grid is not a section -- so its seat has to be
+    created rather than found. Built here rather than seeded into
+    content/about.json, because content/ is a replica: it is written by
+    api/publish.php and by nothing else, and a row added to it by hand is a row
+    a fresh clone would ship and the next publish would silently drop.
+    """
     path = CONTENT / f"{doc}.json"
     data = json.loads(path.read_text())
     node = data
-    for key in seat[:-1]:
+    for key, nxt in zip(seat[:-1], seat[1:]):
+        if isinstance(key, int):
+            while len(node) <= key:
+                node.append({})
+        elif key not in node:
+            node[key] = [] if isinstance(nxt, int) else {}
         node = node[key]
     node[seat[-1]] = value
+
+    # A picture in a band that is switched off is a picture the renderer never
+    # reaches, and the failure reads as a missing srcset rather than as a
+    # hidden section. Every band that holds a seat is shown before it is read
+    # back. Seven of the eight are shown already, so this changes nothing for
+    # them; the accreditations wall ships hidden.
+    band = seat[0]
+    if isinstance(band, str) and isinstance(data.get(band), dict):
+        data[band]["status"] = "shown"
+
     path.write_text(json.dumps(data, indent=2))
 
 

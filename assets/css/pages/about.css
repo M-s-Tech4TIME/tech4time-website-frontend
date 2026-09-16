@@ -256,4 +256,101 @@
   color: var(--text-secondary);
 }
 
+/* --------------------------------------------------------------------------
+   5. Accreditations
+   The wall of certification badges, above the closing CTA. Same shape as the
+   client logos on the company profile page — an auto-fit grid of marks on the
+   artwork plate — with one difference: the name of the standard can be printed
+   under the badge, because "ISO/IEC 27001" is not something a reader
+   recognises from a logo the way they recognise a company's.
+   -------------------------------------------------------------------------- */
+
+/* The same packing as .clients -- auto-fit counts the tracks from the 10rem
+   MINIMUM, so the row fills densely: seven badges across a 1440 desktop rather
+   than the four a capped track manages. What is capped is the TILE, below. */
+.accreditations__grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Two rows: the plate takes what is left, the caption takes what it needs.
+   This is what keeps a wall of mixed captioned and uncaptioned badges from
+   going ragged — grid items stretch to their row by default, so every plate
+   beside a taller neighbour grows to match it rather than floating.
+
+   THE 14rem CEILING IS MEASURED RATHER THAN PREFERRED, and it is on the tile
+   rather than on the track. auto-fit collapses the tracks nothing sits in and
+   divides the row between what is left, so the FEWER badges there are the
+   bigger each one gets: measured without this, three drew a 318px badge on a
+   desktop and one drew about 1200px. A wall of two billboards is not what a
+   certification mark is, and a width that depends on how many rows the editor
+   has added cannot be written down in CONTRACT_IMAGE_SLOTS.
+
+   Capping the TRACK instead was tried and is worse: auto-fit counts how many
+   tracks fit from the track's maximum, so a 14rem ceiling also delays every
+   column — one badge per row until 480px, and four across a 1440 desktop where
+   seven fit. */
+.accreditation {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--space-2xs);
+  max-width: 14rem;
+}
+
+/* Below 23.5em only one badge fits across, and there the ceiling is not a
+   ceiling, it is a third of the row left empty beside a card that stops short
+   of the heading above it. Measured, not guessed: the second column appears
+   between 376px and 384px, so the release sits at 376 and a lone badge can
+   never balloon at a width where a second one would have fitted beside it. */
+@media (max-width: 23.5em) {
+  .accreditation {
+    max-width: none;
+  }
+}
+
+/* The plate is --artwork-plate, for the reason .client-card's is: a
+   certification mark is somebody else's artwork, usually dark ink on
+   transparency, and on the dark theme's elevated surface it would disappear
+   rather than merely look wrong. That token is the same value in both themes
+   deliberately — see its note in theme.css. */
+.accreditation__plate {
+  display: grid;
+  place-items: center;
+  min-height: 7rem;
+  padding: var(--space-md);
+  background-color: var(--artwork-plate);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--duration) var(--ease-out),
+    transform var(--duration) var(--ease-out);
+}
+
+.accreditation:hover .accreditation__plate {
+  transform: translateY(-3px);
+  border-color: var(--silver-accent-mid);
+}
+
+.accreditation__logo {
+  width: auto;
+  max-width: 100%;
+  max-height: 3.5rem;
+  object-fit: contain;
+}
+
+/* The caption sits OUTSIDE the plate, on the page's own ground. On the plate
+   it would need ink that reads against #ffffff in both themes — a permanent
+   contrast exception for one line of text. Out here it is ordinary themed
+   prose and follows the theme like everything else. */
+.accreditation__name {
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* The closing CTA band is the shared `.cta-band` component. */

@@ -84,8 +84,16 @@ function about_load(): array
  * browser renders. Same contract as company_picture(): a row with no WebP
  * sibling gets a bare <img> and no <picture> wrapper, and width and height are
  * omitted only when the document does not have them.
+ *
+ * $slot is a PARAMETER rather than the literal it used to be, for the reason
+ * company_picture() takes one: this page draws pictures at two quite different
+ * sizes now -- a story illustration most of the column wide, and an
+ * accreditation badge a few centimetres across -- and the slot is what decides
+ * which ladder of widths the browser is offered. It keeps its old value as the
+ * default, so the two story callers are unchanged.
  */
-function about_picture(array $image, string $class, string $alt): string
+function about_picture(array $image, string $class, string $alt,
+                       string $slot = 'about.story'): string
 {
     $src = trim((string)($image['src'] ?? ''));
     if ($src === '') {
@@ -101,7 +109,7 @@ function about_picture(array $image, string $class, string $alt): string
     /* One picture at several widths, when this one was stored that way and
        the slot says how wide it is drawn. Both halves or neither: see
        contract_picture_ladder(). */
-    $ladder = contract_picture_ladder($image, 'about.story');
+    $ladder = contract_picture_ladder($image, $slot);
     $rungs  = $ladder['srcset'] === '' ? ''
             : ' srcset="' . h($ladder['srcset']) . '"'
             . ' sizes="' . h($ladder['sizes']) . '"';

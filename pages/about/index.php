@@ -30,7 +30,7 @@ $data = about_load();
 <!DOCTYPE html>
 <html lang="<?= h(seo_lang()) ?>">
 <head>
-<?php seo_head('/pages/about/', $data['meta'], ['pages/about.css'], $data['updated']); ?>
+<?php seo_head('/pages/about/', $data['meta'], ['pages/about.css?v=2'], $data['updated']); ?>
 <?php seo_jsonld('/pages/about/', $data['meta'], $data['updated']); ?>
 
 <!-- Page type, tied to the Organization it describes. Generated, so the
@@ -456,6 +456,46 @@ $data = about_load();
             <h3 class="why-us-card__title"><?= h($row['title']) ?></h3>
             <p class="why-us-card__text"><?= h($row['text']) ?></p>
           </div>
+        </li>
+<?php endforeach; ?>
+      </ul>
+    </div>
+  </section>
+<?php endif; ?>
+<?php if (about_band_shown($data, 'accreditations')): ?>
+
+  <!-- ======================== Accreditations ======================== -->
+  <section class="section section--surface accreditations" aria-labelledby="accreditations-heading">
+    <div class="container">
+      <div data-reveal data-reveal-delay class="about-section__header">
+        <h2 class="about-section__title" id="accreditations-heading"><?= h($data['accreditations']['title']) ?></h2>
+        <div class="about-section__rule" aria-hidden="true"></div>
+      </div>
+
+      <ul class="accreditations__grid" role="list" data-reveal-rows>
+<?php foreach (about_shown($data, 'accreditations') as $row): ?>
+<?php   $named = ($row['caption'] ?? 'shown') !== 'hidden'; ?>
+        <li data-reveal data-reveal-delay class="accreditation">
+          <span class="accreditation__plate">
+            <?php /* THE alt FLIPS WITH THE CAPTION, and that is the point. With
+                     the name printed under it the badge is decorative and takes
+                     alt="", or a screen reader announces the same words twice.
+                     With the caption hidden the badge IS the name, exactly as a
+                     client's logo is on the company profile page, so it carries
+                     it. Either way the name reaches somebody who cannot see the
+                     picture, which is why the name is not optional. */ ?>
+            <?= about_picture($row['image'], 'accreditation__logo',
+                              $named ? '' : (string)$row['name'],
+                              'about.accreditations') ?>
+          </span>
+<?php   if ($named): ?>
+          <span class="accreditation__name"><?= h($row['name']) ?></span>
+<?php   else: ?>
+          <?php /* A row can have a name and no badge yet -- about_picture()
+                   returns nothing at all when src is empty -- and then this is
+                   the only thing in the tile that says what it is. */ ?>
+          <span class="visually-hidden"><?= h($row['name']) ?></span>
+<?php   endif; ?>
         </li>
 <?php endforeach; ?>
       </ul>

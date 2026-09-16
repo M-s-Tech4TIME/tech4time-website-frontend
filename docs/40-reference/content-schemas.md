@@ -147,6 +147,7 @@ numbers had two of them reachable on the page and invisible to a search engine.
   "story":       { "status": "shown", "items": [] },
   "specialties": { "status": "shown", "title": "…", "interval": 10000, "items": [] },
   "whyus":       { "status": "shown", "title": "…", "items": [] },
+  "accreditations": { "status": "hidden", "title": "…", "items": [] },
   "cta":         { "status": "shown", "title": "…", "label": "…", "href": "…", "icon": "…" }
 }
 ```
@@ -159,6 +160,7 @@ numbers had two of them reachable on the page and invisible to a search engine.
 | `story` | the image-and-prose sections. `status` switches the whole run of them off |
 | `specialties` | the slideshow. `interval` is milliseconds, clamped 2000–60000 |
 | `whyus` | the grid of short reasons |
+| `accreditations` | the wall of certification badges. **The only band that ships `hidden`** — it has no shipped copy behind it, and a heading over an empty grid is a gap rather than a section |
 | `cta` | the closing band and its one button |
 
 **`story` has no `title` of its own.** Every heading on that part of the page belongs to a row,
@@ -203,6 +205,40 @@ sweep asks what is in use.
 **The light and shaded backgrounds alternate by position, not by a stored field.** It is a rhythm
 down the page, so a reordered or added section keeps the stripe instead of carrying a stale copy
 of it.
+
+### An accreditation
+
+The same shape as a client logo on the company profile page, with one field more.
+
+| Field | |
+|---|---|
+| `id` | minted from the name |
+| `name` | the standard as it should read — `ISO/IEC 27001:2022`. **Never optional**, whichever way `caption` is set: it is either printed under the badge or it is the badge's `alt`, and a row without one is a picture nothing can describe |
+| `image` | `{ src, webp, width, height, srcset, webp_srcset }`, stored at the `about.accreditations` slot |
+| `caption` | `shown` or `hidden` — whether the name is **printed** under the badge |
+| `status` | `shown` or `hidden` — whether the badge appears at all |
+
+**`caption` and `status` are two switches because they answer different questions.** A badge whose
+artwork already reads "ISO/IEC 27001" does not want the words repeated beneath it, and that is not
+the same wish as wanting the badge gone.
+
+**Hiding the caption never takes the name away.** It moves it: with the caption shown the `<img>`
+takes `alt=""` and the printed name does the describing, so a screen reader does not hear it twice;
+with the caption hidden the `<img>` carries the name as its `alt`, which is what the clients wall
+does. `tools/test_publish.py` asserts both directions.
+
+**The badge tile is capped at 14rem**, which `.clients` is not. `auto-fit` collapses the tracks
+nothing sits in and divides the row between what is left, so three badges drew at 318px and one at
+about 1200px — a width that depends on how many rows the editor has added is not a width. The cap
+is on the **tile**, not the track: `auto-fit` counts the tracks that fit from the track's *maximum*,
+so capping the track also delays every column — one badge per row until 480px, and four across a
+1440 desktop where seven fit.
+
+Below `23.5em` the cap is released, because there only one badge fits across and the ceiling is a
+third of the row left empty beside a card that stops short of its own heading. That boundary is
+measured: the second column appears between 376px and 384px, so at 380 the cap and the second
+column arrive together and a lone badge can never balloon at a width where a second would have
+fitted beside it. Hence the two-arm `sizes=`, and a `width` of 282 rather than 174.
 
 ### A speciality, and a why-us card
 
@@ -618,6 +654,7 @@ every phone would download the 3× file.
 | `company.journey` | 480 | yes |
 | `home.destinations` | 400 | yes |
 | `branding.asset` | 360 | yes |
+| `about.accreditations` | 282 | yes |
 | `company.clients` | 250 | yes |
 | `company.technology` | 120 | yes |
 | `contact.offices` | 56 | yes |
@@ -630,10 +667,13 @@ is capped at what actually arrived, which handles both directions with one rule:
 photograph in the 700 slot stores 700/1400/1600, a 500px one stores 500 alone, and a 1600px flag in
 the 56 slot stores 56/112/168 rather than carrying a 1600px file to every phone that asks.
 
-**The widths were measured in a browser, not estimated** — and two of them are not where anybody
+**The widths were measured in a browser, not estimated** — and three of them are not where anybody
 would guess. `about.story` is widest at a 768px viewport, not on a desktop, because that is the last
-width before the two-column breakpoint; `company.clients` is widest at 360. See "If you are
-measuring geometry" in [testing.md](../10-development/testing.md).
+width before the two-column breakpoint; `company.clients` is widest at 360. `about.accreditations`
+is widest at 376, for `about.story`'s reason one breakpoint lower — it is the last width at which
+one badge fills the row, and from 380 up the tile is capped and the badge never passes 174. Without
+that cap the same badge measured 318 on a desktop holding three of them and about 1200 holding one.
+See "If you are measuring geometry" in [testing.md](../10-development/testing.md).
 
 ## Which pictures get a light/dark pair, and which do not
 
@@ -644,6 +684,7 @@ Asked and settled on 2026-08-31. Every managed picture on the site, and why it i
 | Home | Get to Know Us cards | 3 | white plate, both modes | **yes** |
 | About | photograph sections | 4 | white plate, both modes | **yes** |
 | About | the logo section | 1 | themed surface | **yes** |
+| About | accreditation badges | 0 | white plate, both modes | no |
 | Company | client logos | 9 | white plate, both modes | no |
 | Company | technology logos | 50 | white plate, both modes | no |
 | Company | journey photographs | 3 | no plate, full-bleed | no |
@@ -652,6 +693,10 @@ Asked and settled on 2026-08-31. Every managed picture on the site, and why it i
 `--artwork-plate` in both modes. If the company ever has artwork drawn for a dark page, the slot is
 there. **With nothing uploaded the markup is exactly what it was before the slot existed**: one
 `<picture>`, no theme-swap classes, no second element. The page does not pay for an unused feature.
+
+**The accreditation badges are not pairs either, and for the client logos' reason** — they are
+somebody else's marks on a plate that is a legibility guarantee. The count is 0 because the band
+ships empty; the treatment is settled whenever the first one is uploaded.
 
 **The client and technology logos are deliberately NOT pairs.** They are other companies' brand
 marks and the white plate is a legibility guarantee, not a default — several client marks are close

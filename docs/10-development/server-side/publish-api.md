@@ -232,3 +232,16 @@ python3 tools/verify_live.py <url>     # /api/publish.php answers 405 to GET
 against its own committed digest, so a deliberate edit plus `--update` passes on both sides while
 they hold different code. The guarantee is `contract_version`, checked at run time by the side that
 would suffer from the mismatch.
+
+### When to bump `contract_version`, and when not to
+
+Bump it when a document written by one version would be **mis-rendered** by the other: a field
+renamed, a field's meaning changed, a list that becomes a scalar. Do **not** bump it for a new
+optional field that older code simply ignores.
+
+A **new band** is the second case, and the About page's accreditations wall is the worked example.
+An older frontend receiving a document that carries the band ignores the key; a newer frontend
+reading a document that lacks it has `about_normalise()` merge the band in from
+`about_defaults()` — hidden and empty, so the page renders exactly as it did before. Nothing is
+mis-rendered in either direction, so the version did not move and the two halves could be deployed
+in either order.

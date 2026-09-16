@@ -82,6 +82,7 @@ ALLOWED_INVARIANTS = {
     "logo-card": "the general logo tile, on the artwork plate",
     "destination-card__media": "black line-art illustration, on the artwork plate",
     "about-split__image": "black line-art illustration, on the artwork plate",
+    "accreditation__plate": "certification badges, on the artwork plate",
 }
 
 # --on-accent is deliberately one value in both themes: it is the ink that sits
