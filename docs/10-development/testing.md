@@ -238,7 +238,7 @@ middle, because a breakpoint takes the picture out of a full-width column:
 |---|---|---|
 | `about.story` | **693px @ 768** — the last single-column width | 534px |
 | `company.clients` | **249px @ 360** — the grid drops to one column | 126px |
-| `about.accreditations` | **282px @ 376** — the last width one badge fills the row | 174px |
+| `about.accreditations` | **289px @ 767** — the last width before the 3-column breakpoint | 222px |
 
 Sampling only 320 and 1440 would have missed the first two and shipped a picture too small on
 exactly the width that needed it most. Sample across the breakpoints, in both themes — a lockup
@@ -250,7 +250,8 @@ uses, the same badge came back 318px on a desktop holding three badges and about
 one — `auto-fit` collapses the tracks nothing sits in and divides the row between what is left, so
 the width depended on how many rows the editor had added. Measure with one row, a few, and many.
 If the answer moves, that is a finding about the CSS rather than a number to write down: here it
-sent a `max-width` onto the tile.
+sent the grid from `auto-fit` to a counted `repeat(N, 1fr)`, which creates every track whether or
+not a badge sits in it.
 
 ### If you are measuring time
 

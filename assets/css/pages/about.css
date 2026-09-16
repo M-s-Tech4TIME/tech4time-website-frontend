@@ -265,51 +265,53 @@
    recognises from a logo the way they recognise a company's.
    -------------------------------------------------------------------------- */
 
-/* The same packing as .clients -- auto-fit counts the tracks from the 10rem
-   MINIMUM, so the row fills densely: seven badges across a 1440 desktop rather
-   than the four a capped track manages. What is capped is the TILE, below. */
+/* FOUR ACROSS A DESKTOP, NOT SEVEN, AND COUNTED RATHER THAN FITTED.
+
+   .clients uses auto-fit with a 10rem minimum and lands six or seven across,
+   which is right for a wall of thirty company logos and wrong here: there are
+   rarely more than a handful of certifications and each one is meant to be
+   read, not scanned past.
+
+   auto-fit cannot express that. The track MINIMUM is the only thing that
+   decides the column count, so raising it to get four on a desktop also drags
+   the mid-range down to one column -- measured, a 16rem minimum left a single
+   tile with 233px of empty row beside it at 580px wide.
+
+   Counting the columns instead fixes both, and a third thing for free: an
+   explicit repeat(N, 1fr) creates all N tracks whether or not there are badges
+   to fill them, so ONE badge is one track wide rather than the whole row. That
+   is what auto-fit's collapsing could not do, and it is why no tile needs a
+   max-width any more -- the ceiling this used to carry is gone. */
 .accreditations__grid {
   display: grid;
   gap: var(--space-sm);
-  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  grid-template-columns: repeat(2, 1fr);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-/* Two rows: the plate takes what is left, the caption takes what it needs.
-   This is what keeps a wall of mixed captioned and uncaptioned badges from
-   going ragged — grid items stretch to their row by default, so every plate
-   beside a taller neighbour grows to match it rather than floating.
-
-   THE 14rem CEILING IS MEASURED RATHER THAN PREFERRED, and it is on the tile
-   rather than on the track. auto-fit collapses the tracks nothing sits in and
-   divides the row between what is left, so the FEWER badges there are the
-   bigger each one gets: measured without this, three drew a 318px badge on a
-   desktop and one drew about 1200px. A wall of two billboards is not what a
-   certification mark is, and a width that depends on how many rows the editor
-   has added cannot be written down in CONTRACT_IMAGE_SLOTS.
-
-   Capping the TRACK instead was tried and is worse: auto-fit counts how many
-   tracks fit from the track's maximum, so a 14rem ceiling also delays every
-   column — one badge per row until 480px, and four across a 1440 desktop where
-   seven fit. */
-.accreditation {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: var(--space-2xs);
-  max-width: 14rem;
+@media (min-width: 48em) {
+  .accreditations__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-/* Below 23.5em only one badge fits across, and there the ceiling is not a
-   ceiling, it is a third of the row left empty beside a card that stops short
-   of the heading above it. Measured, not guessed: the second column appears
-   between 376px and 384px, so the release sits at 376 and a lone badge can
-   never balloon at a width where a second one would have fitted beside it. */
-@media (max-width: 23.5em) {
-  .accreditation {
-    max-width: none;
+@media (min-width: 64em) {
+  .accreditations__grid {
+    grid-template-columns: repeat(4, 1fr);
   }
+}
+
+/* The plate, then the caption. align-content is START so neither row stretches:
+   the outer grid makes every tile in a row the same height, and without this
+   the plate would absorb that slack and stop being square the moment one
+   caption wrapped to two lines. */
+.accreditation {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: var(--space-2xs);
 }
 
 /* The plate is --artwork-plate, for the reason .client-card's is: a
@@ -320,7 +322,7 @@
 .accreditation__plate {
   display: grid;
   place-items: center;
-  min-height: 7rem;
+  aspect-ratio: 1;
   padding: var(--space-md);
   background-color: var(--artwork-plate);
   border: var(--border-width) solid var(--border-subtle);
@@ -335,10 +337,15 @@
   border-color: var(--silver-accent-mid);
 }
 
+/* The mark fills the plate rather than sitting in the middle of it at a fixed
+   56px. A certification mark IS the content of this tile -- unlike a client
+   logo, which is one of thirty on a wall -- so it gets the whole square minus
+   its padding, whatever shape it arrived in. */
 .accreditation__logo {
   width: auto;
+  height: auto;
   max-width: 100%;
-  max-height: 3.5rem;
+  max-height: 100%;
   object-fit: contain;
 }
 

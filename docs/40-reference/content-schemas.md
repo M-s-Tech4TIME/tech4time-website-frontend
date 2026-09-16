@@ -227,18 +227,24 @@ takes `alt=""` and the printed name does the describing, so a screen reader does
 with the caption hidden the `<img>` carries the name as its `alt`, which is what the clients wall
 does. `tools/test_publish.py` asserts both directions.
 
-**The badge tile is capped at 14rem**, which `.clients` is not. `auto-fit` collapses the tracks
-nothing sits in and divides the row between what is left, so three badges drew at 318px and one at
-about 1200px — a width that depends on how many rows the editor has added is not a width. The cap
-is on the **tile**, not the track: `auto-fit` counts the tracks that fit from the track's *maximum*,
-so capping the track also delays every column — one badge per row until 480px, and four across a
-1440 desktop where seven fit.
+**The plate is square and the mark fills it.** `aspect-ratio: 1` rather than a minimum height, and
+the `<img>` takes the whole square minus its padding instead of a fixed 56px. A certification mark
+*is* the content of its tile — unlike a client logo, which is one of thirty on a wall — so it is
+drawn 272px across on a desktop where the clients wall draws 126.
 
-Below `23.5em` the cap is released, because there only one badge fits across and the ceiling is a
-third of the row left empty beside a card that stops short of its own heading. That boundary is
-measured: the second column appears between 376px and 384px, so at 380 the cap and the second
-column arrive together and a lone badge can never balloon at a width where a second would have
-fitted beside it. Hence the two-arm `sizes=`, and a `width` of 282 rather than 174.
+**The grid counts its columns rather than fitting them: two, then three at `48em`, then four at
+`64em`.** `.clients` uses `auto-fit` with a 10rem minimum and lands six or seven across, which is
+right for thirty company logos and wrong for a handful of certifications.
+
+`auto-fit` cannot express "four across". The track *minimum* is the only thing that decides the
+column count, so raising it to get four on a desktop also drags the mid-range down to one column —
+measured, a 16rem minimum left a single tile with 233px of empty row beside it at 580px wide.
+
+Counting the columns fixes a third thing for free. An explicit `repeat(N, 1fr)` creates all N tracks
+whether or not there are badges to fill them, so **one badge is one track wide rather than the whole
+row** — which is what `auto-fit`'s track collapsing could not do, and why no tile needs a
+`max-width`. Without that, three badges drew at 318px and one at about 1200px, and a width that
+depends on how many rows the editor has added is not a width.
 
 ### A speciality, and a why-us card
 
@@ -654,7 +660,7 @@ every phone would download the 3× file.
 | `company.journey` | 480 | yes |
 | `home.destinations` | 400 | yes |
 | `branding.asset` | 360 | yes |
-| `about.accreditations` | 282 | yes |
+| `about.accreditations` | 289 | yes |
 | `company.clients` | 250 | yes |
 | `company.technology` | 120 | yes |
 | `contact.offices` | 56 | yes |
@@ -670,10 +676,10 @@ the 56 slot stores 56/112/168 rather than carrying a 1600px file to every phone 
 **The widths were measured in a browser, not estimated** — and three of them are not where anybody
 would guess. `about.story` is widest at a 768px viewport, not on a desktop, because that is the last
 width before the two-column breakpoint; `company.clients` is widest at 360. `about.accreditations`
-is widest at 376, for `about.story`'s reason one breakpoint lower — it is the last width at which
-one badge fills the row, and from 380 up the tile is capped and the badge never passes 174. Without
-that cap the same badge measured 318 on a desktop holding three of them and about 1200 holding one.
-See "If you are measuring geometry" in [testing.md](../10-development/testing.md).
+is widest at 767, for `about.story`'s reason exactly — the last width before a breakpoint takes the
+badge out of a half-width tile. It is **222 on a 1440 desktop, less than on a tablet**, which is why
+its `sizes=` has three arms. See "If you are measuring geometry" in
+[testing.md](../10-development/testing.md).
 
 ## Which pictures get a light/dark pair, and which do not
 
