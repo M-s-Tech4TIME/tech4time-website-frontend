@@ -96,6 +96,7 @@
 
   var RADIANS = Math.PI / 180;
 
+
   /* The chrome that is pinned over the viewport, and therefore is not room the
      sphere has. The header is sticky and the dock is fixed; both are emitted
      once by lib/body.php (ADR 0023), which is why they can be named here.
@@ -400,16 +401,32 @@
 
     if (y !== this.paintedY) {
       style.setProperty("--rot-y", y);
-      style.setProperty("--sin-y", Math.sin(this.rotY * RADIANS).toFixed(4));
-      style.setProperty("--cos-y", Math.cos(this.rotY * RADIANS).toFixed(4));
-      this.paintedY = y;
     }
     if (x !== this.paintedX) {
       style.setProperty("--rot-x", x);
+    }
+
+    /* The trigonometry goes with the rotation it is derived from, on the same
+       condition and at the same moment.
+
+       IT WAS ON A COARSER CLOCK OF ITS OWN FOR AN HOUR, quantised to two
+       degrees on the reasoning that opacity is a gentler function of angle than
+       position is and the fade could therefore be recomputed a quarter as
+       often. The reasoning is sound and the saving does not exist: measured at
+       fifty logos and again at two hundred, where the per-plate work is four
+       times larger, writing these every frame, every second degree, or never at
+       all gives the same frame time to within noise -- 71ms in all three cases
+       at two hundred. The fade is free, so a mechanism for making it cheaper is
+       just a second clock to keep in step. */
+    if (y !== this.paintedY || x !== this.paintedX) {
+      style.setProperty("--sin-y", Math.sin(this.rotY * RADIANS).toFixed(4));
+      style.setProperty("--cos-y", Math.cos(this.rotY * RADIANS).toFixed(4));
       style.setProperty("--sin-x", Math.sin(this.rotX * RADIANS).toFixed(4));
       style.setProperty("--cos-x", Math.cos(this.rotX * RADIANS).toFixed(4));
-      this.paintedX = x;
     }
+
+    this.paintedY = y;
+    this.paintedX = x;
   };
 
   /* --- taking hold of it ---------------------------------------------------
