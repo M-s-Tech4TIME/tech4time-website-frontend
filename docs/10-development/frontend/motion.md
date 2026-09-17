@@ -99,7 +99,23 @@ is a way of *saving space*, not a way of *storing content*.
 `assets/js/tech-sphere.js`. Company Profile. Draggable in any direction, with momentum.
 
 Without JavaScript it is a plain grid of logos with alt text. It must never be the only place a
-technology name appears.
+technology name appears. Below 768px there is no sphere at any time — the grid is what everyone
+gets, capped at `COMPANY_TECHNOLOGY_WALL` with the rest behind a `<details>`, and the script moves
+that tail onto the surface when it takes over. So the grid is not a fallback nobody sees: it is what
+a phone shows, every time.
+
+**It turns only while it is on screen**, and that is a correctness matter rather than a nicety. The
+loop's per-frame work is two custom properties on one element, which invalidates the transform of
+every logo under it — so fifty elements had their styles recalculated every frame of every second
+the page was open, including while the sphere was several screens below the fold. Transform-only, so
+no layout and no paint, so **every frame-rate check on this page reported a steady 60fps throughout**.
+`tools/check_style_budget.py` is the one instrument that can see it: 134ms of style per second
+against a 100ms ceiling, with the sphere never once in view. An `IntersectionObserver` cancels the
+frame when it leaves and asks for one again when it returns; `--on` is untouched, so the arrangement
+stays exactly where the reader left it.
+
+That is the same failure mode as the hero circuit's in 2026-09, found the same way, and it is the
+reason that check now watches this page at all.
 
 ---
 

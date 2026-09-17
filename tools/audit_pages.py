@@ -583,6 +583,43 @@ def audit_page(path: Path, seen_titles: dict, seen_descriptions: dict,
         if spokes != min(nodes, ring_max):
             fail(f"a node ring has {nodes} nodes and {spokes} spokes")
 
+    # --- the two bounded walls, and the timeline's window -----------------
+    # THESE ARE CAPS, AND A CAP THAT STOPPED WORKING IS INVISIBLE. Each of the
+    # three is a bound on how tall the company profile GETS as its content
+    # grows -- fifty clients, fifty technologies, twenty years of milestones --
+    # and every one of them fails silently: the page still renders, still says
+    # everything it should, and is simply several screens longer than it was
+    # meant to be. Nothing else here would notice.
+    #
+    # Read from PHP rather than typed, so the numbers cannot part from the
+    # design. The column tiers they have to divide into are in
+    # assets/css/pages/company-profile.css, and tools/test_publish.py asserts
+    # that divisibility -- this asserts the count that actually reached the
+    # markup.
+    if path.name == "index.php" and path.parent.name == "company-profile":
+        window = int(php_value(
+            "require 'lib/contract.php'; echo MILESTONES_WINDOW;") or 5)
+        clients_cap = int(php_value(
+            "require 'lib/company.php'; echo COMPANY_CLIENTS_WALL;") or 12)
+        tech_cap = int(php_value(
+            "require 'lib/company.php'; echo COMPANY_TECHNOLOGY_WALL;") or 18)
+
+        years = {y for y in re.findall(
+            r'<p class="timeline__year">\s*(\d{4})', html)}
+        if len(years) > window:
+            fail(f"the timeline shows {len(years)} years, and the window is "
+                 f"{window}. /pages/milestones/ holds the rest")
+
+        shown = html.split('wall-more', 1)[0]
+        cards = shown.count('class="client-card"')
+        if cards > clients_cap:
+            fail(f"{cards} client logos before the expander, and the cap is "
+                 f"{clients_cap}")
+        plates = shown.count('class="tech-sphere__item"')
+        if plates > tech_cap:
+            fail(f"{plates} technology plates before the expander, and the cap "
+                 f"is {tech_cap}")
+
     # --- links -----------------------------------------------------------
     for link in parser.links:
         href = link.get("href")

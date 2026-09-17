@@ -6,164 +6,20 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Timeline
-   The live site's alternated timeline, not the NextJS one: a centre rail with
-   entries zig-zagging either side of it, and each entry's year sitting opposite
-   its box across the rail.
+   1. Milestones
+   THE TIMELINE ITSELF IS NOT HERE. Its rules are
+   assets/css/pages/milestones.css, because /pages/milestones/ draws the same
+   timeline and a second copy is a second thing to keep true. This page loads
+   both stylesheets; see its seo_head() call.
 
-   The live rule set does this with flex plus order:-1 on even entries; the same
-   arrangement is cleaner as a two-column grid, where an entry only has to name
-   which column its year and its box belong to. Below the tablet band both
-   collapse to the left of the rail, exactly as the live site does at 36rem.
+   What IS here is the one thing that belongs to this page and not to that one:
+   the link out to the full history, which only exists where a window is being
+   shown.
    -------------------------------------------------------------------------- */
 
-.timeline {
-  --rail: 1.25rem;              /* where the rail sits, until it moves to 50% */
-  --dot: 1.75rem;               /* the marker's distance below the box top    */
-
-  position: relative;
-  max-width: 60rem;
-  padding: 0;
-  margin-inline: auto;
-  list-style: none;
-}
-
-/* One continuous rail for the whole list, rather than a segment per entry:
-   consecutive segments have to meet exactly to look unbroken, and they do not
-   once entries differ in height. */
-.timeline::before {
-  content: "";
-  position: absolute;
-  top: var(--dot);
-  bottom: var(--dot);
-  left: var(--rail);
-  width: 2px;
-  transform: translateX(-50%);
-  background-color: var(--border-strong);
-}
-
-.timeline__item {
-  position: relative;
-}
-
-.timeline__item:not(:last-child) {
-  margin-block-end: var(--space-lg);
-}
-
-.timeline__year {
-  margin-block-end: var(--space-2xs);
-  margin-inline-start: 3.5rem;
-  font-size: var(--text-lg);
-  font-weight: 800;
-  line-height: 1;
-  color: var(--accent-text);
-}
-
-.timeline__box {
-  position: relative;
-  margin-inline-start: 3.5rem;
-  padding: var(--space-lg);
-  background-color: var(--bg-elevated);
-  border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  transition:
-    border-color var(--duration) var(--ease-out),
-    box-shadow var(--duration) var(--ease-out);
-}
-
-.timeline__item:hover .timeline__box {
-  border-color: var(--silver-accent-mid);
-  box-shadow: var(--shadow-sm);
-}
-
-/* The marker, sitting on the rail. Drawn on the box so it tracks the box's
-   edge when the entry flips sides.
-
-   The border width in every offset below is not a fudge. An absolutely
-   positioned element is laid out against its containing block's PADDING box,
-   so an offset of -2.25rem here starts from inside the box's 1px border and
-   lands the marker 1px past the rail — to the right on odd entries and,
-   mirrored, to the left on even ones. Adding the border back cancels it. */
-.timeline__box::after {
-  content: "";
-  position: absolute;
-  top: var(--dot);
-  left: calc(-2.25rem - var(--border-width));
-  width: 1.1rem;
-  height: 1.1rem;
-  transform: translate(-50%, -50%);
-  background-image: var(--silver-gradient-fill);
-  border: 3px solid var(--bg-base);
-  border-radius: 50%;
-}
-
-.timeline__title {
-  margin-block-end: var(--space-3xs);
-  font-size: var(--text-lg);
-}
-
-.timeline__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
-  color: var(--text-secondary);
-}
-
-/* --- alternated, once there is room for two columns ---------------------- */
-
-@media (min-width: 48em) {
-  .timeline {
-    --rail: 50%;
-    --gap: 5rem;                /* the rail runs down the middle of this gap */
-  }
-
-  .timeline__item {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--gap);
-    align-items: start;
-  }
-
-  /* Odd entries: year on the left of the rail, box on the right. */
-  .timeline__year,
-  .timeline__box {
-    grid-row: 1;
-    margin-inline-start: 0;
-  }
-
-  .timeline__year {
-    grid-column: 1;
-    justify-self: end;
-    /* Lines the year up with the marker rather than the top of the box. */
-    padding-block-start: calc(var(--dot) - 0.5em);
-    margin-block-end: 0;
-    text-align: end;
-    font-size: var(--text-xl);
-  }
-
-  .timeline__box {
-    grid-column: 2;
-  }
-
-  .timeline__box::after {
-    left: calc(var(--gap) / -2 - var(--border-width));
-  }
-
-  /* Even entries: the same row, mirrored. */
-  .timeline__item:nth-child(even) .timeline__year {
-    grid-column: 2;
-    justify-self: start;
-    text-align: start;
-  }
-
-  .timeline__item:nth-child(even) .timeline__box {
-    grid-column: 1;
-  }
-
-  .timeline__item:nth-child(even) .timeline__box::after {
-    left: auto;
-    right: calc(var(--gap) / -2 - var(--border-width));
-    transform: translate(50%, -50%);
-  }
+.milestones__more {
+  margin-block-start: var(--space-lg);
+  text-align: center;
 }
 
 /* --------------------------------------------------------------------------
@@ -223,13 +79,43 @@
   color: var(--text-secondary);
 }
 
+/* COUNTED COLUMNS, NOT auto-fit, and the difference is the whole point.
+   auto-fit decides the column count from the track MINIMUM, so one number has
+   to serve every screen — and minmax(min(10rem, 100%), 1fr) served a 360px
+   phone ONE column, which is why nine logos were 1,136px tall there and fifty
+   would have been eight screens of them. Three tiers say three things.
+
+   TWO ON A PHONE AND NOT THREE, WHICH IS A MEASURED DECISION. A client mark is
+   somebody else's wordmark, and three across a 360px screen draws it in a 95px
+   tile against the 145-176px it gets on every larger screen — half the size,
+   on the screen where it is hardest to read. Two keeps the tile near 160px at
+   360px and near 190px at 414px, which is the same mark at the same size all
+   the way up. The accreditation badges on the about page made the same call
+   for the same reason.
+
+   THE COLUMN COUNTS AND COMPANY_CLIENTS_WALL ARE ONE DESIGN. Twelve divides by
+   2, 4 and 6, so the wall above the expander is always whole rows — six, then
+   three, then two. Change a tier here and the cap has to divide into it, or
+   the last row before the button comes out ragged. */
 .clients {
   display: grid;
   gap: var(--space-sm);
-  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  grid-template-columns: repeat(2, 1fr);
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+@media (min-width: 48em) {
+  .clients {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 64em) {
+  .clients {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 /* The plate is --artwork-plate, not --bg-elevated. Several of these marks are
@@ -298,19 +184,118 @@
 }
 
 /* --------------------------------------------------------------------------
+   2b. The expander under a wall of logos
+   Shared by the clients wall and, below 768px, the technology grid: the first
+   COMPANY_*_WALL of them show, and the rest are in a closed <details>.
+
+   <details> and <summary>, which the browser already implements — so it opens
+   with no JavaScript, is reachable by keyboard without a roving tabindex, and
+   is announced correctly without an aria- attribute. Same call, and the same
+   reasoning, as the certifications page.
+
+   THE TAIL IS A SECOND GRID WITH THE SAME COLUMNS, so the two read as one
+   continuous wall. That only holds because the first grid is always full — see
+   the note on .clients above.
+   -------------------------------------------------------------------------- */
+
+.wall-more {
+  margin-block-start: var(--space-sm);
+}
+
+/* THE SUMMARY IS AS WIDE AS ITS LABEL, and that is a focus decision rather
+   than a visual one. base.css draws the focus ring for a <summary> as a
+   box-shadow, because Firefox will not give one an outline at all — and a
+   shadow follows the element's own box. A full-width summary would therefore
+   ring the whole row while only the pill inside it looks pressable. Sized to
+   its content, the ring lands exactly on the thing that reads as a button, and
+   this file needs no focus rule of its own.
+
+   list-style AND the -webkit- pseudo-element, not one of them: Blink and older
+   WebKit expose the disclosure triangle as ::-webkit-details-marker, Gecko and
+   current WebKit render it as the summary's own list marker. Removing only one
+   leaves the triangle showing in the other.
+
+   It reads as a control, so it is drawn as one — but it is a <summary> and not
+   a <button>, so the button's rules cannot simply be borrowed. */
+.wall-more__summary {
+  width: fit-content;
+  margin-inline: auto;
+  padding: var(--space-2xs) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  list-style: none;
+  cursor: pointer;
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition:
+    border-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+
+.wall-more__summary::-webkit-details-marker {
+  display: none;
+}
+
+.wall-more__summary:hover {
+  color: var(--text-primary);
+  border-color: var(--silver-accent-mid);
+}
+
+/* One of the two labels at a time. See the note in the page's markup. */
+.wall-more__open {
+  display: none;
+}
+
+.wall-more[open] .wall-more__shut {
+  display: none;
+}
+
+.wall-more[open] .wall-more__open {
+  display: inline-block;
+}
+
+/* The summary comes FIRST in the markup and the tail second, so the button
+   sits between the two halves of the wall while it is closed and above the
+   tail once it is open. The margin is what keeps the second grid from butting
+   against the control. */
+.wall-more__rest {
+  margin-block-start: var(--space-sm);
+}
+
+/* --------------------------------------------------------------------------
    3. Technology sphere
    Ships as a plain grid. tech-sphere.js adds --on, which is what switches it
    into the 3D arrangement; without scripting, or under prefers-reduced-motion,
    the grid is what stays.
    -------------------------------------------------------------------------- */
 
+/* COUNTED COLUMNS, for the reason .clients gives — and its OWN counts, for a
+   reason .clients does not have. The face is aspect-ratio 1, so a plate is
+   exactly as wide as its column: four across a tablet would draw a 160px
+   circle where the design wants about a hundred. Three, then six, then nine
+   holds the plate near that size at every width, and COMPANY_TECHNOLOGY_WALL
+   is eighteen because eighteen divides into all three. */
 .tech-sphere__list {
   display: grid;
   gap: var(--space-sm);
-  grid-template-columns: repeat(auto-fit, minmax(min(6rem, 100%), 1fr));
+  grid-template-columns: repeat(3, 1fr);
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+@media (min-width: 48em) {
+  .tech-sphere__list {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (min-width: 64em) {
+  .tech-sphere__list {
+    grid-template-columns: repeat(9, 1fr);
+  }
 }
 
 .tech-sphere__face {
@@ -333,6 +318,14 @@
 }
 
 /* --- the 3D arrangement, once the script has taken over ------------------ */
+
+/* The expander is what the cap is FOR, and the sphere is what the cap is not
+   for. When the script turns the sphere on it moves every plate out of the
+   <details> and into the list above, so there is nothing left in there to
+   open — and a control that opens onto nothing is worse than no control. */
+.tech-sphere--on .tech-sphere__more {
+  display: none;
+}
 
 .tech-sphere--on {
   /* --sphere-size is measured and set by the script. */

@@ -5,8 +5,11 @@
 
    PROGRESSIVE ENHANCEMENT
    The list ships as an ordinary responsive grid of logos with real alt text.
-   This file only adds a class and a set of coordinates; if it never runs, the
-   grid is what visitors and crawlers get, and nothing is lost but the effect.
+   This file adds a class, a set of coordinates, and one piece of structure: it
+   moves the capped tail of the list out of its <details> and onto the sphere.
+   If it never runs, the grid is what visitors and crawlers get — the first
+   COMPANY_TECHNOLOGY_WALL of them, with the rest one click away in a control
+   the browser implements itself — and nothing is lost but the effect.
 
    HOW IT WORKS
    Points are spread over the sphere with a Fibonacci (golden-spiral)
@@ -64,9 +67,27 @@
   function Sphere(root) {
     this.root = root;
     this.list = root.querySelector(".tech-sphere__list");
-    this.items = this.list
-      ? Array.prototype.slice.call(this.list.children)
+
+    /* THE LIST IS CAPPED IN THE MARKUP and the rest is inside a <details>, so
+       that a phone gets COMPANY_TECHNOLOGY_WALL plates and a button instead of
+       seventeen rows of them. See the note on that constant in lib/company.php.
+
+       The sphere wants all of them. place() spreads N points over a whole
+       sphere, so handing it a third of the list would not make a smaller
+       sphere — it would make one with a bald patch. So the tail is ADOPTED
+       into the list above when the sphere turns on and RELEASED back when it
+       turns off, and this.items is every plate either way, in page order.
+
+       Moving nodes rather than duplicating them: a logo must be in the page
+       exactly once, for Ctrl+F, for a crawler, and for a screen reader. */
+    this.spare = root.querySelector("[data-tech-spare]");
+    this.tail = this.spare
+      ? Array.prototype.slice.call(this.spare.children)
       : [];
+    this.items = (this.list
+      ? Array.prototype.slice.call(this.list.children)
+      : []).concat(this.tail);
+    this.adopted = false;
 
     this.rotX = TILT;
     this.rotY = 0;
@@ -76,6 +97,10 @@
     this.targetY = DRIFT;
     this.frame = null;
     this.running = false;
+    /* Whether any part of the sphere is on screen. Starts true so that a
+       browser without IntersectionObserver -- or one where attach() has not
+       run yet -- behaves exactly as it did before this existed. */
+    this.onScreen = true;
     this.dragging = false;
     this.pointerId = null;
     this.last = null;
@@ -104,9 +129,43 @@
     });
   };
 
+  /**
+   * Take the capped tail into the rotating list, or give it back.
+   *
+   * Called from enable() and disable(), so it follows the same one decision
+   * sync() makes on every resize — there is no second rule here that could
+   * disagree with the class. appendChild MOVES a node that is already in the
+   * document, so nothing is cloned and nothing is left behind.
+   */
+  Sphere.prototype.adopt = function (take) {
+    if (!this.list || !this.spare || this.adopted === take) {
+      return;
+    }
+
+    var into = take ? this.list : this.spare;
+    this.tail.forEach(function (item) {
+      into.appendChild(item);
+    });
+
+    this.adopted = take;
+  };
+
+  /**
+   * Size the sphere to the space it has, and lay the logos out on it.
+   *
+   * THE VIEWPORT'S HEIGHT IS ONE OF THE THREE LIMITS, and it was missing. A
+   * phone held landscape — 932x430, say — clears MIN_WIDTH and so used to be
+   * given a 560px sphere inside a 430px viewport: taller than the screen it
+   * was on, with the top and bottom of it permanently out of view. The radius
+   * is derived from the size, so clamping the size rescales the whole
+   * arrangement and nothing else has to change.
+   *
+   * It is re-evaluated on every resize because measure() is called from
+   * enable(), which sync() calls — so turning a tablet is already handled.
+   */
   Sphere.prototype.measure = function () {
-    var size = Math.min(this.root.clientWidth, 560);
-    this.root.style.setProperty("--sphere-size", size + "px");
+    var size = Math.min(this.root.clientWidth, 560, global.innerHeight * 0.8);
+    this.root.style.setProperty("--sphere-size", Math.round(size) + "px");
     this.place(size * 0.42);
   };
 
@@ -144,6 +203,57 @@
 
     this.paint();
     this.frame = global.requestAnimationFrame(this.tick);
+  };
+
+  /**
+   * Run only while the sphere is on screen.
+   *
+   * THE LOOP USED TO RE-ARM UNCONDITIONALLY, and the cost of that is not small
+   * or theoretical: two custom properties written on one element invalidate the
+   * transform of every logo under it, so the browser recalculated fifty
+   * elements' styles every frame of every second the page was open -- including
+   * while the sphere was several screens below the fold and nobody had ever
+   * seen it.
+   *
+   * It is transform-only, so there is no layout and no paint, which is exactly
+   * why nothing caught it: every frame-rate check here reports a steady 60fps
+   * on a page burning a CPU core. tools/check_style_budget.py is the one
+   * instrument that can see it, and it measured 134ms of style per second on
+   * this page against a 100ms ceiling -- with the sphere off screen the whole
+   * time. That is the measurement this method exists to answer.
+   *
+   * The class is NOT touched. --on is the sphere's arrangement and it stays on;
+   * this is only whether the arrangement is being turned. A visitor who scrolls
+   * back finds it where they left it, still tilted, and it starts moving again.
+   */
+  Sphere.prototype.watchVisibility = function () {
+    var self = this;
+
+    /* No IntersectionObserver is not a fault: the sphere simply keeps turning
+       as it always did. Every browser that has the rest of this has it. */
+    if (typeof global.IntersectionObserver !== "function") {
+      return;
+    }
+
+    new global.IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        self.onScreen = entry.isIntersecting;
+
+        if (!self.running) {
+          return;
+        }
+        if (self.onScreen) {
+          if (self.frame === null) {
+            self.render();
+          }
+        } else if (self.frame !== null) {
+          global.cancelAnimationFrame(self.frame);
+          self.frame = null;
+        }
+      });
+      /* A margin, so it is already turning by the time it comes into view
+         rather than starting from a standstill under the reader's eye. */
+    }, {rootMargin: "200px"}).observe(this.root);
   };
 
   /* Two custom properties on one element, not fifty transform writes: the
@@ -299,6 +409,8 @@
         self.sync();
       }, 150);
     });
+
+    this.watchVisibility();
   };
 
   /**
@@ -317,6 +429,10 @@
   };
 
   Sphere.prototype.enable = function () {
+    /* Before measure(), because place() lays out this.items against the boxes
+       they are in now — and half of them are in the wrong parent until this
+       has run. */
+    this.adopt(true);
     this.measure();
 
     if (this.running) {
@@ -325,10 +441,21 @@
 
     this.root.classList.add("tech-sphere--on");
     this.running = true;
-    this.render();
+
+    /* Arranged either way -- measure() has already placed every logo -- but
+       turned only while somebody can see it. */
+    if (this.onScreen) {
+      this.render();
+    }
   };
 
   Sphere.prototype.disable = function () {
+    /* Outside the running guard on purpose. disable() is also what runs on the
+       first sync() of a narrow window, when the sphere has never started — and
+       that is exactly the case where the tail has to stay where the markup put
+       it. adopt() is a no-op when nothing has moved. */
+    this.adopt(false);
+
     if (!this.running) {
       return;
     }

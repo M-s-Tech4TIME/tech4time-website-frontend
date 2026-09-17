@@ -19,6 +19,7 @@ store they read from is outside the document root entirely.
 | [`careers.php`](#careersphp) | what this side does with a job post | `contract`, `store` |
 | [`contact.php`](#contactphp) | what this side does with the contact page | `contract`, `store` |
 | [`company.php`](#companyphp) | what this side does with the company profile | `contract`, `store` |
+| [`milestones.php`](#milestonesphp) | what this side does with the timeline | `contract`, `store`, `company` |
 | [`about.php`](#aboutphp) | what this side does with the about page | `contract`, `store` |
 | [`home.php`](#homephp) | what this side does with the home page | `contract`, `store` |
 | [`services.php`](#servicesphp) | the services index and its six detail pages | `contract`, `store`, `html` |
@@ -259,6 +260,48 @@ space the browser renders.
 **`company_validate()` refuses a figure that does not start with a digit.** `animations.js` counts
 it up by reading the number off the front, so `"Over 100"` silently never animates. That is the
 kind of thing an editor should say out loud rather than let somebody discover.
+
+**The milestones are no longer one of those lists.** They are `milestones.php`, below.
+`COMPANY_MOVED_BANDS` names the band this side no longer edits or counts, and every loop over
+`COMPANY_LISTS` or `COMPANY_BANDS` on the editing side goes through `company_here()` — because a
+form that has stopped rendering a band while still naming it in its `*_from_post()` loop blanks
+that band on every save, silently, and an empty string is a valid value.
+
+**`company_page_schema()` takes the timeline as an argument** rather than reading it. The page
+shows a window onto the history, and a graph built from the whole of it would describe entries the
+markup does not carry. It is an argument and not a `require` because `milestones.php` already
+requires this file, for its read-through.
+
+### `milestones.php`
+
+`milestones_load()` · `milestones_save()` · `milestones_validate()` *(backend)* ·
+`milestones_page_schema()` · `milestones_event_list()` *(frontend)*
+
+The company's timeline, and the one document **two pages read**: `/pages/milestones/` renders all of
+it and `/pages/company-profile/` renders the most recent `MILESTONES_WINDOW` years and links there
+for the rest. The window is `milestones_recent()` in `contract.php`, so both pages agree about what
+"recent" means, and `assets/css/pages/milestones.css` is loaded by both, so they agree about what it
+looks like.
+
+**It was a band of the company document, and that band is still in the contract.** Deprecated, not
+deleted: removing it would change the meaning of every `content/company.json` already written, which
+is the one thing `CONTRACT_VERSION` exists to stop.
+
+**`milestones_load()` reads through to it, and the condition is the revision.** Until the first save
+on `?s=milestones` the entries — and the heading, the eyebrow and the introduction with them — still
+live in the company document, so this reads them from there. Not "the file is missing": a fresh host
+is seeded with `content/milestones.json` from the defaults, so the file exists from the first day.
+Not "the list is empty" either: an operator who deliberately removed every entry would be handed
+them all back on the next request, which is the editor refusing to do what it was told. Revision 0
+means nobody has ever saved this, and the first save mints 1 and stops the fallback for good.
+
+**`milestones_recent()` keeps a row whose year it cannot read.** `year` is free text — the editor
+asks for `2024` or `2024–2025` and refuses anything else, but the contract sees hand-edited files
+too. A row starting with four digits is placed in that year and the highest `MILESTONES_WINDOW`
+years are the window; anything unreadable is always kept, because dropping a row nobody can sort is
+worse than showing one extra. It filters and never sorts: the editor decides the order, and the
+alternating left/right of the rail is `:nth-child`, so reordering here would move entries across the
+page as well as down it.
 
 ### `about.php`
 

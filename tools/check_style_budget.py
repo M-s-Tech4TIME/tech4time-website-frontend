@@ -55,7 +55,13 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGES = ["/pages/about/", "/pages/services/", "/"]
+# /pages/company-profile/ is the one page with a rAF loop that writes
+# every frame forever — tech-sphere.js, whose own comment says "each
+# write invalidates the transform of all fifty logos". Transform-only,
+# so no layout and no paint, so invisible to every frame-rate test here.
+# This is the instrument that matches that failure mode, and it was not
+# pointed at the page that has one.
+PAGES = ["/pages/about/", "/pages/services/", "/pages/company-profile/", "/"]
 CEILING_MS_PER_SECOND = 100.0
 SETTLE = 5
 DEFAULT_SECONDS = 6

@@ -81,6 +81,7 @@ PAGES = [
     "/pages/services/it-equipment-supply/",
     "/pages/services/it-consultancy-training/",
     "/pages/company-profile/",
+    "/pages/milestones/",
     "/pages/careers/",
     "/pages/branding-and-advertisement/",
     "/pages/resource-certifications/",
@@ -921,6 +922,105 @@ var frames = [], last = performance.now(), n = 0;
   });
 })();
 """
+
+
+def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
+    """
+    Crossing 768px, both ways, and what the technology list is on each side.
+
+    THIS IS THE ONE INTERACTION THE CAP INTRODUCES, so it is the one that gets
+    a test. Below 768px there is no sphere — the list is a plain grid, and an
+    unbounded one was about 1,900px of plates on a phone, the longest single
+    block on the page. So the markup caps it at COMPANY_TECHNOLOGY_WALL and
+    puts the rest in a closed <details>.
+
+    The sphere wants all of them: place() spreads N points over a whole sphere,
+    so handing it a third of the list makes one with a bald patch rather than a
+    smaller one. tech-sphere.js therefore ADOPTS the tail into the rotating
+    list when it turns the sphere on and releases it back when it turns off.
+
+    Which means the two states have to survive being toggled, repeatedly — a
+    tablet being turned over, a window being dragged, a browser being zoomed,
+    all of which arrive as a resize. A one-way test would pass on an
+    implementation that adopts and never gives back, and the logos would then
+    be missing from the grid for the rest of the visit.
+    """
+    print("\nthe technology list, across the sphere's breakpoint")
+
+    cap = int(subprocess.run(
+        ["php", "-r", "require 'lib/company.php'; echo COMPANY_TECHNOLOGY_WALL;"],
+        cwd=ROOT, capture_output=True, text=True).stdout.strip() or 18)
+
+    STATE = """
+    var s = document.querySelector('[data-tech-sphere]');
+    var list = s.querySelector('.tech-sphere__list');
+    var spare = s.querySelector('[data-tech-spare]');
+    var placed = 0;
+    Array.prototype.forEach.call(list.children, function (li) {
+      if (li.style.getPropertyValue('--x') !== '') placed += 1;
+    });
+    return {on: s.classList.contains('tech-sphere--on'),
+            inList: list.children.length,
+            inSpare: spare ? spare.children.length : 0,
+            placed: placed,
+            total: s.querySelectorAll('.tech-sphere__item').length,
+            height: Math.round(s.getBoundingClientRect().height)};
+    """
+
+    def state(width, height=900):
+        rq("POST", b.s + "/window/rect",
+           {"width": width, "height": height, "x": 0, "y": 0})
+        time.sleep(0.45)          # the resize handler is debounced by 150ms
+        return b.js(STATE)
+
+    b.go(origin + "/pages/company-profile/")
+    time.sleep(0.8)
+
+    wide = state(1200)
+    r.check("above the line the sphere is running", wide["on"] is True)
+    r.check("and it holds every logo, not the capped wall",
+            wide["inList"] == wide["total"] and wide["inSpare"] == 0,
+            f"{wide['inList']} in the list, {wide['inSpare']} left behind — "
+            f"place() spreads N points over a whole sphere, so a short list "
+            f"makes one with a bald patch")
+    r.check("every one of them was given a place on the surface",
+            wide["placed"] == wide["total"],
+            f"{wide['placed']} of {wide['total']} carry --x")
+
+    narrow = state(700)
+    r.check("below the line the sphere is off", narrow["on"] is False)
+    r.check("and the tail went back behind the expander",
+            narrow["inList"] == cap and narrow["inSpare"] == narrow["total"] - cap,
+            f"{narrow['inList']} shown, {narrow['inSpare']} behind the button, "
+            f"cap is {cap}")
+    r.check("nothing was lost on the way",
+            narrow["total"] == wide["total"], f"{narrow['total']} vs {wide['total']}")
+
+    back = state(1200)
+    r.check("and it comes back whole when the window widens again",
+            back["on"] is True and back["inList"] == back["total"]
+            and back["placed"] == back["total"],
+            f"{back['inList']} in the list, {back['placed']} placed")
+
+    # Three more crossings. An adopt that is not idempotent, or a release that
+    # forgets which items were its own, shows up as a count that drifts.
+    for _ in range(3):
+        state(700)
+        state(1200)
+    settled = b.js(STATE)
+    r.check("the counts do not drift over repeated crossings",
+            settled["inList"] == settled["total"] and settled["inSpare"] == 0,
+            f"{settled['inList']} in the list, {settled['inSpare']} in the spare")
+
+    # A landscape phone clears MIN_WIDTH and used to be handed a 560px sphere
+    # inside a 430px viewport — taller than the screen it was on.
+    landscape = state(932, 430)
+    r.check("a landscape phone gets a sphere that fits its screen",
+            landscape["on"] is True and landscape["height"] <= 430 * 0.8 + 2,
+            f"{landscape['height']}px of sphere in a 430px viewport")
+
+    rq("POST", b.s + "/window/rect", {"width": 1440, "height": 900, "x": 0, "y": 0})
+    time.sleep(0.4)
 
 
 def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
@@ -2289,6 +2389,7 @@ def main() -> None:
         counters(browser, origin, results)
         alternating_rows(browser, origin, results)
         tech_sphere(browser, origin, results)
+        sphere_breakpoint(browser, origin, results)
         sphere_smoothness(browser, origin, results)
         hero_frame_budget(browser, origin, results)
         printing(browser, origin, results)

@@ -26,17 +26,40 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../lib/head.php';
 require_once __DIR__ . '/../../lib/body.php';
 require_once __DIR__ . '/../../lib/company.php';
+require_once __DIR__ . '/../../lib/milestones.php';
 
 $data = company_load();
+
+/* THE TIMELINE IS A SECOND DOCUMENT NOW, and this page shows a WINDOW onto it:
+   the most recent MILESTONES_WINDOW years, with the whole history on
+   /pages/milestones/. Without a bound the band grew by a box and a margin —
+   130 to 160px, at every width — for every year the company added, forever.
+
+   milestones_load() reads through to the company document's own milestones
+   band until the new screen has been saved once, so this page renders exactly
+   what it rendered before until somebody edits it. */
+$milestones = milestones_load();
+$timeline   = milestones_shown($milestones, 'timeline');
+$recent     = milestones_recent($timeline);
 ?>
 <!DOCTYPE html>
 <html lang="<?= h(seo_lang()) ?>">
 <head>
-<?php seo_head('/pages/company-profile/', $data['meta'], ['pages/company-profile.css'], $data['updated']); ?>
+<?php seo_head('/pages/company-profile/', $data['meta'],
+                 ['pages/milestones.css', 'pages/company-profile.css?v=2'],
+                 $data['updated']); ?>
 <?php seo_jsonld('/pages/company-profile/', $data['meta'], $data['updated']); ?>
 
 <script type="application/ld+json">
-<?= json_encode(company_page_schema($data), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?php /* The timeline as the events it describes, built from exactly the
+         rows the band below renders — the window, not the history, and
+         nothing at all when the band is hidden. A graph that describes what
+         the markup does not carry is a page saying two things about itself. */ ?>
+<?= json_encode(company_page_schema($data,
+        milestones_band_shown($milestones, 'timeline')
+            ? milestones_event_list($recent, (string)$milestones['timeline']['title'])
+            : []),
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 
 </script>
 </head>
@@ -330,27 +353,39 @@ $data = company_load();
        Section order on this page follows the live site rather than the NextJS
        build, which opens with professional excellence and closes with the
        timeline. The timeline styling follows the live site too: a year, a rail
-       with a marker, and the entry beside it.
+       with a marker, and the entry beside it — and it is
+       assets/css/pages/milestones.css, which /pages/milestones/ loads as well.
+
+       A WINDOW, NOT THE WHOLE HISTORY. This band shows the most recent
+       MILESTONES_WINDOW years and links to /pages/milestones/ for the rest.
+       Unbounded it grew by a box and a margin — 130 to 160px, at EVERY width,
+       because the timeline is one entry per row on every screen — for each
+       year the company added, with nothing to stop it.
+
+       The document is content/milestones.json, not this page's own. The band
+       that used to be here is deprecated and still in the contract; see the
+       note on it in company_defaults() and the read-through in
+       milestones_load().
        ==================================================================== -->
-<?php if (company_band_shown($data, 'milestones')): ?>
+<?php if (milestones_band_shown($milestones, 'timeline')): ?>
   <section class="section milestones" aria-labelledby="milestones-heading">
     <div class="container">
       <div data-reveal data-reveal-delay class="section__header">
-<?php if (trim((string)$data['milestones']['eyebrow']) !== ''): ?>
-        <span class="section__eyebrow"><?= h($data['milestones']['eyebrow']) ?></span>
+<?php if (trim((string)$milestones['timeline']['eyebrow']) !== ''): ?>
+        <span class="section__eyebrow"><?= h($milestones['timeline']['eyebrow']) ?></span>
 <?php endif; ?>
-        <h2 class="section__title" id="milestones-heading"><?= h($data['milestones']['title']) ?></h2>
-<?php if (trim((string)$data['milestones']['lead']) !== ''): ?>
+        <h2 class="section__title" id="milestones-heading"><?= h($milestones['timeline']['title']) ?></h2>
+<?php if (trim((string)$milestones['timeline']['lead']) !== ''): ?>
 <?php /* Printed unescaped, which is safe for exactly one reason: it
                  went through rt_sanitise_html() before it was stored, and that
                  function writes its output from an allow-list rather than
                  passing anything through. See lib/html.php. */ ?>
-        <div class="section__lead"><?= $data['milestones']['lead'] ?></div>
+        <div class="section__lead"><?= $milestones['timeline']['lead'] ?></div>
 <?php endif; ?>
       </div>
 
       <ol class="timeline" role="list">
-<?php foreach (company_shown($data, 'milestones') as $row): ?>
+<?php foreach ($recent as $row): ?>
         <li data-reveal data-reveal-delay class="timeline__item">
           <p class="timeline__year"><?= h($row['year']) ?></p>
           <div class="timeline__box">
@@ -360,6 +395,21 @@ $data = company_load();
         </li>
 <?php endforeach; ?>
       </ol>
+<?php if (count($recent) < count($timeline)): ?>
+<?php /* Only when something is actually withheld. A "see all" under a list
+             that already IS all of it is a link to the page you are on, with
+             one extra name for it — and it would appear the day the timeline
+             was first published, before there was anything to see. */ ?>
+      <p data-reveal data-reveal-delay class="milestones__more">
+        <a class="btn btn--secondary"
+<?php /* The route out of SEO_ROUTES rather than typed here. It is the
+                     constant that DEFINES the address — the canonical, the
+                     sitemap entry and the breadcrumb all come from the same
+                     line — so a link that spelled it again would be the one
+                     copy nothing keeps in step. */ ?>
+           href="<?= h(SEO_ROUTES['milestones'][0]) ?>">See all <?= count($timeline) ?> milestones</a>
+      </p>
+<?php endif; ?>
     </div>
   </section>
 <?php endif; ?>
@@ -395,10 +445,29 @@ $data = company_load();
 <?php endif; ?>
 <?php if (company_band_shown($data, 'clients')): ?>
 
+<?php /* THE WALL IS CAPPED, and the rest is behind a native expander.
+               Unbounded this was the page's worst growth: .clients is one row
+               per eight rem, so fifty logos on a phone — where the grid used
+               to collapse to a SINGLE column — was about eight screens of
+               nothing but logos. See COMPANY_CLIENTS_WALL for why twelve.
+
+               <details> and not a script, for the reason the certifications
+               page gives: the browser already implements it, so it opens with
+               JavaScript off, is reachable by keyboard with no roving
+               tabindex, and is announced correctly with no aria- attribute.
+
+               NOTHING IN THE TAIL CARRIES data-reveal. A closed <details> has
+               no layout box, so IntersectionObserver never reports its
+               children as intersecting — a card marked for reveal in there
+               would still be at opacity 0 when somebody opened it. That is
+               the tab-panel failure tools/apply_reveals.py refuses to create,
+               and it would be just as real here. */ ?>
+<?php [$wall, $rest] = company_wall(company_shown($data, 'clients'), COMPANY_CLIENTS_WALL); ?>
+
       <div class="background__block">
         <h3 data-reveal data-reveal-delay class="background__title"><?= h($data['clients']['title']) ?></h3>
         <ul class="clients" role="list" data-reveal-rows>
-<?php foreach (company_shown($data, 'clients') as $row): ?>
+<?php foreach ($wall as $row): ?>
           <li data-reveal data-reveal-delay class="client-card">
             <?= company_picture($row['image'], 'client-card__logo', (string)$row['name'],
                                    'company.clients') ?>
@@ -407,6 +476,30 @@ $data = company_load();
           </li>
 <?php endforeach; ?>
         </ul>
+<?php if ($rest): ?>
+        <details class="wall-more">
+<?php /* TWO LABELS IN THE MARKUP, one hidden by CSS on each side of
+                     [open], rather than one label and content: attr(). Both
+                     spellings are then real text: findable, translatable, and
+                     in the accessibility tree — a ::before's content is none
+                     of those. display:none keeps exactly one of them there at
+                     a time, so nothing is announced twice. */ ?>
+          <summary class="wall-more__summary">
+            <span class="wall-more__shut">See all <?= count($wall) + count($rest) ?> clients</span>
+            <span class="wall-more__open">Show fewer</span>
+          </summary>
+          <ul class="clients wall-more__rest" role="list">
+<?php foreach ($rest as $row): ?>
+            <li class="client-card">
+              <?= company_picture($row['image'], 'client-card__logo', (string)$row['name'],
+                                     'company.clients') ?>
+
+              <span class="visually-hidden"><?= h($row['name']) ?></span>
+            </li>
+<?php endforeach; ?>
+          </ul>
+        </details>
+<?php endif; ?>
       </div>
 <?php endif; ?>
 <?php if (company_band_shown($data, 'journey')): ?>
@@ -507,11 +600,32 @@ $data = company_load();
                longer run — or a [data-slider] subtree — to one target so the
                cards are not hidden one by one. Fifty logos is a longer run.
                The same rule puts data-reveal on the journey block above. */ ?>
+<?php /* THE SAME CAP AND THE SAME EXPANDER AS THE CLIENTS WALL, and the
+               same reason: below the sphere's breakpoint this is a plain grid
+               with nothing bounding it, and fifty plates was about 1,900px —
+               the longest single block on a phone, longer than the timeline
+               and the clients wall. See COMPANY_TECHNOLOGY_WALL for why
+               eighteen rather than twelve.
+
+               THE SPHERE STILL GETS EVERY LOGO. tech-sphere.js moves the tail
+               out of the expander and into the list above when it turns the
+               sphere on, and puts it back when it turns it off — so the cap
+               follows the state the script already maintains on every resize,
+               and place() is never handed a short list to spread over a whole
+               sphere. Without the script there is no sphere at any width, and
+               the cap is then the only thing acting, which is correct: nothing
+               else is solving the length.
+
+               Nothing in the tail carries data-reveal, for the reason the
+               clients wall gives. */ ?>
+<?php [$tech, $tech_rest] =
+          company_wall(company_shown($data, 'technology'), COMPANY_TECHNOLOGY_WALL); ?>
+
       <div data-reveal data-reveal-delay class="excellence__block">
         <h3 class="background__title"><?= h($data['technology']['title']) ?></h3>
         <div class="tech-sphere" data-tech-sphere>
           <ul class="tech-sphere__list" role="list">
-<?php foreach (company_shown($data, 'technology') as $row): ?>
+<?php foreach ($tech as $row): ?>
           <li class="tech-sphere__item">
             <span class="tech-sphere__face">
               <?= company_picture($row['image'], 'tech-sphere__logo', (string)$row['name'],
@@ -521,6 +635,25 @@ $data = company_load();
           </li>
 <?php endforeach; ?>
           </ul>
+<?php if ($tech_rest): ?>
+          <details class="wall-more tech-sphere__more">
+            <summary class="wall-more__summary">
+              <span class="wall-more__shut">See all <?= count($tech) + count($tech_rest) ?> technologies</span>
+              <span class="wall-more__open">Show fewer</span>
+            </summary>
+            <ul class="tech-sphere__list wall-more__rest" role="list" data-tech-spare>
+<?php foreach ($tech_rest as $row): ?>
+              <li class="tech-sphere__item">
+                <span class="tech-sphere__face">
+                  <?= company_picture($row['image'], 'tech-sphere__logo', (string)$row['name'],
+                                       'company.technology') ?>
+
+                </span>
+              </li>
+<?php endforeach; ?>
+            </ul>
+          </details>
+<?php endif; ?>
         </div>
       </div>
 <?php endif; ?>
@@ -591,10 +724,10 @@ $data = company_load();
      calls their init(). Pages that need no forms can omit forms.js. -->
 <script src="/assets/js/theme-toggle.js" defer></script>
 <script src="/assets/js/nav.js" defer></script>
-<script src="/assets/js/animations.js" defer></script>
+<script src="/assets/js/animations.js?v=2" defer></script>
 <script src="/assets/js/forms.js?v=2" defer></script>
 <script src="/assets/js/dashboard.js" defer></script>
-<script src="/assets/js/tech-sphere.js" defer></script>
+<script src="/assets/js/tech-sphere.js?v=2" defer></script>
 <script src="/assets/js/slider.js" defer></script>
 <!-- Versioned for the same reason the stylesheets are, and with a sharper
      edge: MODULES in this file is a hardcoded allow list, so a stale copy

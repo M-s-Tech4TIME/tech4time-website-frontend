@@ -39,10 +39,23 @@ the committed seeds would silently revert titles edited on the host.
 |---|---|
 | **The canonical** | Derived from the page's own address. An editable canonical pointing at another page tells Google to index that one and drop this one, and nothing on this end would show it |
 | **Routes** | `SEO_ROUTES` in `lib/contract.php`. Adding a page is a code change, as it always was, and its card then appears by itself — which is what makes it impossible to orphan a record or point one at a URL that does not resolve |
+
+**One line is the whole of it.** `/pages/milestones/` was added with a single `SEO_ROUTES` entry and
+touched nothing on the SEO screen: `chrome_targets()` walks that constant, so the page got a card on
+`?s=seo` and became selectable as a footer link at `?s=chrome`; `seo_meta_edit()` is generic over the
+document, so editing and publishing its title needed no code; `seo_sitemap_entries()` listed it; and
+`seo_ancestors()` gave it a breadcrumb by prefix match. That is the property this design was for, and
+`tools/test_sitemap.py` now holds it rather than leaving it a promise.
+
+**A document with no file yet contributes its defaults**, not nothing. `seo_route_meta()` returned
+`[]` for one, so its sitemap line fell through to `seo_sitemap_entries()`' own `monthly` and `0.5`
+and its card came up blank — while the page rendered the right title all along, out of its own
+`*_load()`. Two answers to what a page is called, disagreeing for exactly as long as a new document
+went unpublished.
 | **The CSP, the favicon list, the font preload, the stylesheet order** | Code. An editor able to break the Content Security Policy is a hazard, not a feature |
 | **`Allow: /` and the `Sitemap:` line in `robots.txt`** | Written by `robots.php`. Only extra `Disallow` paths are editable, and a rule that would block the whole site is refused |
 | **The manifest's icon list** | It names files that must exist. A manifest pointing at an icon that is not there is an install prompt that fails silently on a stranger's phone |
-| **The page-specific schemas** — `Service`, `OfferCatalog`, `JobPosting`, `ContactPage`, `AboutPage` | Already generated from the same documents the page bodies render from, so they cannot drift from the visible page |
+| **The page-specific schemas** — `Service`, `OfferCatalog`, `JobPosting`, `ContactPage`, `AboutPage`, `CollectionPage` | Already generated from the same documents the page bodies render from, so they cannot drift from the visible page. Two of them are handed exactly the rows their page renders rather than reading the document themselves: the company profile shows a five-year window onto the timeline and the milestones page shows all of it, and a graph listing entries the markup does not carry is a page saying two different things about itself |
 
 ---
 

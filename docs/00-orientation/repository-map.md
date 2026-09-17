@@ -56,6 +56,7 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 | — IT consultancy & training | `pages/services/it-consultancy-training/index.php` | **dynamic** — the same document |
 | — IT equipment supply | `pages/services/it-equipment-supply/index.php` | **dynamic** — the same document |
 | Company profile | `pages/company-profile/index.php` | **dynamic** — renders `content/company.json` |
+| Milestones | `pages/milestones/index.php` | **dynamic** — renders `content/milestones.json`, the whole timeline the company profile shows five years of |
 | Careers | `pages/careers/index.php` | **dynamic** — renders `content/careers.json` |
 | Contact | `pages/contact/index.php` | **dynamic** — renders `content/contact.json` |
 | Resource certifications | `pages/resource-certifications/index.php` | **dynamic** — renders `content/certifications.json` |
@@ -63,8 +64,16 @@ because `.htaccess` resolves it. The homepage is the exception: it stays at the 
 | Privacy policy | `pages/privacy-policy/index.php` | **dynamic** — renders `content/privacy.json` |
 | Not found | `404.php` | at the repository root; its record is `notfound` in `content/seo.json` |
 
-**All sixteen are dynamic.** The site has no static page. Adding one:
+**All seventeen are dynamic.** The site has no static page. Adding one:
 [adding-a-page.md](../10-development/frontend/adding-a-page.md).
+
+**The milestones page and the company profile are one document, read twice.** `content/milestones.json`
+holds the whole timeline; `/pages/milestones/` renders all of it and `/pages/company-profile/` renders
+the most recent `MILESTONES_WINDOW` years and links here for the rest. The timeline's rules are
+`assets/css/pages/milestones.css`, which both pages load, so there is no second copy of the styling
+either. The company document still carries a `milestones` band: it is deprecated, `lib/milestones.php`
+reads through to it until the new document has been saved once, and removing it would change the
+meaning of every `content/company.json` already written.
 
 **The seven services pages are one document, not seven.** `content/services.json` holds the index
 *and* every detail page under it, because a seventh service has to be addable from the editor and
@@ -124,6 +133,7 @@ Never reachable over HTTP: `.htaccess` has `RewriteRule ^lib/ - [F,L]`.
 | `sprite.php` | the run-time icon sprite, for symbols chosen by a document rather than typed |
 | `services.php` | the index and all seven detail pages, from one document |
 | `about.php` `home.php` `company.php` `careers.php` `contact.php` | one page's shape and its schema, one file each |
+| `milestones.php` | the timeline, and the read-through to the company document until it has been saved once |
 | `certifications.php` `branding.php` `privacy.php` | likewise |
 | `private.php` | where the secrets are, and the keys derived from them |
 | `throttle.php` | counting attempts, so guessing costs something |

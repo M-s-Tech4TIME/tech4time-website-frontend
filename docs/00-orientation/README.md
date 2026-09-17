@@ -2,7 +2,7 @@
 
 **Applies to:** both
 
-The public website of Tech4TIME, a Bangladeshi IT company: sixteen pages, a contact form, a job
+The public website of Tech4TIME, a Bangladeshi IT company: seventeen pages, a contact form, a job
 board, and one inbound endpoint where content arrives from the admin — which is a separate
 site, in `tech4time-website-backend`, serving `admin.tech4time.bd`.
 
@@ -30,10 +30,10 @@ tech4time.bd/                 the public website — mostly flat .html files
     /api/publish.php          where the admin's content arrives, signed
 ```
 
-Fourteen of the sixteen pages are static HTML. Two are PHP, because what they say changes without a
-redeploy — and re-uploading a website to change a phone number is not a workflow anyone sustains.
+All seventeen pages are PHP, because what they say changes without a redeploy — and re-uploading a
+website to change a phone number is not a workflow anyone sustains.
 
-Those two render **on the server**, from JSON on disk. They do not fetch anything at runtime. That
+They render **on the server**, from JSON on disk. They do not fetch anything at runtime. That
 matters most on the contact page, which is the page a search engine is most often asked for by name,
 and content that arrives by JavaScript is indexed unreliably.
 
@@ -86,9 +86,8 @@ If you add a CDN link, the browser will refuse it.
 
 Honest status, so you do not go looking for things that are not there.
 
-- **Two of sixteen pages are editable.** The other fourteen are hand-edited HTML. Making them
-  manageable is planned work, not missing work — see
-  *adding-an-editor.md* (in tech4time-website-backend).
+- **Every page is editable**, through one of the ten editors at `admin.tech4time.bd`. Adding
+  another: *adding-an-editor.md* (in tech4time-website-backend).
 - **The split is done and built.** This repository is `tech4time-website-frontend` on
   `tech4time.bd`; the editor is `tech4time-website-backend` on `admin.tech4time.bd`, and the two
   talk over a signed publish API. The sequence in [architecture.md](architecture.md) is running

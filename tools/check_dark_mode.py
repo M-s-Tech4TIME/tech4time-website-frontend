@@ -51,6 +51,7 @@ PAGES = [
     "/pages/services/it-equipment-supply/",
     "/pages/services/it-consultancy-training/",
     "/pages/company-profile/",
+    "/pages/milestones/",
     "/pages/careers/",
     "/pages/branding-and-advertisement/",
     "/pages/resource-certifications/",
