@@ -64,6 +64,7 @@ ENDPOINT = "/api/publish.php"
 CAREERS = ROOT / "content" / "careers.json"
 CONTACT = ROOT / "content" / "contact.json"
 COMPANY = ROOT / "content" / "company.json"
+MILESTONES = ROOT / "content" / "milestones.json"
 ABOUT = ROOT / "content" / "about.json"
 HOME = ROOT / "content" / "home.json"
 SERVICES = ROOT / "content" / "services.json"
@@ -379,6 +380,8 @@ def run(base: str, key: bytes, r: Results) -> None:
 
     contact_switches(base, key, r)
     company_round_trip(base, key, r)
+    milestones_round_trip(base, key, r)
+    the_walls(base, key, r)
     about_round_trip(base, key, r)
     home_round_trip(base, key, r)
     services_round_trip(base, key, r)
@@ -389,6 +392,247 @@ def run(base: str, key: bytes, r: Results) -> None:
     seo_round_trip(base, key, r)
     chrome_round_trip(base, key, r)
     settings_round_trip(base, key, r)
+
+
+def php_const(name: str) -> int:
+    """One integer constant, asked of PHP rather than written here twice.
+
+    The caps below are a design, not a number: COMPANY_CLIENTS_WALL has to
+    divide into every column count .clients uses and COMPANY_TECHNOLOGY_WALL
+    into every count .tech-sphere__list uses, or the row above the expander
+    comes out ragged at whichever width it does not divide into. A copy of the
+    figure here would let the two part without anything noticing.
+    """
+    out = subprocess.run(
+        ["php", "-r", f"require 'lib/company.php'; echo {name};"],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if out.returncode != 0 or not out.stdout.strip():
+        raise SystemExit(f"could not read {name} from lib/company.php:\n"
+                         + (out.stderr or out.stdout)[:400])
+    return int(out.stdout.strip())
+
+
+def milestones_round_trip(base: str, key: bytes, r: Results) -> None:
+    """Every field the milestones model declares, on both pages that draw it.
+
+    THIS IS WHAT check_content_model.py POINTS AT for this document, for the
+    reason it points at the company profile: the form and both renderers walk
+    MILESTONES_LISTS with a loop, so reading the source finds the loop and not
+    the fields.
+
+    TWO PAGES, AND THEY DO NOT SHOW THE SAME THING. /pages/milestones/ shows
+    the whole timeline; /pages/company-profile/ shows the most recent
+    MILESTONES_WINDOW years of it and links here for the rest. So the marker
+    walk runs against the milestones page, and the window is proved separately
+    against the company profile — where the point is as much what is ABSENT as
+    what is there.
+    """
+    print("\nthe milestones travel to two pages")
+
+    window = php_const("MILESTONES_WINDOW")
+
+    # Eight years, one entry each, oldest first — the order the timeline runs
+    # in. The three oldest must fall outside a five-year window.
+    years = [str(2018 + i) for i in range(8)]
+    data = {
+        "revision": 3,
+        "meta": {"title": f"{MARK}-ms-tab", "description": f"{MARK}-ms-desc",
+                 "share_title": f"{MARK}-ms-share", "breadcrumb": f"{MARK}-ms-crumb",
+                 "keywords": f"{MARK}-ms-kw", "robots": "index",
+                 "changefreq": "yearly", "priority": "0.5"},
+        "hero": {"title": f"{MARK}-ms-hero", "subtitle": f"{MARK}-ms-sub"},
+        "timeline": {
+            "status": "shown",
+            "eyebrow": f"{MARK}-ms-eyebrow",
+            "title": f"{MARK}-ms-title",
+            "lead": f"<p>{MARK}-ms-lead</p>",
+            "items": [{"id": f"y{y}", "year": y, "title": f"{MARK}-ms-{y}",
+                       "text": f"{MARK}-ms-text-{y}", "status": "shown"}
+                      for y in years],
+        },
+    }
+
+    status, answer = publish(base, key, "milestones", data)
+    r.check("the milestones publish", status == 200 and answer.get("ok") is True,
+            f"{status} {answer}")
+
+    _, page = get(base, "/pages/milestones/")
+
+    missing = [k for k in ("ms-tab", "ms-desc", "ms-share", "ms-crumb", "ms-kw",
+                           "ms-hero", "ms-sub", "ms-eyebrow", "ms-title",
+                           "ms-lead", "ms-2018", "ms-text-2018", "ms-2025")
+               if f"{MARK}-{k}" not in page]
+    r.check("every field the model declares reaches the page",
+            not missing, "never rendered: " + ", ".join(missing))
+
+    r.check("the whole history is on the milestones page",
+            page.count('class="timeline__item"') == len(years),
+            str(page.count('class="timeline__item"')))
+    r.check("its graph lists every entry as an Event",
+            len([g for g in json_ld(page) if g.get("@type") == "CollectionPage"]) == 1
+            and len(main_entity_items(page)) == len(years),
+            str(len(main_entity_items(page))))
+
+    print("\nand the company profile shows a window onto them")
+    _, page = get(base, "/pages/company-profile/")
+
+    kept = years[-window:]
+    dropped = years[:-window]
+    r.check(f"the {window} most recent years are there",
+            all(f"{MARK}-ms-{y}" in page for y in kept), str(kept))
+    r.check("and the older ones are not",
+            not any(f"{MARK}-ms-{y}" in page for y in dropped), str(dropped))
+    r.check("the band's heading comes from the same document",
+            f"{MARK}-ms-title" in page and f"{MARK}-ms-lead" in page,
+            "the company document's own milestones band is deprecated — the "
+            "words moved with the rows")
+    r.check("a link out says how many there are in full",
+            f"See all {len(years)} milestones" in page
+            and 'href="/pages/milestones/"' in page)
+    r.check("its graph describes the window and not the history",
+            len(main_entity_items(page)) == window,
+            "a graph listing entries the markup does not carry is a page "
+            "saying two things about itself")
+
+    print("\nand the link is only there when something is withheld")
+    data["revision"] = 4
+    data["timeline"]["items"] = data["timeline"]["items"][-window:]
+    publish(base, key, "milestones", data)
+    _, page = get(base, "/pages/company-profile/")
+    r.check("a timeline inside the window gets no link",
+            "See all" not in page and f"{MARK}-ms-{kept[0]}" in page,
+            "a see-all under a list that is already all of it is a control "
+            "that does nothing")
+
+    print("\nan unreadable year is kept rather than dropped")
+    data["revision"] = 5
+    data["timeline"]["items"] = (
+        [{"id": "founding", "year": "the beginning", "title": f"{MARK}-ms-nodate",
+          "text": "", "status": "shown"}]
+        + [{"id": f"y{y}", "year": y, "title": f"{MARK}-ms-{y}", "text": "",
+            "status": "shown"} for y in years]
+    )
+    publish(base, key, "milestones", data)
+    _, page = get(base, "/pages/company-profile/")
+    r.check("a row whose year cannot be read survives the window",
+            f"{MARK}-ms-nodate" in page,
+            "dropping a row nobody can sort is worse than showing one extra")
+    r.check("and the years that can be read are still windowed",
+            not any(f"{MARK}-ms-{y}" in page for y in dropped), str(dropped))
+
+    print("\nhiding, on a document two pages read")
+    data["revision"] = 6
+    data["timeline"]["items"][1]["status"] = "hidden"
+    publish(base, key, "milestones", data)
+    _, page = get(base, "/pages/milestones/")
+    r.check("a hidden entry is on neither page", f"{MARK}-ms-{years[0]}" not in page)
+
+    data["revision"] = 7
+    data["timeline"]["status"] = "hidden"
+    publish(base, key, "milestones", data)
+    _, page = get(base, "/pages/milestones/")
+    r.check("a hidden band takes the timeline off its own page",
+            f"{MARK}-ms-title" not in page)
+    _, page = get(base, "/pages/company-profile/")
+    r.check("and off the company profile with it",
+            f"{MARK}-ms-title" not in page,
+            "one band, one switch, both pages — which is what the editor says")
+
+    print("\na signature is not a promise about what is inside")
+    data["revision"] = 8
+    data["timeline"]["status"] = "shown"
+    data["timeline"]["lead"] = '<p onclick="steal()">hi</p><script>steal()</script>'
+    status, _ = publish(base, key, "milestones", data)
+    r.check("a validly signed payload is accepted", status == 200, str(status))
+    _, page = get(base, "/pages/milestones/")
+    r.check("but the script is gone", "steal()" not in page and "onclick" not in page)
+    r.check("and the text around it survives", ">hi<" in page)
+
+
+def the_walls(base: str, key: bytes, r: Results) -> None:
+    """The two capped walls of logos on the company profile.
+
+    WHAT IS BEING PROVED IS THAT NOTHING IS LOST. The cap bounds how tall the
+    page IS, not what it says: every logo past it is inside a closed <details>,
+    which is in the DOM, found by Ctrl+F and read by a crawler. A cap that
+    dropped rows would pass a page-height measurement and fail the site.
+
+    And that the cap divides the columns. A cap that is not a multiple of every
+    column count the grid uses leaves a ragged half-row above the button at
+    whichever width it does not divide into, and two grids one after the other
+    stop reading as one wall. That is a property of the numbers, so it is
+    asserted about the numbers.
+    """
+    print("\nthe walls of logos are capped, and nothing is lost")
+
+    clients_cap = php_const("COMPANY_CLIENTS_WALL")
+    tech_cap = php_const("COMPANY_TECHNOLOGY_WALL")
+
+    r.check("the clients cap divides every column count .clients uses",
+            all(clients_cap % n == 0 for n in (2, 4, 6)),
+            f"{clients_cap} against 2, 4 and 6 — see assets/css/pages/"
+            f"company-profile.css")
+    r.check("and the technology cap divides its own",
+            all(tech_cap % n == 0 for n in (3, 6, 9)),
+            f"{tech_cap} against 3, 6 and 9")
+
+    data = json.loads(COMPANY.read_text())
+    data["revision"] = 40
+    data["clients"]["status"] = "shown"
+    data["technology"]["status"] = "shown"
+    data["clients"]["items"] = [
+        {"id": f"c{i}", "name": f"{MARK}-wall-c{i}", "status": "shown",
+         "image": {"src": "/assets/images/clients/cca.jpg",
+                   "webp": "/assets/images/clients/cca.webp",
+                   "width": 320, "height": 167}}
+        for i in range(clients_cap + 5)
+    ]
+    data["technology"]["items"] = [
+        {"id": f"t{i}", "name": f"{MARK}-wall-t{i}", "status": "shown",
+         "image": {"src": "/assets/images/tech/metasploit.svg", "webp": "",
+                   "width": 1000, "height": 222}}
+        for i in range(tech_cap + 5)
+    ]
+
+    status, _ = publish(base, key, "company", data)
+    r.check("a long wall publishes", status == 200, str(status))
+
+    _, page = get(base, "/pages/company-profile/")
+
+    r.check("every client is in the markup",
+            all(f"{MARK}-wall-c{i}" in page for i in range(clients_cap + 5)),
+            "the tail is hidden by a closed <details>, not left out of the page")
+    r.check("every technology is too",
+            all(f"{MARK}-wall-t{i}" in page for i in range(tech_cap + 5)))
+
+    shut = page.split('class="wall-more', 1)
+    r.check("the wall above the expander is exactly the cap",
+            shut[0].count('class="client-card"') == clients_cap,
+            str(shut[0].count('class="client-card"')))
+
+    r.check("the expander says how many there are in full",
+            f"See all {clients_cap + 5} clients" in page
+            and f"See all {tech_cap + 5} technologies" in page)
+    r.check("it is a <details>, so it opens with no JavaScript",
+            page.count('<details class="wall-more') == 2,
+            str(page.count('<details class="wall-more')))
+    r.check("nothing in the tail is marked for reveal",
+            '<li data-reveal data-reveal-delay class="client-card">'
+            not in page.split('wall-more__rest"', 1)[1],
+            "a closed <details> has no layout box, so IntersectionObserver "
+            "never fires and a card marked in there would still be invisible "
+            "when somebody opened it")
+
+    print("\nand a short wall gets no expander at all")
+    data["revision"] = 41
+    data["clients"]["items"] = data["clients"]["items"][:clients_cap]
+    data["technology"]["items"] = data["technology"]["items"][:tech_cap]
+    publish(base, key, "company", data)
+    _, page = get(base, "/pages/company-profile/")
+    r.check("exactly the cap needs no button",
+            "wall-more" not in page and f"{MARK}-wall-c0" in page,
+            "an expander over nothing is a control that does nothing")
 
 
 def contact_switches(base: str, key: bytes, r: Results) -> None:
@@ -2717,6 +2961,22 @@ def json_ld(page: str) -> list:
         except ValueError:
             continue
     return out
+
+
+def main_entity_items(page: str) -> list:
+    """The entries of a page graph's mainEntity ItemList.
+
+    NOT itemlist_of(), which looks for a TOP-LEVEL @type ItemList — that is the
+    shape the services index uses. The company profile's AboutPage and the
+    milestones page's CollectionPage each carry their timeline as a nested
+    mainEntity, so a top-level search finds nothing and an assertion made
+    against None is a check that cannot fail.
+    """
+    for node in json_ld(page):
+        entity = node.get("mainEntity") if isinstance(node, dict) else None
+        if isinstance(entity, dict) and entity.get("@type") == "ItemList":
+            return entity.get("itemListElement", [])
+    return []
 
 
 def itemlist_of(page: str):

@@ -71,7 +71,7 @@ stores share is `publish.key`, which is what the dotted arrow is signed with.
 
 ## Serving a page
 
-### A page — and all sixteen are this
+### A page — and all seventeen are this
 
 ```
 GET /pages/careers/

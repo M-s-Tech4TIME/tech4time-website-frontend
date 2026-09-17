@@ -128,9 +128,10 @@
 
      For a grid whose rows should slide in rather than rise: the first row from
      the left, the next from the right, and so on down the block. The rows are
-     not in the markup — the grid is auto-fit, so how many cards share a row is
-     decided by the width of the screen. They have to be read back out of the
-     layout, by grouping the cards on the offsetTop they ended up at.
+     not in the markup — how many cards share a row is decided by the width of
+     the screen, whether the grid counts its columns per breakpoint or lets
+     auto-fit count them. They have to be read back out of the layout, by
+     grouping the cards on the offsetTop they ended up at.
 
      The row decides the direction; the card's place in the row decides when.
      So a row comes in from one side with its cards following one another, and

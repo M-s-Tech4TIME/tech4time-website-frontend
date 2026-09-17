@@ -53,6 +53,7 @@ PAGES = [
     "/pages/services/",
     "/pages/services/cybersecurity/",
     "/pages/company-profile/",
+    "/pages/milestones/",
     "/pages/careers/",
     "/pages/branding-and-advertisement/",
     "/pages/resource-certifications/",

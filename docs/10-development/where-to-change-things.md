@@ -27,7 +27,8 @@ that name the admin name the other repository too.
 | An office address, phone number, email | `https://admin.tech4time.bd/?s=contact` |
 | The contact page's headings and copy | `https://admin.tech4time.bd/?s=contact` |
 | What the enquiry form says | `https://admin.tech4time.bd/?s=contact` |
-| A milestone, a figure, a client logo, a photograph | `https://admin.tech4time.bd/?s=company` |
+| A figure, a client logo, a photograph | `https://admin.tech4time.bd/?s=company` |
+| A milestone | `https://admin.tech4time.bd/?s=milestones` — its own screen and its own document. The company profile shows the five most recent years of it and links to `/pages/milestones/` for the rest |
 | The technology list, or the principles | `https://admin.tech4time.bd/?s=company` |
 | The company profile's headings and copy | `https://admin.tech4time.bd/?s=company` |
 | The about page's sections, specialities and why-us cards | `https://admin.tech4time.bd/?s=about` |

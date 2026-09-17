@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SEO = ROOT / "content" / "seo.json"
 BRANDING = ROOT / "content" / "branding.json"
 SERVICES = ROOT / "content" / "services.json"
+MILESTONES = ROOT / "content" / "milestones.json"
 
 SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 
@@ -214,6 +215,74 @@ def run(base: str, r: Results) -> None:
             published and published[0].find(SITEMAP_NS + "lastmod") is not None,
             "the careers document carries an updated stamp and should report it")
 
+    # WHY THIS PAGE IN PARTICULAR. /pages/milestones/ was given a document of
+    # its own rather than a metadata-only stub precisely so that this date is
+    # honest. A stub would have shared the company profile's file, and its
+    # lastmod would then have moved when somebody edited the page's SEO fields
+    # and never when a milestone was added -- a date telling a crawler the
+    # truth about the wrong thing. The whole shape of that decision rests on
+    # this assertion, so it is made rather than described.
+    print("\nand a milestone moving the milestones page's date")
+
+    def entry(xml: str, route: str, field: str):
+        """One field of ONE url, found by its loc.
+
+        By the loc and not by searching the whole document: nine pages carry a
+        changefreq, so `"yearly" in xml` is satisfied by the privacy policy and
+        says nothing at all about this page.
+        """
+        for url in ET.fromstring(xml).findall(SITEMAP_NS + "url"):
+            if (url.findtext(SITEMAP_NS + "loc") or "").endswith(route):
+                return url.findtext(SITEMAP_NS + field)
+        return None
+
+    def lastmod(xml: str, route: str):
+        return entry(xml, route, "lastmod")
+
+    _s, _h, page = fetch(base, "/sitemap.xml")
+    r.check("the milestones page is listed",
+            "https://tech4time.bd/pages/milestones/" in locs(page))
+    r.check("with the changefreq its own document declares",
+            entry(page, "/pages/milestones/", "changefreq") == "yearly",
+            str(entry(page, "/pages/milestones/", "changefreq")))
+
+    # A DOCUMENT WITH NO FILE IS AN EMPTY DOCUMENT, NOT AN ABSENT ONE, and
+    # seo_route_meta() used to treat it as the second: it returned [] and the
+    # sitemap fell through to its own 'monthly' and '0.5' -- while the page
+    # rendered the right title all along, out of its own *_load(). Two answers
+    # to what a page is called, disagreeing for exactly as long as a new
+    # document went unpublished, which is the state every new document starts
+    # in. Moved aside rather than emptied, because an empty FILE is a different
+    # case and already normalises correctly.
+    MILESTONES.rename(MILESTONES.with_suffix(".json.moved"))
+    try:
+        _s, _h, none = fetch(base, "/sitemap.xml")
+        r.check("and it still declares it with no file on disk at all",
+                entry(none, "/pages/milestones/", "changefreq") == "yearly",
+                str(entry(none, "/pages/milestones/", "changefreq")))
+        r.check("and claims no date, because nothing has been published",
+                lastmod(none, "/pages/milestones/") is None,
+                str(lastmod(none, "/pages/milestones/")))
+    finally:
+        MILESTONES.with_suffix(".json.moved").rename(MILESTONES)
+
+    before = lastmod(page, "/pages/milestones/")
+    edit(MILESTONES, lambda d: (d.__setitem__("updated", "2031-07-04T09:00:00+00:00"),
+                                d.__setitem__("revision", 1),
+                                d["timeline"]["items"].append(
+                                    {"id": "x", "year": "2031", "title": "A thing",
+                                     "text": "", "status": "shown"})))
+    _s, _h, page = fetch(base, "/sitemap.xml")
+    after = lastmod(page, "/pages/milestones/")
+    r.check("adding one moves its lastmod",
+            after == "2031-07-04" and after != before,
+            f"{before!r} -> {after!r}")
+    r.check("and moves nobody else's",
+            lastmod(page, "/pages/company-profile/")
+            != "2031-07-04",
+            "the timeline is its own document; editing it must not restamp "
+            "the company profile")
+
 
 def main() -> None:
     if not shutil.which("php"):
@@ -222,7 +291,9 @@ def main() -> None:
 
     port = free_port()
     base = f"http://127.0.0.1:{port}"
-    backup = {p: p.read_bytes() for p in (SEO, BRANDING, SERVICES) if p.is_file()}
+    # None for a file that is not there, so "restore" can mean delete it again.
+    backup = {p: (p.read_bytes() if p.is_file() else None)
+              for p in (SEO, BRANDING, SERVICES, MILESTONES)}
 
     with tempfile.TemporaryDirectory() as tmp:
         private = Path(tmp) / "t4t-private"
@@ -252,7 +323,10 @@ def main() -> None:
             except Exception:
                 pass
             for path, bytes_ in backup.items():
-                path.write_bytes(bytes_)
+                if bytes_ is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(bytes_)
             print("\ncontent/ restored")
 
     total = r.passed + len(r.failed)

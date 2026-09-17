@@ -121,6 +121,7 @@ PAGES = [
     "/pages/branding-and-advertisement/",
     "/pages/careers/",
     "/pages/company-profile/",
+    "/pages/milestones/",
     "/pages/contact/",
     "/pages/privacy-policy/",
     "/pages/resource-certifications/",

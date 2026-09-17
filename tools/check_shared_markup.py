@@ -183,7 +183,12 @@ def main() -> None:
             # whole reason it is not deferred.
             "/assets/js/theme-toggle.js",
             "/assets/js/nav.js",
-            "/assets/js/animations.js",
+            # Versioned for the same reason main.js is, below. It gained one
+            # when the reveal machinery stopped assuming every staggered grid
+            # was auto-fit — two of them count their columns per breakpoint
+            # now — and a required script is pinned here rather than left to
+            # the cross-page agreement that covers the optional ones.
+            "/assets/js/animations.js?v=2",
             # The version query is part of the contract, not noise: .htaccess
             # caches JS for a year, and MODULES in main.js is a hardcoded allow
             # list. A page still pointing at the unversioned URL keeps whatever

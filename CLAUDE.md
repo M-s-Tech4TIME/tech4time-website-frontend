@@ -1,6 +1,6 @@
 # Tech4TIME — frontend
 
-The public site at **`tech4time.bd`**: sixteen pages, a contact form, and one inbound endpoint that
+The public site at **`tech4time.bd`**: seventeen pages, a contact form, and one inbound endpoint that
 receives content from the admin. No build step, no framework — the files here are the files
 that run on the server.
 
@@ -50,7 +50,7 @@ its record before acting.
 
 | | |
 |---|---|
-| `pages/` `index.php` | the sixteen pages. **All of them are `.php`** now and render from `content/` — `404.php` was the last static one |
+| `pages/` `index.php` | the seventeen pages. **All of them are `.php`** now and render from `content/` — `404.php` was the last static one |
 | `pages/services/detail.php` | not a page: it serves any service the editor added that has no directory |
 | `sitemap.php` `robots.php` `manifest.php` `favicon.php` `assets/css/brand.css.php` | generated, and served at `/sitemap.xml`, `/robots.txt`, `/site.webmanifest` and `/favicon.ico` — those addresses must not change. The last had no answer at all until the mark became content; a browser probes it blindly, before it has read a line of the page |
 | `lib/head.php` | every page's `<head>`, emitted once. Not shared markup: there is nothing to propagate |
@@ -86,6 +86,7 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 | Whether Google Analytics runs, and against which property | **`https://admin.tech4time.bd/?s=seo&site=crawl`** — a field, not a deploy |
 | An icon | the markup, then `python3 tools/inject_icons.py` |
 | A job post, a contact detail, a certification, a logo file, the privacy policy, the about or home page's copy | **`https://admin.tech4time.bd/`** — not a file, and not here |
+| A milestone on the timeline | **`https://admin.tech4time.bd/?s=milestones`** — its own document, `content/milestones.json`, read by two pages: `/pages/milestones/` shows all of it and the company profile shows the most recent `MILESTONES_WINDOW` years and links there. Not the `?s=company` screen, which no longer holds the band |
 | An accreditation badge on the About page (ISO 27001, SOC 2) | **`https://admin.tech4time.bd/?s=about`** — the Accreditations band. It ships hidden; switch it on once there is a badge on it. Not the `?s=certifications` screen, which is the separate Resource Certifications page and is about people's qualifications |
 | Where the enquiry form's mail goes, and its subject line | **`https://admin.tech4time.bd/?s=settings&part=mail`**. What it is sent **as** is not editable — `SETTINGS_MAIL_FROM`, because the domain's SPF record is not something the editor can change |
 | A page's address | `SEO_ROUTES` in `lib/contract.php`, and `.htaccess`. A route is code; the editor cannot add, rename or remove one |
@@ -165,6 +166,14 @@ links to, which Google fetches and people do not.
 
 Touched the contact handler? Also `test_contact_handler.py`. Touched `lib/store.php`? Also
 `test_store.py`.
+
+Touched the company profile's growth bands — the timeline's window, `COMPANY_CLIENTS_WALL`,
+`COMPANY_TECHNOLOGY_WALL`, or the column counts in `assets/css/pages/company-profile.css`? Also
+**`python3 tools/audit_pages.py`**, which asserts what actually reached the markup, and
+**`test_publish.py`**, which asserts that each cap divides every column count its grid uses. A cap
+that does not is a ragged half-row above the button at exactly one width; a cap that stopped working
+is a page several screens longer than it was meant to be, still saying everything it should. Both
+fail silently. The caps and the tiers are **one design** — change one and change the other.
 
 Touched the logo, or anything that draws it — `lib/body.php`, `lib/about.php`, `lib/seo.php`,
 `lib/careers.php`? Also **`python3 tools/test_settings.py`**. The mark is in nine places across two

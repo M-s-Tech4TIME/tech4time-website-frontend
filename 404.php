@@ -132,7 +132,7 @@ require_once __DIR__ . '/lib/body.php';
      calls their init(). Pages that need no forms can omit forms.js. -->
 <script src="/assets/js/theme-toggle.js" defer></script>
 <script src="/assets/js/nav.js" defer></script>
-<script src="/assets/js/animations.js" defer></script>
+<script src="/assets/js/animations.js?v=2" defer></script>
 <!-- Versioned for the same reason the stylesheets are, and with a sharper
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
      silently skips every module added since — no error, no console line,

@@ -2,10 +2,10 @@
 
 **Applies to:** both
 
-The **eleven** JSON files the dynamic pages render from, field by field — `CONTRACT_DOCUMENTS` is
-the list. Nine of them are a page or a set of pages, and `content/services.json` carries seven on
-its own; the last two are on **every** page, `seo` for the `<head>` and `chrome` for the header,
-footer and dock.
+The **thirteen** JSON files the dynamic pages render from, field by field — `CONTRACT_DOCUMENTS` is
+the list. Ten of them are a page or a set of pages, and `content/services.json` carries seven on
+its own; the other three are on **every** page — `seo` for the `<head>`, `chrome` for the header,
+footer and dock, and `settings` for the mark, the icons and the brand colours.
 
 **The defaults functions are the definition of the shape**, not these files — `careers_defaults()`,
 `contact_defaults()`, `company_defaults()`, `about_defaults()`, `home_defaults()`,
@@ -133,6 +133,51 @@ uploaded.
 which meant hiding an office took its card off the page and left its address being advertised to
 Google. `contact_points()` emits one point per **phone**, not per office: an office listing three
 numbers had two of them reachable on the page and invisible to a search engine.
+
+---
+
+## `content/milestones.json`
+
+```json
+{
+  "updated":  "…",
+  "revision": 0,
+  "meta":     { … },
+  "hero":     { "title": "…", "subtitle": "…" },
+  "timeline": {
+    "status":  "shown",
+    "eyebrow": "…",
+    "title":   "…",
+    "lead":    "<p>…</p>",
+    "items":   [ { "id": "…", "year": "2024", "title": "…", "text": "…",
+                   "status": "shown" } ]
+  }
+}
+```
+
+| Field | Kind | Notes |
+|---|---|---|
+| `timeline.lead` | rich text | the only markup in the document |
+| `items[].year` | text | **free text, not a number.** The editor asks for `2024` or `2024–2025` and refuses anything else; the contract sees hand-edited files too, and `milestones_recent()` keeps a row whose year it cannot read rather than dropping it |
+| `items[].title` `items[].text` | text | what happened, and a sentence about it |
+| `items[].status` | `shown` \| `hidden` | hiding is not deleting |
+
+**One document, two pages.** `/pages/milestones/` renders the whole timeline;
+`/pages/company-profile/` renders the most recent `MILESTONES_WINDOW` (5) years of the same list
+and links there for the rest. Both load `assets/css/pages/milestones.css`, so there is no second
+copy of the styling either.
+
+**The company document still carries a `milestones` band.** It is deprecated and deliberately still
+in the contract: `milestones_load()` reads through to it — heading, introduction and entries —
+until this document has been saved once, so no deploy can land in a state where the company profile
+has no timeline. The condition is `revision === 0`, not a missing file and not an empty list; see
+[`milestones.php`](../10-development/server-side/libraries.md#milestonesphp). Removing that band
+would change the meaning of every `content/company.json` already written, which is what
+`CONTRACT_VERSION` exists to stop.
+
+**The rows moved without being rewritten.** `company_milestone_defaults()` and
+`milestones_entry_defaults()` declare the same five fields, in the same order, with the same names.
+A field added to one and not the other is a field lost on the way across.
 
 ---
 
@@ -661,8 +706,8 @@ every phone would download the 3× file.
 | `home.destinations` | 400 | yes |
 | `branding.asset` | 360 | yes |
 | `about.accreditations` | 289 | yes |
-| `company.clients` | 250 | yes |
-| `company.technology` | 120 | yes |
+| `company.clients` | 289 | yes |
+| `company.technology` | 187 | yes |
 | `contact.offices` | 56 | yes |
 | `branding.file` | — | **no**: a deliverable somebody downloads, not something a page draws |
 | `seo.share` | — | **no**: read by scrapers that do not implement `srcset` and want exactly 1200×630 |

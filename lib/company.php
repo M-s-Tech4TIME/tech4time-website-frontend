@@ -19,8 +19,10 @@
  *     "revision":   monotonic; see contract.php
  *     "meta":       { title, description, share_title }
  *     "hero":       { title, subtitle }
- *     "milestones": { status, eyebrow, title, lead,
- *                     items[ { id, year, title, text, status } ] }
+ *     "milestones": DEPRECATED — the timeline is content/milestones.json now,
+ *                   and lib/milestones.php reads through to this band until
+ *                   that document has been saved once. See the note on it in
+ *                   company_defaults().
  *     "background": { status, eyebrow, title }
  *     "experience": { status, title, items[ { id, figure, label, status } ] }
  *     "clients":    { status, title, items[ { id, name, image{}, status } ] }
@@ -65,6 +67,69 @@ const COMPANY_FILE = __DIR__ . '/../content/company.json';
 function company_load(): array
 {
     return company_normalise(store_read(COMPANY_FILE) ?? []);
+}
+
+/* ------------------------------------------------------- the walls of logos */
+
+/**
+ * How many client logos show before the rest go behind an expander.
+ *
+ * TWELVE, AND THE NUMBER IS NOT ARBITRARY. .clients is a counted grid — two
+ * columns, four at 48em, six at 64em — and twelve divides evenly by all three,
+ * so the visible wall is always WHOLE ROWS: six on a phone, three on a tablet,
+ * two on a desktop. That is the whole reason two grids one after the
+ * other read as one continuous wall. A cap that is not a multiple of every
+ * column count leaves a ragged half-row above the button at whichever width
+ * it does not divide into, and the seam becomes visible.
+ *
+ * So changing this means changing assets/css/pages/company-profile.css with
+ * it. tools/test_publish.py asserts the divisibility rather than the number.
+ */
+const COMPANY_CLIENTS_WALL = 12;
+
+/**
+ * How many technology plates show below 768px, where there is no sphere.
+ *
+ * EIGHTEEN, AND ITS OWN TIERS — deliberately not the clients wall's twelve and
+ * 3/4/6. A technology plate is a round disc with aspect-ratio 1, so its size is
+ * its column's width: four columns across a tablet would draw a 160px circle
+ * where the design wants about a hundred. Holding the plate near that size
+ * across every screen gives 3 columns, then 6 at 48em, then 9 at 64em — and a
+ * cap has to divide into all three or the row above the button comes out
+ * ragged. Eighteen does: six rows on a phone, three on a tablet, two on a
+ * desktop. That is the rule the clients wall follows too; only the figures
+ * differ, and they differ because the plate does.
+ *
+ * IT DOES NOT APPLY WHEN THE SPHERE IS RUNNING. tech-sphere.js takes every
+ * logo, including the ones behind the expander, and arranges them on a sphere
+ * of FIXED height — so the length problem is already solved there, and capping
+ * would leave the sphere with a bald patch, since place() distributes over
+ * however many items it is handed. The script moves the tail into the main
+ * list when it turns the sphere on and puts it back when it turns it off, so
+ * the cap follows the state the sphere already maintains on every resize
+ * rather than a second rule that could disagree with it.
+ *
+ * Which also means the cap DOES apply at every width when the script is not
+ * running at all — JavaScript off, or prefers-reduced-motion. That is right:
+ * there is no sphere in either case, so there is nothing solving the length.
+ */
+const COMPANY_TECHNOLOGY_WALL = 18;
+
+/**
+ * A list of logos, split into the ones that show and the ones behind the
+ * expander.
+ *
+ * Returns [shown, rest]. `rest` empty means there is nothing to expand, and
+ * the page must draw no expander at all — a "see all" under a list that is
+ * already all of it is a control that does nothing.
+ *
+ * EVERY ROW STAYS IN THE MARKUP either way. The tail is inside a closed
+ * <details>, which is present in the DOM, found by Ctrl+F, and read by a
+ * crawler. This bounds how tall the page IS, not what it says.
+ */
+function company_wall(array $rows, int $cap): array
+{
+    return [array_slice($rows, 0, $cap), array_slice($rows, $cap)];
 }
 
 /* ------------------------------------------------------------- the artwork */
@@ -137,8 +202,19 @@ function company_picture(array $image, string $class, string $alt,
  * Kept here rather than in the contract because the backend does not render
  * the page and has no use for it — the same line careers_job_posting() and
  * contact_page_schema() sit on.
+ *
+ * THE TIMELINE IS PASSED IN, NOT READ HERE, and that is the whole reason this
+ * takes a second argument. The milestones live in their own document now and
+ * this page shows a WINDOW onto them — the most recent MILESTONES_WINDOW
+ * years, with the rest on /pages/milestones/. A graph built from the whole
+ * history would describe entries the markup on this page does not carry, which
+ * is a page saying two different things about itself.
+ *
+ * It is an argument rather than a require of lib/milestones.php because that
+ * file already requires THIS one, for the read-through in milestones_load().
+ * A cycle between the two would work and would still be a cycle.
  */
-function company_page_schema(array $data): array
+function company_page_schema(array $data, array $timeline = []): array
 {
     $graph = [
         '@context' => 'https://schema.org',
@@ -154,37 +230,13 @@ function company_page_schema(array $data): array
         ],
     ];
 
-    /* The milestones, as the events they describe. Only the ones a visitor can
-       see: a hidden entry is hidden from a crawler too, or the markup and the
-       graph would disagree about what the page says. */
-    $events = [];
-    foreach (company_shown($data, 'milestones') as $row) {
-        $year = trim((string)$row['year']);
-        $event = [
-            '@type' => 'Event',
-            'name'  => (string)$row['title'],
-            'description' => rt_plain((string)$row['text']),
-        ];
-        if (preg_match('/^\d{4}$/', $year)) {
-            $event['startDate'] = $year;
-        }
-        $events[] = $event;
-    }
-
-    if ($events) {
-        $graph['mainEntity'] = [
-            '@type' => 'ItemList',
-            'name'  => (string)$data['milestones']['title'],
-            'itemListElement' => array_map(
-                static fn(int $i, array $e): array => [
-                    '@type'    => 'ListItem',
-                    'position' => $i + 1,
-                    'item'     => $e,
-                ],
-                array_keys($events),
-                $events
-            ),
-        ];
+    /* The milestones, as the events they describe — built by
+       milestones_event_list() from exactly the rows the page renders, and
+       handed in. Only rows a visitor can see reach it: a hidden entry is
+       hidden from a crawler too, or the markup and the graph would disagree
+       about what the page says. */
+    if ($timeline) {
+        $graph['mainEntity'] = $timeline;
     }
 
     return $graph;

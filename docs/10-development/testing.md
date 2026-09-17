@@ -237,12 +237,30 @@ middle, because a breakpoint takes the picture out of a full-width column:
 | Slot | Widest at | And at 1440 |
 |---|---|---|
 | `about.story` | **693px @ 768** — the last single-column width | 534px |
-| `company.clients` | **249px @ 360** — the grid drops to one column | 126px |
 | `about.accreditations` | **289px @ 767** — the last width before the 3-column breakpoint | 222px |
+| `company.clients` | **289px @ 767** — the last width before the 4-column breakpoint | 126px |
+| `company.technology` | **187px @ 767** — the last width before the 6-column breakpoint | 78px |
 
-Sampling only 320 and 1440 would have missed the first two and shipped a picture too small on
-exactly the width that needed it most. Sample across the breakpoints, in both themes — a lockup
-hidden by `display: none` in one theme measures zero in it.
+Sampling only 320 and 1440 would have missed all four and shipped a picture too small on exactly the
+width that needed it most. Sample across the breakpoints, in both themes — a lockup hidden by
+`display: none` in one theme measures zero in it.
+
+**A layout change invalidates the number, and nothing will tell you.** `company.clients` read 249
+at 360 for as long as its grid was `auto-fit`, which gave a phone ONE column and the widest tile
+anywhere. Counted columns fixed the page length and moved the peak to 767 — the same place
+`about.accreditations` sits, and for the same reason. The old number was not wrong when it was
+written; it was wrong the moment the stylesheet changed, and every check stayed green.
+
+**Measure the plate's content box, not the `<img>`.** `max-width: 100%` with `max-height` set means
+a tall mark is capped by the height and a wide one by the width, so an `<img>` measurement tells you
+about the picture that happens to be in the row rather than about the slot. The box is what the
+slot is: whatever somebody uploads tomorrow, that is the widest it can be drawn.
+
+**Measure at two row counts.** That is what caught the last one. `auto-fit` with a `1fr` maximum
+collapses the tracks nothing sits in, so a badge came back 318px on a desktop holding three and
+about 1200px holding one — a width that depends on how many rows the editor has added is not a
+number that can be written down. With counted columns the two measurements are identical, and if
+they are not, the grid is still deciding its own column count somewhere.
 
 **And count the rows, not just the widths.** `about.accreditations` was measured at three row
 counts before a number was written down, and it needed to be: with the `1fr` maximum `.clients`

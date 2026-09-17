@@ -258,8 +258,20 @@ function seo_route_meta(string $key): array
         return [];
     }
 
+    /* A MISSING FILE IS AN EMPTY DOCUMENT, NOT AN ABSENT ONE, and it used to
+       be the second. This returned [] for a document with no file yet, so its
+       sitemap line fell through to seo_sitemap_entries()' own 'monthly' and
+       '0.5' and its card on the SEO screen came up blank — while the PAGE
+       rendered the right title all along, out of its own *_load(). Two
+       answers to "what is this page called", disagreeing whenever a document
+       had not been published yet.
+
+       That is exactly the state a new document is in between the route
+       existing and the first save, which is where content/milestones.json sat
+       the day it was added. Normalising [] gives the document's own defaults,
+       which is what the docblock above has always promised. */
     if (!is_array($raw)) {
-        return [];
+        $raw = [];
     }
 
     try {
