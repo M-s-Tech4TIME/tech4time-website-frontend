@@ -256,4 +256,108 @@
   color: var(--text-secondary);
 }
 
+/* --------------------------------------------------------------------------
+   5. Accreditations
+   The wall of certification badges, above the closing CTA. Same shape as the
+   client logos on the company profile page — an auto-fit grid of marks on the
+   artwork plate — with one difference: the name of the standard can be printed
+   under the badge, because "ISO/IEC 27001" is not something a reader
+   recognises from a logo the way they recognise a company's.
+   -------------------------------------------------------------------------- */
+
+/* FOUR ACROSS A DESKTOP, NOT SEVEN, AND COUNTED RATHER THAN FITTED.
+
+   .clients uses auto-fit with a 10rem minimum and lands six or seven across,
+   which is right for a wall of thirty company logos and wrong here: there are
+   rarely more than a handful of certifications and each one is meant to be
+   read, not scanned past.
+
+   auto-fit cannot express that. The track MINIMUM is the only thing that
+   decides the column count, so raising it to get four on a desktop also drags
+   the mid-range down to one column -- measured, a 16rem minimum left a single
+   tile with 233px of empty row beside it at 580px wide.
+
+   Counting the columns instead fixes both, and a third thing for free: an
+   explicit repeat(N, 1fr) creates all N tracks whether or not there are badges
+   to fill them, so ONE badge is one track wide rather than the whole row. That
+   is what auto-fit's collapsing could not do, and it is why no tile needs a
+   max-width any more -- the ceiling this used to carry is gone. */
+.accreditations__grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(2, 1fr);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (min-width: 48em) {
+  .accreditations__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 64em) {
+  .accreditations__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* The plate, then the caption. align-content is START so neither row stretches:
+   the outer grid makes every tile in a row the same height, and without this
+   the plate would absorb that slack and stop being square the moment one
+   caption wrapped to two lines. */
+.accreditation {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: var(--space-2xs);
+}
+
+/* The plate is --artwork-plate, for the reason .client-card's is: a
+   certification mark is somebody else's artwork, usually dark ink on
+   transparency, and on the dark theme's elevated surface it would disappear
+   rather than merely look wrong. That token is the same value in both themes
+   deliberately — see its note in theme.css. */
+.accreditation__plate {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: var(--space-md);
+  background-color: var(--artwork-plate);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--duration) var(--ease-out),
+    transform var(--duration) var(--ease-out);
+}
+
+.accreditation:hover .accreditation__plate {
+  transform: translateY(-3px);
+  border-color: var(--silver-accent-mid);
+}
+
+/* The mark fills the plate rather than sitting in the middle of it at a fixed
+   56px. A certification mark IS the content of this tile -- unlike a client
+   logo, which is one of thirty on a wall -- so it gets the whole square minus
+   its padding, whatever shape it arrived in. */
+.accreditation__logo {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* The caption sits OUTSIDE the plate, on the page's own ground. On the plate
+   it would need ink that reads against #ffffff in both themes — a permanent
+   contrast exception for one line of text. Out here it is ordinary themed
+   prose and follows the theme like everything else. */
+.accreditation__name {
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* The closing CTA band is the shared `.cta-band` component. */

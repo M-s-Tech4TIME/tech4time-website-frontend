@@ -86,6 +86,7 @@ Full table: [docs/10-development/where-to-change-things.md](docs/10-development/
 | Whether Google Analytics runs, and against which property | **`https://admin.tech4time.bd/?s=seo&site=crawl`** — a field, not a deploy |
 | An icon | the markup, then `python3 tools/inject_icons.py` |
 | A job post, a contact detail, a certification, a logo file, the privacy policy, the about or home page's copy | **`https://admin.tech4time.bd/`** — not a file, and not here |
+| An accreditation badge on the About page (ISO 27001, SOC 2) | **`https://admin.tech4time.bd/?s=about`** — the Accreditations band. It ships hidden; switch it on once there is a badge on it. Not the `?s=certifications` screen, which is the separate Resource Certifications page and is about people's qualifications |
 | Where the enquiry form's mail goes, and its subject line | **`https://admin.tech4time.bd/?s=settings&part=mail`**. What it is sent **as** is not editable — `SETTINGS_MAIL_FROM`, because the domain's SPF record is not something the editor can change |
 | A page's address | `SEO_ROUTES` in `lib/contract.php`, and `.htaccess`. A route is code; the editor cannot add, rename or remove one |
 | The shape of editable content | `lib/contract.php` — **and the same file in the backend** |
@@ -177,8 +178,10 @@ Touched a renderer that draws an uploaded picture — `about_picture()`, `home_p
 puts a ladder into each document and reads the markup back; the second is the only check that sees a
 `srcset` of widths shipped with no `sizes=` beside it, which is a regression rather than a missing
 improvement — without it the browser takes the widest rung on every screen. A width in that table is
-**measured, not estimated**: two of the seven are widest on a phone or a tablet rather than a
-desktop.
+**measured, not estimated**: two of the eight are widest on a phone or a tablet rather than a
+desktop, and a third is flat across every width only because its grid caps the track — measure with
+the number of rows the band will really hold, because `auto-fit` with a `1fr` maximum makes the
+picture wider the fewer of them there are.
 
 Touched the circuitry around a page title? It is **generated**: the drawing is the company's own
 artwork in `references/`, `python3 tools/build_hero_circuit.py` redraws

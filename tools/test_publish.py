@@ -660,6 +660,28 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
         "id": "mark", "icon": "trophy", "title": f"{MARK}-w-row",
         "text": f"{MARK}-w-text", "status": "shown"}]
 
+    # The accreditations wall, shown for this run -- it ships hidden. Two rows,
+    # because the caption is per row and one of each is the only way to see
+    # that the switch is read rather than assumed.
+    # Set whole rather than keyed into: this band is NOT in the shipped
+    # content/about.json and is not supposed to be. It reaches a document by
+    # about_normalise() merging it in, which is the behaviour a publish has to
+    # survive, so the test writes the band the way the editor would send it.
+    data["accreditations"] = {
+        "status": "shown",
+        "title": f"{MARK}-a-title",
+        "items": [
+            {"id": "mark-named", "name": f"{MARK}-a-named", "caption": "shown",
+             "status": "shown",
+             "image": {"src": "/uploads/7777777777777777.png", "webp": "",
+                       "width": 240, "height": 174}},
+            {"id": "mark-bare", "name": f"{MARK}-a-bare", "caption": "hidden",
+             "status": "shown",
+             "image": {"src": "/uploads/8888888888888888.png", "webp": "",
+                       "width": 240, "height": 174}},
+        ],
+    }
+
     status, answer = publish(base, key, "about", data)
     r.check("the about page publishes", status == 200 and answer.get("ok") is True,
             f"{status} {answer}")
@@ -673,6 +695,7 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
         "s-title", "sp-title", "sp-text",
         "w-title", "w-row", "w-text",
         "cta-title", "cta-label",
+        "a-title", "a-named", "a-bare",
     ) if f"{MARK}-{k}" not in page]
     r.check("every field the model declares reaches the page",
             not missing, "never rendered: " + ", ".join(missing))
@@ -698,6 +721,21 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
             'aria-labelledby="mark-photo-heading"' in page
             and 'id="mark-photo-heading"' in page,
             "a generated id must match the aria-labelledby generated beside it")
+
+    print("\nan accreditation's name can be printed or only announced")
+    r.check("a captioned badge prints its name and lets the picture be decorative",
+            f'<span class="accreditation__name">{MARK}-a-named</span>' in page
+            and '/uploads/7777777777777777.png" alt=""' in page,
+            "with the name beside it, alt= would make a reader hear it twice")
+    r.check("an uncaptioned badge prints nothing and carries the name as alt",
+            f'<span class="accreditation__name">{MARK}-a-bare</span>' not in page
+            and f'/uploads/8888888888888888.png" alt="{MARK}-a-bare"' in page,
+            "hiding the caption must not take the name away from a screen reader")
+    r.check("the name is still on the page when the caption is off",
+            f'<span class="visually-hidden">{MARK}-a-bare</span>' in page)
+    r.check("both badges are drawn",
+            page.count('class="accreditation__plate"') == 2,
+            str(page.count('class="accreditation__plate"')))
 
     print("\na photograph section may carry artwork for each colour mode")
     r.check("with no dark half it draws ONE picture and no theme-swap",
@@ -774,6 +812,7 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
     data["revision"] = 9
     data["whyus"]["items"][0]["status"] = "hidden"
     data["cta"]["status"] = "hidden"
+    data["accreditations"]["items"][0]["status"] = "hidden"
     publish(base, key, "about", data)
     _, page = get(base, "/pages/about/")
 
@@ -781,9 +820,28 @@ def about_round_trip(base: str, key: bytes, r: Results) -> None:
     r.check("but the band around it still is", f"{MARK}-w-title" in page)
     r.check("a hidden band is gone entirely", f"{MARK}-cta-title" not in page)
     r.check("and the rest of the page is untouched", f"{MARK}-sp-title" in page)
+    r.check("a hidden badge takes its picture with it",
+            "/uploads/7777777777777777.png" not in page
+            and f"{MARK}-a-named" not in page)
+    r.check("and the badge beside it is still there",
+            "/uploads/8888888888888888.png" in page)
+
+    # The band ships hidden, so this is the state every visitor is in until
+    # somebody switches it on -- the one that has to leave no trace at all.
+    data["revision"] = 10
+    data["accreditations"]["status"] = "hidden"
+    publish(base, key, "about", data)
+    _, page = get(base, "/pages/about/")
+    r.check("the whole wall switched off leaves nothing behind",
+            "accreditation__plate" not in page
+            and "accreditations__grid" not in page
+            and f"{MARK}-a-title" not in page)
+    r.check("and the page around it is unharmed",
+            f"{MARK}-sp-title" in page and f"{MARK}-hero" in page)
+    data["accreditations"]["status"] = "shown"
 
     print("\na signature is not a promise about what is inside")
-    data["revision"] = 10
+    data["revision"] = 11
     data["whyus"]["items"][0]["status"] = "shown"
     data["cta"]["status"] = "shown"
     data["story"]["items"][0]["body"] = ('<p onclick="steal()">hi</p>'
