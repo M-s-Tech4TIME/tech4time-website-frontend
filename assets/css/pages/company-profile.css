@@ -328,9 +328,29 @@
 }
 
 .tech-sphere--on {
-  /* --sphere-size is measured and set by the script. */
+  /* How far back a plate fades as it turns away from the viewer. The far side
+     is ALREADY drawn smaller than the near side -- 47.8px against 67.5px --
+     and this is the same depth cue said a second way, so that a plate behind
+     another reads as behind it rather than as a blob poking out from the edge
+     of it. One number, here, rather than a literal down in the rule. */
+  --sphere-back: 0.35;
+
+  /* --sphere-size and --sphere-radius are measured and set by the script. */
   height: var(--sphere-size, 32rem);
-  perspective: 1200px;
+
+  /* PERSPECTIVE MOVES WITH THE SPHERE, and it has to. It was a fixed 1200px
+     against a fixed 560px sphere; now the sphere is sized to the room it has,
+     and a fixed perspective over a growing radius magnifies the near face and
+     shrinks the far one -- measured, the near plate went 67.5px to 74.5px as
+     the sphere grew from 560 to 814. That would make growing the sphere a way
+     of changing the plate's size, which is the one thing this must not do.
+
+     1200/560 is exactly 15/7. Holding perspective/size constant holds
+     perspective/radius constant, so the projection is identical at every size
+     and the plate measures 67.4px whether the sphere is 560 or 1136 across.
+     Read from --sphere-size rather than set separately, so the two cannot
+     drift apart. */
+  perspective: calc(var(--sphere-size, 32rem) * 15 / 7);
   /* Horizontal drags turn the sphere; vertical ones are left to the page, so a
      visitor who starts a scroll on top of the logos still scrolls. */
   touch-action: pan-y;
@@ -352,9 +372,11 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  /* --rot-x/--rot-y are written once per frame on this element; the items below
-     read them through inheritance, so a frame is two property writes rather
-     than one per logo. */
+  /* --rot-x/--rot-y, and their four sines and cosines, are written once per
+     frame on this element; the items below read all six through inheritance,
+     so a frame is six property writes rather than one per logo. The four
+     trigonometric ones are what lets each item work out its own depth without
+     the script touching it -- see --depth below. */
   transform: rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg));
 }
 
@@ -370,6 +392,26 @@
   --tile: 7rem;
   --shown: 0.5;
 
+  /* WHERE THIS PLATE IS FACING, AFTER THE SPHERE HAS BEEN TURNED: −1 at the
+     back, +1 at the front. The list is rotated rotateX(x) rotateY(y), so a
+     direction (ux, uy, uz) ends up with a depth of
+
+         uy·sin(x) + (uz·cos(y) − ux·sin(y))·cos(x)
+
+     and that is this expression, exactly. The four trigonometric terms are
+     inherited from the list, where the script writes them once a frame,
+     because they are the same for every plate; the three direction components
+     are the plate's own and never change. So the browser finishes the sum per
+     plate as part of the style recalculation it is already doing for the
+     transform, and no script ever touches a logo.
+
+     No sin() or cos() here on purpose. Unitless var() inside calc() works
+     everywhere; CSS trigonometry does not, and the fallbacks below would then
+     be doing real work rather than describing the untilted state. */
+  --depth: calc(var(--uy, 0) * var(--sin-x, 0)
+              + (var(--uz, 1) * var(--cos-y, 1) - var(--ux, 0) * var(--sin-y, 0))
+                * var(--cos-x, 1));
+
   position: absolute;
   top: 50%;
   left: 50%;
@@ -377,14 +419,31 @@
   height: var(--tile);
   margin: calc(var(--tile) / -2);
   transform-style: preserve-3d;
-  /* Out to its point on the sphere, then the parent's rotation undone in
-     reverse order so the logo keeps facing the viewer instead of turning
-     edge-on as it orbits. */
+
+  /* Full strength at the front, --sphere-back at the back, and every plate is
+     at both within one turn -- nothing is permanently dim. The plates are a
+     fixed size and stay one; this is the only thing about them that changes
+     with where they are. */
+  opacity: calc(var(--sphere-back, 0.35)
+              + (1 - var(--sphere-back, 0.35)) * (var(--depth) + 1) / 2);
+
+  /* Out to its point on the sphere -- a DIRECTION times a radius, so growing
+     the sphere is one property on the parent rather than three per logo --
+     then the parent's rotation undone in reverse order so the logo keeps
+     facing the viewer instead of turning edge-on as it orbits. */
   transform:
-    translate3d(var(--x, 0), var(--y, 0), var(--z, 0))
+    translate3d(calc(var(--ux, 0) * var(--sphere-radius, 0px)),
+                calc(var(--uy, 0) * var(--sphere-radius, 0px)),
+                calc(var(--uz, 0) * var(--sphere-radius, 0px)))
     rotateY(calc(-1 * var(--rot-y, 0deg)))
     rotateX(calc(-1 * var(--rot-x, 0deg)))
     scale(var(--shown));
+}
+
+/* Anything a reader reaches for comes up to full strength, wherever it is on
+   the sphere. The face scales under it; this is the plate around it. */
+.tech-sphere--on .tech-sphere__item:hover {
+  opacity: 1;
 }
 
 .tech-sphere--on .tech-sphere__face {

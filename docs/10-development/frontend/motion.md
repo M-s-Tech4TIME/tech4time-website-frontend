@@ -104,18 +104,85 @@ gets, capped at `COMPANY_TECHNOLOGY_WALL` with the rest behind a `<details>`, an
 that tail onto the surface when it takes over. So the grid is not a fallback nobody sees: it is what
 a phone shows, every time.
 
+**The plate never changes size, and the sphere does.** That is the rule the whole arrangement is
+built around: a longer list is the same logos further apart, never smaller logos packed in. Three
+things make it true rather than nearly true, and each was measured in a real browser.
+
+*The sphere is sized to the room it has* — `min(its column, the height not already covered)`, both
+of them real bounds. It was a literal `560px`, which was neither, and on a 1440×900 desktop that left
+it using 69% of the space available; it is 697px there now, and overlapping plate pairs at fifty
+logos fall from 28 to 15 on that alone.
+
+**"The height of the screen" is not `innerHeight`**, and the difference is the whole of it on a small
+device. The header is sticky and the dock is fixed, so both sit permanently over the viewport — 153px
+between them on a phone. Sized to the full height, a 932×430 landscape phone got a 430px sphere with
+its top behind the header and its bottom behind the dock, and no scroll position that showed it
+whole. `headroom()` subtracts what is pinned, measured from the elements rather than from
+`--header-height` and `--dock-height`, because the second is declared on `.dock` rather than on
+`:root` and because an element that is not displayed measures zero — which is exactly what the dock
+is above 64em, with no check needed.
+
+**`SPHERE_FILL` is 0.94, not 1**, because filling the room exactly is not the same as fitting in it.
+At 741px of room a 741px sphere runs from directly under the header to the floor of the screen with
+no gap at either end — measured, scrolled to, it came out 11px past the bottom, because centring
+rounds and a sticky header has its own scroll padding. Wedged, not fitted.
+
+**There is no floor on the size, and the one that existed was worse than none.** It was 200px, and
+the landscape phone has 191px of room — so the floor made the sphere *bigger than the space it had
+to fit in*, reintroducing exactly the overlap it was added to prevent. That phone gets a 180px
+sphere now, which is small and honest and entirely visible, and is still full-size plates crowding
+rather than shrunken ones fitting.
+
+**The dense little ball that device gets is wanted**, asked for by name rather than tolerated. It is
+not a gap waiting for a height gate beside `MIN_WIDTH` — that was considered and turned down, so
+anybody reaching for one should know it is a decision and not an oversight.
+
+*The perspective is derived from the size*, `calc(var(--sphere-size) * 15 / 7)`. A fixed perspective
+over a growing radius magnifies the near face and shrinks the far one — measured, the near plate
+went 67.5px to 74.5px as the sphere grew from 560 to 814, which would make growing the sphere a way
+of changing the plate. `1200 / 560` is exactly `15 / 7`; holding that ratio holds the projection
+identical, and the plate measures 67.4px at every size.
+
+*Positions are directions, not places.* `place()` writes `--ux/--uy/--uz` as a unit vector and the
+stylesheet multiplies by `--sphere-radius`, so resizing is one property on the parent rather than
+three per logo — and a length cannot drive an opacity, which the next paragraph needs.
+
+Past the point where even the full screen is not enough — around 230 logos — the plates crowd.
+**They still do not shrink.** That is the deliberate trade.
+
+**A plate fades as it turns to the back.** Full strength at the front, `--sphere-back` behind, every
+plate at both within one turn, and `:hover` brings any of them up at once. It is what makes a plate
+*behind* another read as behind it rather than as a blob poking out from its edge — the far side is
+already drawn smaller (47.8px against 67.5px) and this is the same depth cue said a second way.
+
+Its cost is the interesting part. The depth of a plate is
+`uy·sin(x) + (uz·cos(y) − ux·sin(y))·cos(x)`, and **the four trigonometric terms are the same for
+every plate** — so `paint()` writes them on the list beside the two rotations, and each plate
+finishes the sum itself in plain `calc()`. Four numbers a frame, not one write per logo per frame.
+No `sin()`/`cos()` in the CSS either, so there is no browser-support question: unitless `var()`
+inside `calc()` is universal, and the fallbacks resolve to the untilted state.
+
+A rejected alternative, because it was tried: a radial mask on the container. It survives
+`preserve-3d` and changes no sizes, but it fades by *screen position* rather than depth — it dims
+logos that are nowhere near anything while the actual pile-ups sit mid-frame.
+
 **It turns only while it is on screen**, and that is a correctness matter rather than a nicety. The
-loop's per-frame work is two custom properties on one element, which invalidates the transform of
-every logo under it — so fifty elements had their styles recalculated every frame of every second
-the page was open, including while the sphere was several screens below the fold. Transform-only, so
-no layout and no paint, so **every frame-rate check on this page reported a steady 60fps throughout**.
-`tools/check_style_budget.py` is the one instrument that can see it: 134ms of style per second
-against a 100ms ceiling, with the sphere never once in view. An `IntersectionObserver` cancels the
-frame when it leaves and asks for one again when it returns; `--on` is untouched, so the arrangement
-stays exactly where the reader left it.
+loop's per-frame work invalidates the transform of every logo under it — so fifty elements had their
+styles recalculated every frame of every second the page was open, including while the sphere was
+several screens below the fold. Transform-only, so no layout and no paint, so **every frame-rate
+check on this page reported a steady 60fps throughout**. `tools/check_style_budget.py` is the one
+instrument that can see it: 134ms of style per second against a 100ms ceiling, with the sphere never
+once in view. An `IntersectionObserver` cancels the frame when it leaves and asks for one again when
+it returns; `--on` is untouched, so the arrangement stays exactly where the reader left it.
 
 That is the same failure mode as the hero circuit's in 2026-09, found the same way, and it is the
 reason that check now watches this page at all.
+
+**Which is also why that check can no longer see the sphere's own cost.** It measures a page at
+rest, and at rest the sphere is paused — the page reads 32ms/s with the fade and 31ms/s without it,
+because neither is running while it is being measured. The number that matters for anything done
+*inside* the loop is `sphere_smoothness` in `tools/test_motion.py`, which scrolls it into view and
+compares its frame times against a page with no sphere in the same run. Quote that one.
 
 ---
 

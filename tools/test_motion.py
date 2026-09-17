@@ -957,13 +957,60 @@ def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
     var spare = s.querySelector('[data-tech-spare]');
     var placed = 0;
     Array.prototype.forEach.call(list.children, function (li) {
-      if (li.style.getPropertyValue('--x') !== '') placed += 1;
+      if (li.style.getPropertyValue('--ux') !== '') placed += 1;
+    });
+    var cs = getComputedStyle(s);
+    var hdr = document.querySelector('header.site-header');
+    var dk = document.querySelector('.dock');
+    function h(sel) {
+      var el = document.querySelector(sel);
+      return el ? el.getBoundingClientRect().height : 0;
+    }
+    /* The plate as drawn on the part of the sphere facing the viewer, which is
+       the number that must not move however big the sphere gets.
+       THE WIDEST ONE, not "the ones the fade left bright". Perspective makes
+       the nearest plate the largest, so the maximum IS the front -- and it
+       stays the front if the fade is ever turned off, which an opacity test
+       does not. That mattered within an hour of being written: measuring the
+       fade's cost meant removing the opacity rule, every plate read as bright,
+       and this check failed on the far side's 47px rather than on anything
+       real. A check that leans on the feature beside it fails for the wrong
+       reason. */
+    var front = 0, dim = 0;
+    Array.prototype.forEach.call(list.children, function (li) {
+      if (parseFloat(getComputedStyle(li).opacity) < 0.5) dim += 1;
+      var f = li.querySelector('.tech-sphere__face').getBoundingClientRect();
+      if (f.width > front) front = f.width;
     });
     return {on: s.classList.contains('tech-sphere--on'),
             inList: list.children.length,
             inSpare: spare ? spare.children.length : 0,
             placed: placed,
             total: s.querySelectorAll('.tech-sphere__item').length,
+            size: Math.round(parseFloat(cs.getPropertyValue('--sphere-size'))) || 0,
+            plate: Math.round(front * 10) / 10,
+            dimmed: dim,
+            /* THE ROOM IS NOT innerHeight. The header is sticky and the dock
+               is fixed, so both sit over the viewport permanently and neither
+               is space the sphere can use. Measured from the elements here,
+               the same way headroom() does it -- a restatement, but from the
+               page rather than from the module's internals. */
+            room: Math.min(Math.round(s.parentNode.getBoundingClientRect().width),
+                           window.innerHeight - h('header.site-header') - h('.dock')),
+            /* Where it sits once scrolled to, against what is pinned over it.
+               This is the check the arithmetic above cannot make: a sphere can
+               be exactly the right SIZE and still be behind the header. */
+            clearsHeader: Math.round(s.getBoundingClientRect().top
+                                     - (hdr ? hdr.getBoundingClientRect().bottom : 0)),
+            /* A display:none dock is still IN the document and its rect is
+               all zeros, so asking for its top gives 0 and every sphere looks
+               like it overruns by its own height. Above 64em there is no dock,
+               and the floor of the viewport is what it has to clear. */
+            clearsDock: Math.round(
+              ((dk && dk.getBoundingClientRect().height > 0)
+                 ? dk.getBoundingClientRect().top
+                 : window.innerHeight)
+              - s.getBoundingClientRect().bottom),
             height: Math.round(s.getBoundingClientRect().height)};
     """
 
@@ -971,6 +1018,13 @@ def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
         rq("POST", b.s + "/window/rect",
            {"width": width, "height": height, "x": 0, "y": 0})
         time.sleep(0.45)          # the resize handler is debounced by 150ms
+        # Scrolled to, because two of the things read below -- whether the
+        # sphere clears the header and the dock -- are about where it SITS, and
+        # at the top of the page it sits several screens down where neither
+        # question means anything.
+        b.js("document.querySelector('[data-tech-sphere]')"
+             ".scrollIntoView({block: 'center', behavior: 'instant'});")
+        time.sleep(0.25)
         return b.js(STATE)
 
     b.go(origin + "/pages/company-profile/")
@@ -1001,6 +1055,69 @@ def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
             back["on"] is True and back["inList"] == back["total"]
             and back["placed"] == back["total"],
             f"{back['inList']} in the list, {back['placed']} placed")
+
+    # ------------------------------------------------------ size, and the plate
+    #
+    # THE PROMISE IS THAT THE PLATE NEVER SHRINKS. The sphere is sized to the
+    # room it has rather than to a literal, so that a longer list is the same
+    # logos further apart and never smaller ones packed in. Two things have to
+    # hold for that to be true rather than nearly true: the sphere has to take
+    # the room, and the plate has to measure the same at every size -- which it
+    # only does because the perspective is derived from the size. A fixed
+    # perspective over a growing radius magnifies the near face, measured at
+    # 67.5px going to 74.5px, and growing the sphere would then BE a way of
+    # changing the plate.
+    print("\nthe sphere takes its room, and the plate does not move")
+    # MOST OF ITS ROOM, AND NEVER MORE THAN IT -- not a number, because the
+    # number is SPHERE_FILL and a test that restates the constant it is testing
+    # proves only that the constant was copied correctly. The two properties
+    # that matter are that it does not overrun the space it has, and that it
+    # is not back to ignoring most of it: the fixed 560 it replaced would be
+    # 0.76 of this room, so the floor below catches that regression and lets
+    # the deliberate breathing room through.
+    r.check("it is sized to the room it has",
+            back["room"] * 0.85 <= back["size"] <= back["room"],
+            f"{back['size']}px of a possible {back['room']}px")
+
+    # THE CHECK THE SIZE CANNOT MAKE. A sphere can be exactly the right size
+    # and still be behind something: sized to innerHeight rather than to the
+    # room, a 932x430 landscape phone got a 430px sphere in a 430px screen with
+    # the header over its top and the dock over its bottom, and no scroll
+    # position that showed it whole. Every check passed. Only the screenshot
+    # showed it, which is why this one exists now.
+    r.check("and it clears the header and the dock once scrolled to",
+            back["clearsHeader"] >= -1 and back["clearsDock"] >= -1,
+            f"{back['clearsHeader']}px below the header, "
+            f"{back['clearsDock']}px above the dock")
+
+    plate = back["plate"]
+    r.check("and the plate is drawn at the size it always was",
+            66 <= plate <= 70, f"{plate}px on the front of the sphere")
+
+    # Same page, a narrower window: a different sphere size, the SAME plate.
+    narrower = state(820)
+    r.check("a smaller sphere draws the same plate",
+            narrower["size"] < back["size"] and abs(narrower["plate"] - plate) <= 1.5,
+            f"{narrower['size']}px sphere, {narrower['plate']}px plate "
+            f"against {back['size']}px and {plate}px")
+
+    # ----------------------------------------------------------- the depth fade
+    #
+    # Opacity by depth: full strength at the front, --sphere-back at the back,
+    # and every plate at both within one turn. It is what makes a plate behind
+    # another read as behind it rather than as a blob at the edge of it.
+    print("\nand a plate fades as it turns to the back")
+    deep = state(1200)
+    r.check("some plates are dimmed and some are not",
+            0 < deep["dimmed"] < deep["total"],
+            f"{deep['dimmed']} of {deep['total']} below half opacity")
+    r.check("nothing is hidden outright",
+            b.js("var lo = 1;"
+                 "document.querySelectorAll('.tech-sphere--on .tech-sphere__item')"
+                 "  .forEach(function (li) {"
+                 "    lo = Math.min(lo, parseFloat(getComputedStyle(li).opacity)); });"
+                 "return lo;") > 0.3,
+            "a logo faded to nothing is a logo removed")
 
     # Three more crossings. An adopt that is not idempotent, or a release that
     # forgets which items were its own, shows up as a count that drifts.
