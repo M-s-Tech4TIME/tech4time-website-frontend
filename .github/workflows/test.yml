@@ -38,15 +38,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/php
         with:
           # check_cache_bust.py compares this commit against origin/main, and a
           # shallow clone has neither the ref nor the history to do it.
           fetch-depth: 0
+      - uses: ./.github/actions/php
 
-      # Printed, not asserted. The host runs PHP 8.2.33 and the runner will
-      # drift ahead of it; that is worth seeing in the log rather than
-      # discovering when something passes here and fails there.
+      # Printed for the record. The VERSION is asserted inside the action above
+      # -- it installs the 8.2 the host runs and fails the run on anything else,
+      # so the runner can no longer drift ahead of production without saying so.
       - name: versions
         run: |
           python3 -V
