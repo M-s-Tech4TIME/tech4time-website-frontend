@@ -306,8 +306,8 @@ page as well as down it.
 ### `about.php`
 
 `about_load()` · `about_save()` · `about_validate()` *(backend)* ·
-`about_page_schema()` · `about_picture()` · `about_photograph()` ·
-`about_logo_lockup()` · `about_reveal_paragraphs()` *(frontend)*
+`about_page_schema()` · `about_certification_list()` · `about_picture()` ·
+`about_photograph()` · `about_logo_lockup()` · `about_reveal_paragraphs()` *(frontend)*
 
 The same division again, for the about page: three repeatable lists — the story sections, the
 specialities and the why-us cards — plus the copy around them. The shape is in `contract.php`.
@@ -338,6 +338,21 @@ arrive un-animated rather than invisible.
 
 **`tools/apply_reveals.py` no longer governs this page.** It reports and skips any page that builds
 part of itself with a loop, which this one now does — see [motion.md](../frontend/motion.md).
+
+**The accreditations band is the only part of this page's body that reaches the graph.**
+`about_certification_list()` turns each shown badge into a `Certification` node and
+`about_page_schema()` hangs them off the Organization as `hasCertification` — which is a claim about
+the **company**, and deliberately not the `EducationalOccupationalCredential` that
+`certifications.php` emits for the qualifications a **person** holds. Nothing is emitted while the
+band is hidden, and a badge with no picture still counts: the name is the claim and the image is
+decoration, so a row is skipped only when it has no name. The band ships hidden, so today this adds
+nothing to the live page and starts working the moment somebody uploads a badge — with no code
+change, which is the same property `milestones_page_schema()` has.
+
+**`about_page_schema()` carries no `@id`.** It had one, hardcoded, identical to the one
+`seo_page_node()` generates — so the page shipped two nodes claiming one id with different `@type`s,
+different names and different descriptions, which is a graph contradicting itself. The company,
+milestones and contact schemas never had one; this one now matches them.
 
 ### `home.php`
 
@@ -409,6 +424,38 @@ with the cards they describe:
 All three were verified against the shipped markup at the migration: 24 layers, 24 rings, no
 exceptions.
 
+**So is every line of structured data these seven pages carry**, and the last of it only since
+2026-09-18. `services_schema()` builds a detail page's `Service` node and its offer catalogue from
+the layers; `services_catalog_schema()` builds the site-wide `OfferCatalog` on `/pages/services/`
+from the service rows. That last one was **literal JSON typed into the page**, under a comment
+promising it mirrored the document — and it had drifted **twice**: a service renamed in the editor
+on 2026-09-10 kept its old name here, and by the sweep the cybersecurity entry described the
+practice differently from the document its own detail page renders from, so a crawler was handed two
+descriptions and no way to tell which the company meant. It was also blind to the list it claimed to
+mirror: a service **added** in the editor never appeared in it, and a service **hidden** went on
+being advertised after its card and its sitemap line had gone. It now walks
+`services_rows_shown(services_all())` — the same list `lib/seo.php` builds the sitemap from, so a URL
+is in the catalogue exactly when it is a URL the site offers.
+
+**`alternateName` is the one thing still authored in code**, as `SERVICES_ALTERNATE_NAMES`, keyed by
+slug and holding one entry: *HRaaS*. It is a marketing abbreviation rather than a fact about the
+service and `contract.php` has no field for it in either half — and adding one is a change to a
+byte-identical shared file, which is not a thing to do in passing. Holding twenty-four derived
+values literal for the sake of one authored one is the trade that had already failed twice.
+
+**`services_breadcrumbs()` is gone.** It was superseded when `meta.breadcrumb` joined the service
+row — `seo_jsonld()` builds the trail from `SEO_ROUTES`, falling back to the service's name, which
+is exactly what that function did — and it had had no caller since. It was not merely unused: it
+returned a **complete, standalone `BreadcrumbList`**, so wiring it back up beside the working one
+would have put two trails on one page. That is the fault that had to be taken off the About page as
+an `@id` collision, sitting in the codebase waiting to be reintroduced.
+
+**Nothing in these pages names the origin any more.** `services_schema()` and
+`home_service_schema()` take it as an argument, and all eight call sites had the literal
+`'https://tech4time.bd'` typed out — eight chances to disagree with `SEO_ORIGIN`, which is the
+constant that decides the canonical, the sitemap and every other URL on the site. They pass
+`SEO_ORIGIN` now. The argument stays, because it is the seam a test needs.
+
 **The spokes and the ring are drawn too, as SVG, by `services_map_wires()`.** They used to be a
 `repeating-conic-gradient` masked to a ring plus a dashed border, which is one idea with three
 faults and they are all the same fault — a gradient is not a line:
@@ -476,6 +523,19 @@ See `CERTIFICATIONS_TOKENS` in `contract.php`.
 `inject_icons.py` cannot see it; `certifications_sprite()` emits what the document actually uses,
 the same arrangement `services.php` has and for the same reason.
 
+**`certifications_page_schema()`** hands the page to a crawler as a `CollectionPage` whose
+`mainEntity` is an `ItemList` of `EducationalOccupationalCredential` — the type for a qualification
+a **person** holds, which is what this page lists and what the About page's accreditations band is
+not. That band is what the **company** holds and carries `Certification`; the two pages use the
+word *certification* for two different things and these are the two types that keep them apart.
+The list is flat rather than nested by group, because the grouping is how the page is *read* while
+the credential is the thing being claimed; the roles survive as `occupationalCategory`, which is the
+part of the grouping that is a fact about the credential rather than about the layout. It walks
+`certifications_rows_shown()` at every level, so a hidden group and a hidden certification reach the
+graph exactly as far as they reach the page — none. Its `description` is the **filled** one, through
+`certifications_fill()`, so the graph cannot describe the page differently from the page's own
+`<meta>`.
+
 ### `branding.php`
 
 `branding_load()` · `branding_save()` · `branding_validate()` *(backend)* · the renderers *(frontend)*
@@ -508,6 +568,13 @@ breadcrumb follows `hero.title`, this page is titled *"Branding Assets & Guideli
 
 **No second sprite.** Nothing on this page picks an icon at run time, so `inject_icons.py` sees
 every glyph it draws.
+
+**`branding_page_schema()`** is the press kit as data: a `CollectionPage` whose `mainEntity` is an
+`ItemList` of `ImageObject`, one per shown variant, each carrying its downloadable files as
+`encoding` `MediaObject`s with the MIME type `branding_media_type()` reads off the extension. This
+is the one page on the site whose *purpose* is to hand out files, and until now a crawler could see
+that it had pictures on it but not that any of them were offered for download. Hidden variants and
+hidden files are absent, by the same rule as everywhere else.
 
 
 ### `privacy.php`
@@ -546,8 +613,8 @@ effective date is a claim about when the *policy* changed. Fixing a typo is not 
 nothing writes that field but a person.
 
 **The policy band cannot be hidden.** `PRIVACY_BANDS` holds only `cta`. Hiding the policy would
-leave a page headed *"Privacy Policy"* with no policy on it, still linked from the footer of all
-sixteen pages and still in the sitemap — not a configuration anybody wants. The callout and any
+leave a page headed *"Privacy Policy"* with no policy on it, still linked from the footer of every
+other page and still in the sitemap — not a configuration anybody wants. The callout and any
 single section can be hidden.
 
 **What it repeats from the contact page is compared, never enforced.** The policy states the
@@ -557,6 +624,25 @@ asks by containment whether the policy still states the current values, on a nor
 and stays quiet about a different comma. The editor draws it as a standing notice.
 **It never refuses a save**: after an office move whichever page you edited first could not be
 saved, and an unrelated typo fix would be blocked by an address that drifted months earlier.
+
+**`privacy_policy_schema()` describes the policy, not the page.** schema.org has no type for a
+privacy policy — none of `WebPage`'s subtypes is one — so a second `WebPage` node here would put two
+records on one URL saying the same things, which is the exact fault that had to be taken off the
+About page. `seo_page_node()` already describes the page; this describes the *document* it displays,
+as a `CreativeWork` with its own `#policy` id, published by the organisation and in force from a
+date. **The date is the reason it exists.** *"Effective 21 August 2026"* is the one fact on the page
+a machine would want and could not read: `dateModified` is when the document was last **published**,
+which is not when the policy took effect and can differ by months.
+
+**`privacy_effective_date()` cuts the date out before parsing it.** Measured: `strtotime()` reads
+*"21 August 2026"* and returns false for *"Effective 21 August 2026"* and for *"Last updated: 3
+March 2024"* — so handing it the whole field would have meant the feature never fired on the wording
+the policy actually uses, which is a feature that silently does nothing. Three patterns cover the
+real phrasings, **each requiring a day**: *"In force since 2026"* names a year and no date, and
+turning that into the first of January would be inventing one, so it returns `''` and the graph
+carries no `datePublished` at all. The parsed year is then checked back against the text, which is
+what stops a string `strtotime()` only half understood from quietly becoming **today's** date on
+every render — a lie that refreshes itself. A guessed `datePublished` is worse than none.
 
 ### `svg.php`
 

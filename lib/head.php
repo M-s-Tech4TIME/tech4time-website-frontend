@@ -204,8 +204,28 @@ const HEAD_CSP_ANALYTICS =
     . "font-src 'self'; form-action 'self'; "
     . "base-uri 'self'; object-src 'none'";
 
-/** The pretty-printing every JSON-LD block on this site uses. */
-const HEAD_JSON_FLAGS = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+/**
+ * The encoding every JSON-LD block on this site uses.
+ *
+ * JSON_HEX_TAG IS PART OF IT, AND IS THE ONE THAT IS NOT COSMETIC. Every string
+ * in these blocks is editable from the admin, and a stored value containing
+ * "</script>" would close the block it sits inside — turning the rest of the
+ * graph into markup and whatever followed into something a browser parses.
+ * services_json_ld() set it and said in its own docblock that the other
+ * emitters should too; that note sat there while six of the seven did not.
+ * It costs nothing today: no value in any document contains a < or a >, so the
+ * output is byte for byte what the pages already carried.
+ *
+ * The other three are readability: pretty-printed, with slashes and non-ASCII
+ * left alone, because an escaped block is unreadable in View Source and this is
+ * the one part of the page a person checks by eye against a validator.
+ *
+ * Referenced from lib/services.php and lib/contact.php as well. Safe from both:
+ * a constant inside a function body is resolved when the function RUNS, and
+ * every page loads lib/head.php before it renders a line.
+ */
+const HEAD_JSON_FLAGS = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                      | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG;
 
 /**
  * Everything between <head> and the page's own structured data.
@@ -414,6 +434,15 @@ function seo_graph(): array
         '@type'         => 'Organization',
         '@id'           => SEO_ORIGIN . '/#organization',
         'name'          => $site['name'],
+        // THE FIELD THAT WENT NOWHERE. identity.legal_name is offered on
+        // ?s=seo&site=identity as "Organisation name", marked required, refused
+        // when empty by seo_validate() and round-tripped by test_publish.py --
+        // and until now it was read by nothing at all. Somebody typed the
+        // registered name of the company into a required field and it reached
+        // no page. schema.org's Organization.legalName is precisely this, and
+        // it is what tells a search engine that the trading name above and the
+        // entity on the paperwork are one company.
+        'legalName'     => (string)$identity['legal_name'],
         'alternateName' => $identity['alternate_name'],
         'url'           => $home,
         'logo'          => [
@@ -437,6 +466,13 @@ function seo_graph(): array
                          static fn(array $row): bool => trim((string)$row['url']) !== '')
         )),
     ];
+
+    /* An empty legalName is worse than none: it is the graph asserting that the
+       company has no registered name. The editor refuses to save one, so this
+       only fires for a document written before the field existed, or by hand. */
+    if (trim($organization['legalName']) === '') {
+        unset($organization['legalName']);
+    }
 
     $website = [
         '@type'       => 'WebSite',

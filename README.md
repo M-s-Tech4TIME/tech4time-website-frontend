@@ -4,8 +4,9 @@ The public Tech4TIME website at **`tech4time.bd`**: semantic HTML5, plain CSS3 a
 JavaScript, with **no framework, bundler or build step**. It deploys by uploading the files as they
 are.
 
-Sixteen pages, a contact form, a job board, and one inbound endpoint — `api/publish.php` — where
-content arrives from the admin.
+Seventeen pages, a contact form, a job board, and one inbound endpoint — `api/publish.php` — where
+content arrives from the admin. **Every one of the seventeen renders from `content/`**, and every
+word on them is editable from the admin without a deploy.
 
 **The editor lives in [`tech4time-website-backend`](https://github.com/M-s-Tech4TIME/tech4time-website-backend)**,
 served at `admin.tech4time.bd`. It owns the content and pushes a signed copy here on every save;
@@ -23,8 +24,12 @@ modes.
 python3 tools/serve.py          # http://localhost:8000
 ```
 
-Needs the PHP CLI (`sudo apt install php-cli`). **Not** `python3 -m http.server` — four things need
-PHP: the careers page, the contact page, the contact form's handler, and `api/publish.php`.
+Needs the PHP CLI (`sudo apt install php-cli`). **Not** `python3 -m http.server` — **everything
+here needs PHP now.** `404.php` was the last page that was only markup; every page's `<head>` is
+emitted by `lib/head.php` on the request, its header and footer by `lib/body.php`, and its body from
+a document in `content/`. So do the contact form's handler, `api/publish.php`, and the four
+generated files served at static-looking addresses — `sitemap.php`, `robots.php`, `manifest.php` and
+`favicon.php`.
 
 Full setup, including the browser tests:
 **[docs/10-development/setup.md](docs/10-development/setup.md)**
@@ -57,11 +62,11 @@ Start at **[docs/README.md](docs/README.md)**, which routes by intent.
 
 ```
 index.php   404.php       the homepage and the error page
-pages/                    the other fourteen — every one renders from content/
+pages/                    the other fifteen — every one renders from content/
 assets/                   css, js, fonts, icons, images — all self-hosted
 lib/                      server-side PHP: rendering, the contract, the publish format
 api/publish.php           where the backend's content arrives — the only thing here that writes
-content/                  the replica the two dynamic pages render from
+content/                  the replica all seventeen pages render from
 tools/                    build, audit and test scripts — never deployed
 docs/                     the documentation
 .htaccess                 security headers, caching, clean URLs, blocking
@@ -107,5 +112,8 @@ First time on a new host: [docs/20-deployment/first-deploy.md](docs/20-deploymen
 
 ## Status
 
-**Live** at `https://tech4time.bd`, deployed from `main` by CI. Two of sixteen pages are editable,
-from the backend. Field-measured LCP/CLS/INP against the live host is still outstanding.
+**Live** at `https://tech4time.bd`, deployed from `main` by CI. **All seventeen pages are
+editable** from the backend — copy, pictures, metadata, the header and footer, and the colours —
+and so are `robots.txt`, the sitemap's hints and the web manifest. Field-measured LCP/CLS/INP
+against the live host is still outstanding: the lab figures were taken on 2026-08-27 and field
+figures come from CrUX, which needs a month of real traffic.

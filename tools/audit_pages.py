@@ -740,6 +740,17 @@ def check_no_external_origin(pages: list[tuple]) -> list[str]:
         html, error = ((render_php(path, service)) if path.suffix == ".php"
                        else (path.read_text(), None))
         if error:
+            # A PAGE THAT WILL NOT RENDER USED TO OPT ITSELF OUT OF THIS RULE.
+            # This was `continue`, alone among render_php's callers -- the other
+            # three all append the failure. So a page broken badly enough to
+            # stop rendering was silently exempted from the one check that
+            # enforces "no CDN and no external origin", and the audit still
+            # reported that no page fetches from anybody else's server. It
+            # could not know that: it never saw the page. Not being able to
+            # read a page is not evidence that the page is clean.
+            problems.append(
+                f"{path.name} could not be rendered, so it was never checked "
+                f"for external origins (ADR 0002): {error}")
             continue
         for origin in fetched_origins(html):
             if origin in allowed:

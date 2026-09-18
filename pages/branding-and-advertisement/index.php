@@ -38,6 +38,13 @@ $data = branding_load();
 <head>
 <?php seo_head('/pages/branding-and-advertisement/', $data['meta'], ['pages/branding.css?v=2'], $data['updated']); ?>
 <?php seo_jsonld('/pages/branding-and-advertisement/', $data['meta'], $data['updated']); ?>
+
+<!-- The press kit, as the files it actually offers: one ImageObject per mark,
+     one encoding per downloadable file under it. Generated from the same rows
+     the page draws, so a hidden mark or a hidden file is in neither. -->
+<script type="application/ld+json">
+<?= json_encode(branding_page_schema($data), HEAD_JSON_FLAGS) ?>
+</script>
 </head>
 
 <body class="page">

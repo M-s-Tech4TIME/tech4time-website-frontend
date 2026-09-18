@@ -222,10 +222,11 @@ function contact_flag_picture(array $office): string
  */
 function contact_ld_indent(array $value, int $spaces): string
 {
-    $json = json_encode(
-        $value,
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-    );
+    /* HEAD_JSON_FLAGS, like every other JSON-LD block, so the addresses and
+       telephone numbers spliced in here are escaped the same way as the rest
+       of the graph — JSON_HEX_TAG included. These are editor-supplied strings
+       going inside a <script> element. */
+    $json = json_encode($value, HEAD_JSON_FLAGS);
 
     if ($json === false) {
         return '[]';

@@ -139,3 +139,108 @@ function privacy_table(array $block): string
 
     return $out . '</tbody></table></div>';
 }
+
+/* --------------------------------------------------------- structured data */
+
+/**
+ * The policy itself, as the document it is.
+ *
+ * NOT A SECOND WebPage NODE, and that is the whole design of this one.
+ * schema.org has no type for a privacy policy — WebPage's subtypes are
+ * AboutPage, ContactPage, CollectionPage, FAQPage and a handful more, and none
+ * of them is this — so emitting a bare second WebPage here would put two nodes
+ * on one URL saying the same things, which is the fault that had to be taken
+ * off the About page. The page is already described: seo_page_node() gives it a
+ * WebPage with its name, its description, its trail and its dateModified.
+ *
+ * What is NOT described anywhere is the policy, which is a different thing from
+ * the page that displays it: a document, published by a named organisation, in
+ * force from a date. The date is the reason this exists. "Effective 21 August
+ * 2026" is the one fact on the page a machine would want and could not read,
+ * and it is nowhere in the graph — dateModified is when the document was last
+ * PUBLISHED, which is not when the policy took effect and can differ by months.
+ *
+ * The date is parsed defensively and dropped when it will not parse. The field
+ * is free text an editor types, so it can say anything; a datePublished that is
+ * a guess is worse than no datePublished at all.
+ */
+function privacy_policy_schema(array $data): array
+{
+    $policy = $data['policy'] ?? [];
+
+    $graph = [
+        '@context'   => 'https://schema.org',
+        '@type'      => 'CreativeWork',
+        '@id'        => seo_url('/pages/privacy-policy/') . '#policy',
+        'name'       => (string)($policy['label'] ?? 'Privacy policy'),
+        'url'        => seo_url('/pages/privacy-policy/'),
+        'about'      => ['@id' => SEO_ORIGIN . '/#organization'],
+        'publisher'  => ['@id' => SEO_ORIGIN . '/#organization'],
+        'inLanguage' => seo_site()['lang'],
+    ];
+
+    $effective = privacy_effective_date((string)($policy['effective'] ?? ''));
+    if ($effective !== '') {
+        $graph['datePublished'] = $effective;
+    }
+
+    return $graph;
+}
+
+
+/**
+ * "Effective 21 August 2026" as 2026-08-21, or '' when it will not read.
+ *
+ * THE DATE IS CUT OUT FIRST, because strtotime() will not read a sentence:
+ * measured, "21 August 2026" parses and "Effective 21 August 2026" is false,
+ * as is "Last updated: 3 March 2024". Handing it the whole field would have
+ * meant this never fired on the wording the policy actually uses, which is a
+ * feature that silently does nothing.
+ *
+ * A DAY IS REQUIRED. "In force since 2026" names a year and no date, and
+ * turning that into 2026-01-01 would be inventing the first of January. It
+ * returns '' and the graph carries no datePublished, which is the truthful
+ * answer.
+ *
+ * The year is then checked back against the text. That is what stops a string
+ * strtotime() only half understood from quietly becoming today's date on every
+ * render — a lie that refreshes itself.
+ */
+function privacy_effective_date(string $text): string
+{
+    $text = trim($text);
+    if ($text === '') {
+        return '';
+    }
+
+    /* 2026-08-21, then 21 August 2026, then August 21, 2026. Each needs a day:
+       a month and a year alone is not a date. */
+    $patterns = [
+        '/\b\d{4}-\d{2}-\d{2}\b/',
+        '/\b\d{1,2}\s+[A-Za-z]{3,9}\.?\s+\d{4}\b/',
+        '/\b[A-Za-z]{3,9}\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/',
+    ];
+
+    $found = '';
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $text, $m)) {
+            $found = $m[0];
+            break;
+        }
+    }
+    if ($found === '') {
+        return '';
+    }
+
+    $stamp = strtotime($found);
+    if ($stamp === false) {
+        return '';
+    }
+
+    $year = date('Y', $stamp);
+    if (!str_contains($text, $year)) {
+        return '';
+    }
+
+    return date('Y-m-d', $stamp);
+}

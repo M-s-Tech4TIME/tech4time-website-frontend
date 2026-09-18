@@ -42,7 +42,7 @@ $reach   = contact_shown_reach($data);
          what a visitor is being shown — a wrong address in structured data is
          wrong in Google's knowledge panel, where nobody on this end sees it. */ ?>
 <script type="application/ld+json">
-<?= json_encode(contact_page_schema($data), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(contact_page_schema($data), HEAD_JSON_FLAGS) ?>
 </script>
 </head>
 

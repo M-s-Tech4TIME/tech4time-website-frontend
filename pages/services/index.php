@@ -34,67 +34,15 @@ $data = services_load();
 <?php seo_jsonld('/pages/services/', $data['meta'], $data['updated']); ?>
 
 <!-- The six practice areas, as the catalogue Tech4TIME offers.
-     A SECOND COPY OF content/services.json, and it has already drifted once:
-     the service was renamed in the editor on 2026-09-10 and this block still
-     said the old name, because "mirrors the page so the two never disagree" is
-     an instruction to remember rather than a mechanism. It is still literal
-     because the model has nowhere to put alternateName, which is the one field
-     here that is not in the document. Deriving it means adding that field to
-     lib/contract.php in both repositories -- worth doing, and not worth doing
-     silently in the middle of a rename. -->
+     GENERATED from content/services.json, like every other block on the site.
+     It was literal JSON until 2026-09-18 and had drifted twice: a service
+     renamed in the editor on 2026-09-10 kept its old name here, and the
+     cybersecurity entry ended up describing the practice differently from the
+     document its own detail page renders from. It could not see a service
+     added in the editor, and went on advertising one that had been hidden.
+     See services_catalog_schema(). -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "OfferCatalog",
-  "name": "Tech4TIME Services",
-  "url": "https://tech4time.bd/pages/services/",
-  "provider": { "@type": "Organization", "name": "Tech4TIME", "url": "https://tech4time.bd/" },
-  "itemListElement": [
-    {
-      "@type": "Service",
-      "name": "Cybersecurity",
-      "serviceType": "Cybersecurity",
-      "url": "https://tech4time.bd/pages/services/cybersecurity/",
-      "description": "Building a full SOC and CIRT capability, conducting SIM3 audits, plus reactive incident response and forensics and proactive offensive security."
-    },
-    {
-      "@type": "Service",
-      "name": "Software Development",
-      "serviceType": "Software Development",
-      "url": "https://tech4time.bd/pages/services/software-development/",
-      "description": "Web, mobile and custom application development, enterprise software integration, DevSecOps, database design, QA and source code auditing."
-    },
-    {
-      "@type": "Service",
-      "name": "Cloud Infrastructure",
-      "serviceType": "Cloud Infrastructure",
-      "url": "https://tech4time.bd/pages/services/cloud-infrastructure/",
-      "description": "Private and hybrid cloud design on OpenStack, container orchestration, software-defined networking, cloud operations and disaster recovery."
-    },
-    {
-      "@type": "Service",
-      "name": "Human Resource as a Service",
-      "alternateName": "HRaaS",
-      "serviceType": "IT Staffing",
-      "url": "https://tech4time.bd/pages/services/hr-solutions/",
-      "description": "Certified technical resources engaged as dedicated staff, a shared pool, project-based teams or retainer-based access."
-    },
-    {
-      "@type": "Service",
-      "name": "IT Equipment Supply",
-      "serviceType": "IT Equipment Supply",
-      "url": "https://tech4time.bd/pages/services/it-equipment-supply/",
-      "description": "Multi-vendor hardware sourcing and licensing, deployment and imaging, lifecycle support, secure erasure and responsible disposal."
-    },
-    {
-      "@type": "Service",
-      "name": "IT Consultancy & Training",
-      "serviceType": "IT Consulting",
-      "url": "https://tech4time.bd/pages/services/it-consultancy-training/",
-      "description": "IT strategy, enterprise architecture and virtual CIO advisory, alongside technical, user and certification training."
-    }
-  ]
-}
+<?= json_encode(services_catalog_schema($data, SEO_ORIGIN), HEAD_JSON_FLAGS) ?>
 </script>
 </head>
 

@@ -1,12 +1,28 @@
 # Bring SEO under admin control, for all sixteen pages
 
-**Status: parked. Not built, not started, not scheduled.**
+> ## ⚠ BUILT AND SHIPPED — 2026-09-06. This is a historical design, not a to-do.
+>
+> It said *"parked, not built, not started, not scheduled"* for twelve days after it shipped in
+> full, which is the worst thing a plan can say: somebody picking it up would have rebuilt what
+> was already live.
+>
+> **What is true today is in `docs/`, not here:**
+> [seo.md](../docs/40-reference/seo.md) owns the subject,
+> [content-schemas.md](../docs/40-reference/content-schemas.md) owns the documents, and
+> [ADR 0020](../docs/90-decisions/0020-page-metadata-is-content.md) owns the decision.
+>
+> Two things below were **not** built as written. The site has **seventeen** pages now, not the
+> sixteen in the title. And its Phase 4 — converting thirteen static `.html` pages to `.php` — was
+> not done by this work at all: every page came under content management on its own account first,
+> exactly as the *Why it is parked* section predicted, so by the time this was picked up there was
+> no static page left to convert.
+>
+> Kept for the research it records — measured on 2026-08-29 against frontend `95ca51f` and backend
+> `b613adf` — and for the reasoning behind choices the code no longer explains.
 
 **Applies to:** both — the editor is in `tech4time-website-backend`, everything it edits is here.
 
-This is a design, not documentation. It names files that do not exist. Nothing in `docs/` should
-link to it and nothing here describes the site as it is today — that is what `docs/` is for, and
-why this lives outside it.
+This was a design, not documentation. It names files that did not exist when it was written.
 
 ---
 

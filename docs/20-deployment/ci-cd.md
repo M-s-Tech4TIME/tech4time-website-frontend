@@ -109,7 +109,7 @@ parallel:
 |---|---|---|
 | `checks` | the static checks, `build_deploy_set.py --check` (which parses every shipped `.php` with the host's `short_open_tag`), and `check_cache_bust.py` against `origin/main` | python, php |
 | `php` | every suite that drives a real PHP server, including the publish endpoint, the generated files, the chrome and the site's identity | php |
-| `firefox` | the eight browser suites, all of them, then a verdict | firefox, geckodriver, Chrome, Pillow |
+| `firefox` | the **nine** browser suites, all of them, then a verdict | firefox, geckodriver, Chrome, Pillow |
 
 **Every one of them runs PHP 8.2, which is what the host runs** — `.github/actions/php`, a local
 composite action, installs it before anything else in each job and **fails the run** if it ends up
@@ -149,7 +149,7 @@ It relies on `google-chrome-stable` being in the runner image rather than instal
 Chrome is not in Ubuntu's archive, and `chromium` on 24.04 is the snap transitional
 package that the Firefox note below is about.
 
-### All eight suites run before the job reports
+### All nine suites run before the job reports
 
 The `firefox` job runs the browser suites in **one step**, collects the failures and reports at the
 end, rather than giving each suite a step of its own.
@@ -164,7 +164,7 @@ trip per suite to discover the next problem.
 
 Every browser suite calls `shutil.which("firefox")` and, finding nothing, prints a notice and
 **exits 0**. That is right on a laptop without geckodriver installed. It is wrong in CI, where a
-failed install would turn eight suites into eight green ticks that proved nothing.
+failed install would turn nine suites into nine green ticks that proved nothing.
 
 So the workflow requires `php`, `firefox` and `geckodriver` to be on `PATH` in a step of its own,
 before any suite runs. Note the exact name: `firefox-esr` from apt installs a binary called

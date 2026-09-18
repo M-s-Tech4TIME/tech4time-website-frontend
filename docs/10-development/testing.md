@@ -11,22 +11,31 @@ non-zero on failure, and prints what failed rather than that something did.
 
 ## Before every commit
 
-Fast, no browser needed. Run all seven.
+Fast, no browser needed. **Sixteen of them, and this is the list
+`.github/workflows/test.yml`'s `static` job runs** — the two agree on purpose, so a green commit
+here is a green run there.
 
 ```bash
 python3 tools/check_contrast.py        # WCAG AA in both colour modes
+python3 tools/check_css.py             # every var() declared, no hex outside the tokens
+python3 tools/check_icons.py           # every icon name resolves to a symbol in the sprite
 python3 tools/inject_icons.py --check  # every page's inlined icon block is current
 python3 tools/check_shared_markup.py   # no page's copied markup has drifted
 python3 tools/check_content_model.py   # model, form and renderer still agree
 python3 tools/check_secrets.py         # nothing secret committed; no protection removed
 python3 tools/check_docs.py            # the docs still describe the code
 python3 tools/audit_pages.py           # SEO, accessibility, structure, internal links
-python3 tools/build_deploy_set.py --check   # nothing secret or local is bound for the server
-python3 tools/check_shared_lib.py
+python3 tools/build_deploy_set.py --check     # nothing secret or local is bound for the server
+python3 tools/build_hero_circuit.py --check   # the hero template is still the generated one
+python3 tools/check_cache_bust.py      # a changed asset is served from a changed URL
+python3 tools/check_shared_lib.py      # the EIGHT files both halves hold byte-identical
 python3 tools/check_shared_facts.py    # the offices, email and phone the policy repeats from the contact page
-python3 tools/check_shared_repos.py      # the three files both halves hold identically
+python3 tools/check_shared_repos.py    # the tools both halves hold identically, and the ones allowed to differ
 python3 tools/check_form_dom.py        # no script reads a property a form's own control hides
 ```
+
+`check_cache_bust.py` is the one that needs `origin/main` and full history — CI always has both, so
+it runs there unconditionally; locally it only has anything to say when you have touched `assets/`.
 
 > **Half the suite is in the other repository.** The editor's round trips, the sign-in and the
 > browser run over the admin went with the admin. Neither list is the whole suite any more, and
@@ -108,6 +117,7 @@ python3 tools/check_hover.py           # a real pointer over every kind of contr
 python3 tools/check_dark_mode.py       # every page as the browser actually paints it
 python3 tools/check_responsive.py      # sideways scroll and tap targets, 320px and up
 python3 tools/check_focus.py           # tab every page: the ring is visible and uncovered
+python3 tools/check_accreditations.py  # the About band no other check has ever rendered
 ```
 
 > Interrupted browser runs leave processes behind. `pkill firefox geckodriver` clears them.
@@ -169,6 +179,8 @@ passes or fails, and against a private store in a throwaway directory under `/tm
 | `check_dark_mode.py` | every page in both themes, as painted — catching what a CSS reader cannot, like a token that resolves to the same colour as its background |
 | `check_responsive.py` | every page at 320, 360, 414, 640, 768, 1024 and 1440px: the document does not scroll sideways, no link, button or field is wider than the screen, and no tap target is under 24px. Each width is a frame, not a window — see [0015](../90-decisions/0015-narrow-widths-need-a-frame.md), because Firefox silently clamps a window at about 500px and a check written the obvious way reports widths it never tested. Then a **second pass**: two pages at the four narrow widths with `content/chrome.json` replaced by the widest document the picker can produce — every route in the nav, the links, the legal row and the dock panel, each drawing the page's own name, and the longest of those names in all four dock keys. An editable nav is the one thing here that can newly overflow, and no shipped document is as wide as what somebody is allowed to save. Then a **third pass**: the same two pages with an uploaded logo at the top of its ladder, in six shapes from portrait through square to 24:1. The header sizes the mark by its HEIGHT and `.site-header__brand` is `flex-shrink: 0`, so the width it takes is height x aspect ratio and nothing downstream can take it back — measured before the cap in `layout.css`, 8:1 held at 320px and 10:1 pushed the page 56px sideways. The cap does not care what the ratio is, so what is asserted is that none of them overflows |
 | `check_focus.py` | every page tabbed one stop at a time, at desktop and mobile widths: each focused element has a visible ring (SC 2.4.7) and is not entirely covered by the sticky header or the fixed dock (SC 2.4.11). Runs with reduced motion so scrolling is instant, and **refuses to run** if that preference did not take effect — otherwise every position it reads is mid-scroll |
+
+| `check_accreditations.py` | the About page's **Accreditations** band, which nothing else here has ever seen. `content/about.json` ships with **no `accreditations` key**, so every crawler above renders the About page without the band and reports success over markup that was never on the page. This writes its own document — a 600x120 badge, a 120x600 one, a square one and a tile with no badge at all, with a caption long enough to wrap — and measures: the grid laying out 2 / 3 / 4 across its two breakpoints, read as **painted x-positions** rather than out of the CSSOM, at 320, 767, 768, 1023, 1024 and 1440 so each breakpoint is proven to be where it says it is; every plate square, because `aspect-ratio: 1` is a request that a tall mark or a wrapped caption can defeat; each mark contained by its plate's padding; no sideways scroll at 320px; `--artwork-plate` resolving to the **same** colour in both themes, which is the entire reason it is not a themed surface; and the caption clearing WCAG AA against the ground it actually sits on. Then it puts `content/` and `uploads/` back. **It fails rather than passes when it measured nothing** — a band that did not render would print `0/0` and exit 0, which is the silent pass this sweep went looking for elsewhere |
 
 They skip with a notice and exit 0 when Firefox or geckodriver is missing, rather than failing —
 so a machine without a browser can still run everything else.

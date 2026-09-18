@@ -293,21 +293,95 @@ function about_reveal_paragraphs(string $html): string
  * the page and has no use for it — the same line careers_job_posting(),
  * contact_page_schema() and company_page_schema() sit on.
  *
- * The company profile emits an AboutPage too. Two are fine: they carry
- * different @id values and describe different pages about the same
- * organisation, which is what @id is for.
+ * The company profile emits an AboutPage too. Two are fine: they are separate
+ * nodes describing different pages about the same organisation, each pointing
+ * at that one organisation by @id.
+ *
+ * THIS NODE CARRIES NO @id OF ITS OWN, and that is a correction. It used to
+ * hardcode 'https://tech4time.bd/pages/about/#webpage' -- which is, character
+ * for character, the @id seo_page_node() generates for this route. Two blocks
+ * on one page claiming one @id do not sit side by side in JSON-LD: they merge,
+ * and this pair merged into a single node holding two names (meta.share_title
+ * and meta.title) and two descriptions. A crawler reading that has to pick one
+ * and cannot be told which. company_page_schema(), milestones_page_schema() and
+ * contact_page_schema() all carry no @id; this one now matches them.
+ *
+ * The origin and the language are read rather than written, for the same
+ * reason: four literal 'https://tech4time.bd/…' strings and a literal 'en'
+ * would each be a place the site could move away from in silence.
  */
 function about_page_schema(array $data): array
 {
-    return [
+    $graph = [
         '@context'    => 'https://schema.org',
         '@type'       => 'AboutPage',
-        '@id'         => 'https://tech4time.bd/pages/about/#webpage',
-        'url'         => 'https://tech4time.bd/pages/about/',
+        'url'         => seo_url('/pages/about/'),
         'name'        => (string)$data['meta']['share_title'],
         'description' => rt_plain((string)$data['meta']['description']),
-        'isPartOf'    => ['@id' => 'https://tech4time.bd/#website'],
-        'about'       => ['@id' => 'https://tech4time.bd/#organization'],
-        'inLanguage'  => 'en',
+        'isPartOf'    => ['@id' => SEO_ORIGIN . '/#website'],
+        'about'       => ['@id' => SEO_ORIGIN . '/#organization'],
+        'inLanguage'  => seo_site()['lang'],
     ];
+
+    /* The accreditations, as the certifications they are -- and only when the
+       band is actually drawn. about_shown() filters ROWS, not the band, so a
+       hidden wall still has rows to hand; milestones_page_schema() states the
+       rule this follows, and it is the same rule: a graph listing things the
+       markup does not carry is a page saying two different things about
+       itself. Hidden is hidden from a crawler too.
+
+       Hung on the Organization rather than on the page, because that is whose
+       certification it is. The @id is the one seo_graph() gave the
+       organisation, so this MERGES into that node rather than describing a
+       second company with the same name. */
+    $held = about_band_shown($data, 'accreditations')
+        ? about_certification_list(about_shown($data, 'accreditations'))
+        : [];
+    if ($held) {
+        $graph['about']['hasCertification'] = $held;
+    }
+
+    return $graph;
+}
+
+
+/**
+ * The accreditation badges, as schema.org Certifications.
+ *
+ * WHY Certification AND NOT hasCredential. An EducationalOccupationalCredential
+ * is something a person earned -- a degree, a licence, a professional
+ * qualification -- and that is what /pages/resource-certifications/ lists. This
+ * band is different: it is what the COMPANY holds, ISO 27001 and its kind, and
+ * schema.org added Certification and Organization.hasCertification for exactly
+ * that. The two pages use the word "certification" for two different things and
+ * this is the line between them.
+ *
+ * Takes ROWS rather than the document, the way milestones_event_list() does, so
+ * the caller decides what a visitor can see and this cannot disagree with it.
+ *
+ * A row with no badge uploaded yet still counts: the name is the claim and the
+ * picture only illustrates it, which is why the name is the field the editor
+ * refuses to save without. Returns [] for no rows, so the caller can test it.
+ */
+function about_certification_list(array $rows): array
+{
+    $held = [];
+
+    foreach ($rows as $row) {
+        $name = trim((string)($row['name'] ?? ''));
+        if ($name === '') {
+            continue;
+        }
+
+        $cert = ['@type' => 'Certification', 'name' => $name];
+
+        $src = trim((string)($row['image']['src'] ?? ''));
+        if ($src !== '') {
+            $cert['image'] = seo_url($src);
+        }
+
+        $held[] = $cert;
+    }
+
+    return $held;
 }

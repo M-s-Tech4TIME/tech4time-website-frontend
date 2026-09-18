@@ -669,7 +669,7 @@ fragment and silently rename the incumbent. Nine of the twelve shipped ids are h
 ### The policy band cannot be hidden
 
 `PRIVACY_BANDS` holds only `cta`. Hiding the policy would leave a page headed *"Privacy Policy"*
-with no policy on it, still linked from the footer of all sixteen pages and still in the sitemap.
+with no policy on it, still linked from the footer of every other page and still in the sitemap.
 The callout, any section, any block and any row can each be hidden.
 
 ### What it repeats from the contact page is compared, never enforced
@@ -749,6 +749,17 @@ there. **With nothing uploaded the markup is exactly what it was before the slot
 somebody else's marks on a plate that is a legibility guarantee. The count is 0 because the band
 ships empty; the treatment is settled whenever the first one is uploaded.
 
+**And the plate is square by measurement now, not by request.** `aspect-ratio: 1` says what the
+plate should be, and a **portrait** badge broke it: a grid item's automatic minimum size is its
+min-content, which for a replaced element is its intrinsic size, so a 120×600 mark made the plate
+**225×925** where every square and landscape one stayed 225×225 — one tile four times the height of
+its neighbours, and the mark itself spilling 830px over the caption below it with `max-height: 100%`
+sitting there doing nothing. Both minimums had to be released, the plate's and the mark's. Nothing
+shipped was ever wrong, because the band has no rows yet — which is exactly why nothing found it:
+`content/about.json` has no `accreditations` key, so all four browser crawlers walk this page and
+never render the band. `tools/check_accreditations.py` supplies its own document and uploads a
+portrait badge on purpose.
+
 **The client and technology logos are deliberately NOT pairs.** They are other companies' brand
 marks and the white plate is a legibility guarantee, not a default — several client marks are close
 to solid black and vanished into the dark theme's elevated surface at about 1.4:1 before the plate
@@ -794,19 +805,20 @@ change.
 | `breadcrumb` | the page's name in the BreadcrumbList. **Pure SEO** — there is no visible breadcrumb anywhere on the site |
 | `robots` | `index` or `noindex`. **Also decides the sitemap**: one control, not two, so the two cannot contradict each other |
 | `changefreq`, `priority` | the sitemap's hints for this page |
-| `share` | a per-page share card. Empty means the site-wide one in `content/seo.json`, which is what every page uses today |
-| `share_alt` | its alt text |
+| `share` | a per-page share card, **uploaded at `?s=seo&page=<key>`** in the *When the link is shared* band. Empty means the site-wide one in `content/seo.json`, which is what every page still uses today. The 404 is the exception: its screen renders no share band and `seo_meta_from_post()` returns before the upload, so the field is there for one shape and stays empty |
+| `share_alt` | its alt text — read aloud where the picture cannot be seen, and used **only** when this page has a card of its own |
 
 **A service row carries the same band**, so a seventh service arrives with sensible defaults and a
 sitemap entry without anyone opening a second screen.
 
-**Only `title`, `description`, `share_title` and `breadcrumb` are in `*_TEXT_FIELDS`.** The rest are
+**Only `title`, `description`, `share_title`, `breadcrumb` and `keywords` are in
+`*_TEXT_FIELDS`** — the five of `CONTRACT_META_TEXT`. The rest are
 enumerated or structured, and are validated against their allowed values rather than trimmed as
 free text.
 
 ### The band is edited on one screen, and by nothing else
 
-`?s=seo&page=<key>` writes it. The nine page editors do not: they render a link to that screen where
+`?s=seo&page=<key>` writes it. The ten page editors do not: they render a link to that screen where
 the fieldset used to be, and their `*_from_post()` loops iterate `contract_page_bands()`, which is
 `*_TEXT_FIELDS` **minus** `meta`.
 
@@ -827,19 +839,22 @@ record, because that page renders no content document and never will.
 {
   "updated":  "…",
   "revision": 0,
-  "site":     { "name": "…", "lang": "en", "locale": "en_US", "og_type": "website",
-                "twitter_card": "summary_large_image", "theme_light": "#…",
-                "theme_dark": "#…", "share": {}, "share_alt": "…" },
+  "site":     { "name": "…", "description": "…", "locale": "en_US", "lang": "en",
+                "og_type": "website", "twitter_card": "summary_large_image",
+                "theme_light": "#…", "theme_dark": "#…", "share": {}, "share_alt": "…" },
   "identity": { "legal_name": "…", "alternate_name": "…", "slogan": "…",
                 "description": "…", "founded": "…", "price_range": "…",
                 "area_served": "…", "logo": {}, "service_types": [],
                 "knows_about": [] },
   "sameas":   { "items": [] },
   "hours":    { "items": [] },
-  "crawl":    { "robots_extra": [], "verify_google": "", "verify_bing": "" },
-  "manifest": { "name": "…", "short_name": "…", "description": "…",
-                "background": "#…", "theme": "#…", "display": "standalone" },
-  "notfound": { "title": "…", "description": "…", "robots": "noindex" }
+  "crawl":    { "verify_google": "", "verify_bing": "", "analytics_id": "",
+                "robots_extra": [] },
+  "manifest": { "short_name": "…", "background": "#…", "theme": "#…",
+                "display": "standalone" },
+  "notfound": { "title": "…", "description": "…", "share_title": "…",
+                "breadcrumb": "…", "keywords": "…", "robots": "noindex",
+                "changefreq": "…", "priority": "…", "share": {}, "share_alt": "…" }
 }
 ```
 
@@ -850,8 +865,8 @@ record, because that page renders no content document and never will.
 | `sameas` | the profiles that are this company elsewhere. Rows, so they add, reorder and **hide** | `?s=seo&site=identity` |
 | `hours` | opening hours as machine-readable rows — `days[]`, `opens`, `closes`. The office rows in `content/contact.json` carry hours as prose, which a search engine cannot read | `?s=seo&site=identity` |
 | `crawl` | extra `Disallow` paths, the Search Console and Bing verification tokens, and **`analytics_id`** — a Google measurement id. Empty means no analytics and no external origin; anything that is not the shape Google issues is refused rather than escaped, because it lands inside a `<script src>`. [ADR 0021](../90-decisions/0021-analytics-is-off-until-somebody-turns-it-on.md) | `?s=seo&site=crawl` |
-| `manifest` | what `manifest.php` renders at `/site.webmanifest`. The **icon list is not here** — it names files that must exist | `?s=seo&site=crawl` |
-| `notfound` | the 404's title, description and crawl directive. It has no canonical and no `og:url`, by design | `?s=seo&page=notfound` |
+| `manifest` | what `manifest.php` renders at `/site.webmanifest`. It holds **only** `short_name`, the two colours and `display`: the manifest's `name` and `description` are `site.name` and `site.description`, so an installed icon cannot end up called something the site is not. The **icon list is not here** either — it names files that must exist | `?s=seo&site=crawl` |
+| `notfound` | the 404's own meta band. It is the **same shape** as every page's, so one set of normalisers serves both, but only `title`, `share_title` and `description` are editable: `seo_meta_from_post()` returns before the rest and the screen renders none of them, because a page nobody may index has no keywords, no place in a breadcrumb trail and no sitemap line. `robots` is forced to `noindex` on every save. No canonical and no `og:url`, by design | `?s=seo&page=notfound` |
 
 **The offices are not here.** The addresses and telephone numbers in the Organization graph come
 from `content/contact.json`, through `contact_addresses()` and `contact_points()` — the same

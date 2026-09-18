@@ -61,7 +61,16 @@ ROOT = Path(__file__).resolve().parent.parent
 # so no layout and no paint, so invisible to every frame-rate test here.
 # This is the instrument that matches that failure mode, and it was not
 # pointed at the page that has one.
-PAGES = ["/pages/about/", "/pages/services/", "/pages/company-profile/", "/"]
+#
+# /pages/milestones/ was added for the reason the company profile was, one
+# release later and for the same kind of blind spot. It is the newest page and
+# it loads more motion modules than any other on the site; it was not on this
+# list, so the page carrying the most script was the one never measured at
+# rest. Both failures this check exists for shipped on a page nobody was
+# watching, which is an argument for watching the new ones as they arrive
+# rather than after the third time.
+PAGES = ["/pages/about/", "/pages/services/", "/pages/company-profile/",
+         "/pages/milestones/", "/"]
 CEILING_MS_PER_SECOND = 100.0
 SETTLE = 5
 DEFAULT_SECONDS = 6

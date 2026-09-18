@@ -75,6 +75,10 @@ SEO = ROOT / "content" / "seo.json"
 CHROME = ROOT / "content" / "chrome.json"
 SETTINGS = ROOT / "content" / "settings.json"
 
+# Not a document: the stylesheet the two wall caps have to agree with. See
+# css_columns().
+COMPANY_CSS = ROOT / "assets" / "css" / "pages" / "company-profile.css"
+
 MARK = "PUBLISHMARK"
 
 
@@ -150,6 +154,43 @@ def envelope(document: str, data: dict, version: int = 1) -> dict:
         "published": "2026-08-26T00:00:00+00:00",
         "data": data,
     }
+
+
+def jsonld(page: str) -> list[dict]:
+    """Every JSON-LD block on a page, parsed.
+
+    A block that will not parse is returned as {} rather than raised, so the
+    check that wanted it fails by name instead of the whole suite dying on a
+    stray comma somewhere else on the page.
+    """
+    out: list[dict] = []
+    for raw in re.findall(
+            r'<script type="application/ld\+json">(.*?)</script>', page, re.S):
+        try:
+            out.append(json.loads(raw))
+        except ValueError:
+            out.append({})
+    return out
+
+
+def breadcrumb_names(page: str) -> list[str]:
+    """The trail, in order, as a crawler reads it.
+
+    READ OUT OF THE BLOCK, not matched against the page's text. The check this
+    serves used to ask whether the hero title appeared in ANY "name" field
+    anywhere in the markup, which was a true proxy only while the breadcrumb
+    was the sole thing on the page with a name. It is not any more: a
+    CollectionPage names itself by its hero title, deliberately and in company
+    with milestones_page_schema() and company_page_schema(), so that proxy
+    began reporting a fault where there is none while still being unable to
+    see a trail whose LAST item was wrong but whose words happened to appear.
+    Parsing it asserts the thing the check is named after.
+    """
+    for block in jsonld(page):
+        if block.get("@type") == "BreadcrumbList":
+            return [str(i.get("name", ""))
+                    for i in block.get("itemListElement", [])]
+    return []
 
 
 def post(base: str, body: bytes, headers: dict) -> tuple[int, dict]:
@@ -413,6 +454,39 @@ def php_const(name: str) -> int:
     return int(out.stdout.strip())
 
 
+def css_columns(selector: str) -> list[int]:
+    """Every column count one grid uses, read out of the stylesheet.
+
+    THE OTHER HALF OF THE SAME DESIGN, AND IT USED TO BE A COPY. php_const()
+    above goes to the trouble of asking PHP for the caps, and then the counts
+    they have to divide into were written here as (2, 4, 6) and (3, 6, 9) --
+    so a stylesheet changed to repeat(5, 1fr) kept passing against numbers the
+    grid no longer used. An invariant checked against a transcript of the thing
+    it is checking is not checking anything, and this one fails silently: the
+    only symptom is a ragged half-row above the expander at exactly one width.
+    CLAUDE.md said this check read the CSS before it did.
+
+    Raises rather than returning [] when nothing matches. Every integer divides
+    into an empty set, so an empty list here is a check that can only pass.
+    """
+    css = COMPANY_CSS.read_text()
+    rule = re.compile(r"^[ \t]*" + re.escape(selector) + r"[ \t]*\{([^}]*)\}",
+                      re.M)
+    counts: list[int] = []
+    for block in rule.finditer(css):
+        counts += [int(m.group(1)) for m in re.finditer(
+            r"grid-template-columns:\s*repeat\(\s*(\d+)", block.group(1))]
+
+    if not counts:
+        raise SystemExit(
+            f"no `grid-template-columns: repeat(N, …)` found for {selector} in "
+            f"{COMPANY_CSS.relative_to(ROOT)}. The cap-divides-columns check "
+            f"has nothing to check against, which is worse than a failure — "
+            f"either the selector was renamed or the grid was rewritten, and "
+            f"this check has to be taught the new shape.")
+    return sorted(set(counts))
+
+
 def milestones_round_trip(base: str, key: bytes, r: Results) -> None:
     """Every field the milestones model declares, on both pages that draw it.
 
@@ -569,13 +643,19 @@ def the_walls(base: str, key: bytes, r: Results) -> None:
     clients_cap = php_const("COMPANY_CLIENTS_WALL")
     tech_cap = php_const("COMPANY_TECHNOLOGY_WALL")
 
+    # Both sides of the invariant are read from the thing that defines them:
+    # the caps from PHP, the tiers from the stylesheet. Neither is written here.
+    clients_cols = css_columns(".clients")
+    tech_cols = css_columns(".tech-sphere__list")
+
     r.check("the clients cap divides every column count .clients uses",
-            all(clients_cap % n == 0 for n in (2, 4, 6)),
-            f"{clients_cap} against 2, 4 and 6 — see assets/css/pages/"
-            f"company-profile.css")
+            all(clients_cap % n == 0 for n in clients_cols),
+            f"{clients_cap} against "
+            + ", ".join(str(n) for n in clients_cols)
+            + " — read from assets/css/pages/company-profile.css")
     r.check("and the technology cap divides its own",
-            all(tech_cap % n == 0 for n in (3, 6, 9)),
-            f"{tech_cap} against 3, 6 and 9")
+            all(tech_cap % n == 0 for n in tech_cols),
+            f"{tech_cap} against " + ", ".join(str(n) for n in tech_cols))
 
     data = json.loads(COMPANY.read_text())
     data["revision"] = 40
@@ -1723,9 +1803,11 @@ def branding_round_trip(base: str, key: bytes, r: Results) -> None:
             f"<title>{MARK}-tab</title>" in page)
     r.check("and the share title is separate",
             f'property="og:title" content="{MARK}-share"' in page)
+    trail = breadcrumb_names(page)
     r.check("the breadcrumb carries its OWN name, not the hero's",
-            f'"name": "{MARK}-crumb"' in page and f'"name": "{MARK}-hero"' not in page,
-            "the breadcrumb followed the hero title instead of its own field")
+            bool(trail) and trail[-1] == f"{MARK}-crumb",
+            f"the trail ends {trail[-1:] or ['(no BreadcrumbList)']}, "
+            f"not [{MARK}-crumb]")
 
     print("\nwhat is hidden is not there at all")
 
@@ -1933,9 +2015,11 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
     r.check("the tab title is the tab title", f"<title>{MARK}-tab</title>" in page)
     r.check("and the share title is separate",
             f'property="og:title" content="{MARK}-share"' in page)
+    trail = breadcrumb_names(page)
     r.check("the breadcrumb carries its OWN name, not the hero's",
-            f'"name": "{MARK}-crumb"' in page and f'"name": "{MARK}-hero"' not in page,
-            "the breadcrumb followed the hero title instead of its own field")
+            bool(trail) and trail[-1] == f"{MARK}-crumb",
+            f"the trail ends {trail[-1:] or ['(no BreadcrumbList)']}, "
+            f"not [{MARK}-crumb]")
 
     print("\nwhat is hidden is not there at all")
 

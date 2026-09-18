@@ -521,7 +521,7 @@ every corner charge somewhere between 12s and 35s — three to nine times slower
 
 **Density is free; motion is not.** A static trace is rasterised once. A charge animates
 `stroke-dashoffset`, which is not compositor-accelerated and repaints its path every frame, on
-fourteen pages, above the fold, for as long as the tab is open.
+fifteen pages, above the fold, for as long as the tab is open.
 
 ### The mistake this band is shaped around
 

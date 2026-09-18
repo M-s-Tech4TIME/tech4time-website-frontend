@@ -323,6 +323,18 @@
   display: grid;
   place-items: center;
   aspect-ratio: 1;
+  /* A GRID ITEM'S AUTOMATIC MINIMUM SIZE DEFEATS aspect-ratio, and a portrait
+     badge is how you find that out. min-height resolves to `auto`, which on a
+     grid item means min-content -- so a 120x600 mark made the plate 225x925
+     while every square and landscape one stayed 225x225, and the wall grew one
+     tile four times the height of its neighbours. Measured, not reasoned:
+     tools/check_accreditations.py uploads a portrait badge on purpose.
+
+     With the minimum at 0 the aspect ratio wins, the height is definite, and
+     `max-height: 100%` on the mark below finally has something to resolve
+     against -- it was indeterminate before, which is why the mark rendered at
+     its natural height and pushed the plate open. */
+  min-height: 0;
   padding: var(--space-md);
   background-color: var(--artwork-plate);
   border: var(--border-width) solid var(--border-subtle);
@@ -346,6 +358,14 @@
   height: auto;
   max-width: 100%;
   max-height: 100%;
+  /* THE SAME TRAP AS THE PLATE ABOVE, one level down. The mark is itself a grid
+     item -- place-items: center makes it one -- so its automatic minimum size is
+     its own min-content, which for a replaced element is its intrinsic size. A
+     120x600 badge therefore rendered 830px tall INSIDE a 216px plate and spilled
+     straight over the caption below it, with max-height: 100% sitting there
+     doing nothing. Both minimums have to be released, not just the plate's. */
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
 }
 

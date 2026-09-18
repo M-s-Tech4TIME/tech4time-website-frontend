@@ -36,7 +36,7 @@ $data = milestones_load();
 <?php seo_jsonld('/pages/milestones/', $data['meta'], $data['updated']); ?>
 
 <script type="application/ld+json">
-<?= json_encode(milestones_page_schema($data), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(milestones_page_schema($data), HEAD_JSON_FLAGS) ?>
 
 </script>
 </head>
@@ -364,9 +364,14 @@ $data = milestones_load();
 <script src="/assets/js/forms.js?v=2" defer></script>
 <script src="/assets/js/dashboard.js" defer></script>
 <script src="/assets/js/tech-sphere.js?v=2" defer></script>
-<script src="/assets/js/slider.js" defer></script>
-<script src="/assets/js/terminal.js" defer></script>
-<script src="/assets/js/neural.js" defer></script>
+<!-- slider.js, terminal.js and neural.js are NOT here, and that is measured
+     rather than assumed. This page was born with the full block copied in and
+     carried all three for its whole life: 34 KB raw, 11.9 KB gzipped, three
+     requests a visit, on the newest page on the site. None of them can ever
+     bind here -- data-slider is emitted only by the about and company profile
+     pages, .terminal__line only by lib/home.php, and the .hero element
+     neural.js needs exists only on the home page. Not "has no hook today":
+     no document this page can be given would give it one. -->
 <script src="/assets/js/circuit.js?v=5" defer></script>
 <!-- Versioned for the same reason the stylesheets are, and with a sharper
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
