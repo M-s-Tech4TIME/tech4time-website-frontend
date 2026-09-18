@@ -443,6 +443,14 @@ service and `contract.php` has no field for it in either half — and adding one
 byte-identical shared file, which is not a thing to do in passing. Holding twenty-four derived
 values literal for the sake of one authored one is the trade that had already failed twice.
 
+**It is dropped when it equals the name**, and that is not hypothetical: the editor had renamed the
+service *to* its own abbreviation, so the first version of this shipped a graph saying the practice
+is called HRaaS and is also known as HRaaS. It was invisible locally — the committed seed still
+holds the longer name, so every local render looked right — and was caught by reading the **live**
+page after the deploy. That is the standing hazard of authoring anything in code that the editor can
+also change: the seed is not the content. The comparison is folded and trimmed, so `HRaaS` and
+`hraas ` count as the same claim.
+
 **`services_breadcrumbs()` is gone.** It was superseded when `meta.breadcrumb` joined the service
 row — `seo_jsonld()` builds the trail from `SEO_ROUTES`, falling back to the service's name, which
 is exactly what that function did — and it had had no caller since. It was not merely unused: it

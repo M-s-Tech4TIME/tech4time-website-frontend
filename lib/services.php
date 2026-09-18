@@ -788,11 +788,20 @@ function services_catalog_schema(array $data, string $origin): array
             'description' => (string)($service['schema_description'] ?? ''),
         ];
 
-        if (isset(SERVICES_ALTERNATE_NAMES[$slug])) {
+        /* NOT WHEN IT IS THE NAME. The editor renamed this service TO its own
+           abbreviation after the constant was written, so the graph went out
+           saying the practice is called HRaaS and is also known as HRaaS --
+           caught on the live site, because the committed seed still held the
+           longer name and every local render looked right. An alternateName
+           equal to the name tells a crawler nothing and asserts a second name
+           that does not exist. Compared folded and trimmed: "HRaaS" and
+           "hraas " are the same claim. */
+        $alt = SERVICES_ALTERNATE_NAMES[$slug] ?? '';
+        if ($alt !== '' && strcasecmp(trim($alt), trim($name)) !== 0) {
             /* After name, before serviceType, which is the order the hand-written
                block used and the order schema.org's examples read in. */
             $entry = array_slice($entry, 0, 2, true)
-                   + ['alternateName' => SERVICES_ALTERNATE_NAMES[$slug]]
+                   + ['alternateName' => $alt]
                    + array_slice($entry, 2, null, true);
         }
 
