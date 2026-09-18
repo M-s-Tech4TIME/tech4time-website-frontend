@@ -59,7 +59,7 @@ $recent     = milestones_recent($timeline);
         milestones_band_shown($milestones, 'timeline')
             ? milestones_event_list($recent, (string)$milestones['timeline']['title'])
             : []),
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+        HEAD_JSON_FLAGS) ?>
 
 </script>
 </head>

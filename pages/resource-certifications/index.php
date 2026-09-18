@@ -52,6 +52,13 @@ $meta_description = certifications_fill((string)$data['meta']['description'], $c
 <?php $meta = ['description' => $meta_description] + $data['meta']; ?>
 <?php seo_head('/pages/resource-certifications/', $meta, ['pages/certifications.css'], $data['updated']); ?>
 <?php seo_jsonld('/pages/resource-certifications/', $meta, $data['updated']); ?>
+
+<!-- What this page actually lists: the qualifications the team holds, as the
+     credentials they are. Generated from the same rows the accordions below
+     render, so a hidden group or a hidden certification is absent from both. -->
+<script type="application/ld+json">
+<?= json_encode(certifications_page_schema($data), HEAD_JSON_FLAGS) ?>
+</script>
 </head>
 
 <body class="page">

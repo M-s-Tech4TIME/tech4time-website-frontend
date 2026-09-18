@@ -46,7 +46,7 @@ if ($service === null || $service['status'] === 'hidden') {
 <?php seo_jsonld('/pages/services/it-equipment-supply/', $service['meta'], $data['updated']); ?>
 
 <script type="application/ld+json">
-<?= services_json_ld(services_schema($service, 'https://tech4time.bd')) ?>
+<?= services_json_ld(services_schema($service, SEO_ORIGIN)) ?>
 </script>
 </head>
 

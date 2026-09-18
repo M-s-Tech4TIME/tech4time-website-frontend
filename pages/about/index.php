@@ -30,13 +30,13 @@ $data = about_load();
 <!DOCTYPE html>
 <html lang="<?= h(seo_lang()) ?>">
 <head>
-<?php seo_head('/pages/about/', $data['meta'], ['pages/about.css?v=2'], $data['updated']); ?>
+<?php seo_head('/pages/about/', $data['meta'], ['pages/about.css?v=3'], $data['updated']); ?>
 <?php seo_jsonld('/pages/about/', $data['meta'], $data['updated']); ?>
 
 <!-- Page type, tied to the Organization it describes. Generated, so the
      name and the description cannot drift from the <head> above. -->
 <script type="application/ld+json">
-<?= json_encode(about_page_schema($data), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(about_page_schema($data), HEAD_JSON_FLAGS) ?>
 </script>
 </head>
 

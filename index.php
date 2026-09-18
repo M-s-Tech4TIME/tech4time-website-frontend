@@ -49,8 +49,8 @@ $data = home_load();
      Generated from the same rows the cards below are built from, so the
      two cannot drift apart; see home_service_schema(). -->
 <script type="application/ld+json">
-<?= json_encode(home_service_schema($data, 'https://tech4time.bd'),
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(home_service_schema($data, SEO_ORIGIN),
+                HEAD_JSON_FLAGS) ?>
 </script>
 </head>
 

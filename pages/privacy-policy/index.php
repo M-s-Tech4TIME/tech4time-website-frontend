@@ -48,6 +48,14 @@ $data = privacy_load();
 <head>
 <?php seo_head('/pages/privacy-policy/', $data['meta'], ['pages/legal.css'], $data['updated']); ?>
 <?php seo_jsonld('/pages/privacy-policy/', $data['meta'], $data['updated']); ?>
+
+<!-- The policy as a document, which is a different thing from the page that
+     displays it — and the only place its effective date reaches a machine.
+     Deliberately not a second WebPage node: seo_jsonld() above already emits
+     one for this URL. -->
+<script type="application/ld+json">
+<?= json_encode(privacy_policy_schema($data), HEAD_JSON_FLAGS) ?>
+</script>
 </head>
 
 <body class="page">

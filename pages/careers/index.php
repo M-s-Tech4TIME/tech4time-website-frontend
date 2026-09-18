@@ -37,7 +37,7 @@ $cvForm = trim((string)($data['cv_form_url'] ?? ''));
          Jobs rather than only into ordinary search results. */ ?>
 <?php foreach ($jobs as $job): ?>
 <script type="application/ld+json">
-<?= json_encode(careers_job_posting($job), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(careers_job_posting($job), HEAD_JSON_FLAGS) ?>
 </script>
 <?php endforeach; ?>
 </head>

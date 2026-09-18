@@ -663,6 +663,24 @@ function services_ossf_band(array $data): string
     return $out . "  </section>\n";
 }
 
+/**
+ * The short name a practice is also known by, where it has one.
+ *
+ * IN CODE ON PURPOSE, and the only part of the offer catalogue that is. It is
+ * a marketing abbreviation -- "HRaaS" -- not a fact about the service, and
+ * lib/contract.php has no field for it in either repository. Adding one is
+ * worth doing and is a change to a byte-identical shared file in both halves,
+ * which is not a thing to do in passing. Until then it lives here, where one
+ * authored string is visible and named, rather than holding the other
+ * twenty-four values of the block literal for its sake.
+ *
+ * Keyed by slug. An entry for a slug that no longer exists is simply never
+ * looked up, and a service with no entry gets no alternateName.
+ */
+const SERVICES_ALTERNATE_NAMES = [
+    'hr-solutions' => 'HRaaS',
+];
+
 /* --------------------------------------------------------- structured data */
 
 /**
@@ -724,27 +742,74 @@ function services_schema(array $service, string $origin): array
 }
 
 /**
- * The BreadcrumbList for one detail page.
+ * The site-wide offer catalogue for /pages/services/.
  *
- * Generated for the same reason: it names the service, and a renamed service
- * whose trail still said the old name would be telling a crawler one thing and
- * a reader another.
+ * THE LAST LITERAL BLOCK ON THE SITE, and it had drifted TWICE. It was JSON
+ * typed into the page beside a comment promising it "mirrors the page so the
+ * two never disagree" -- which is an instruction to remember rather than a
+ * mechanism, and it was not remembered: the service renamed in the editor on
+ * 2026-09-10 left the old name here, and by 2026-09-18 the cybersecurity entry
+ * described the practice differently from the document its own detail page and
+ * the editor both render from. A crawler read both descriptions and had no way
+ * to know which one the company meant.
+ *
+ * It also could not see the document at all. A seventh service added in the
+ * editor was absent from the catalogue while appearing on the page, in the
+ * sitemap and at its own address; a service HIDDEN in the editor stayed
+ * advertised here after its card and its sitemap line had gone. Both are the
+ * same fault services_schema() was generated to cure one level down.
+ *
+ * It walks services_rows_shown(services_all()) -- the SAME list lib/seo.php
+ * builds the sitemap from, so a URL is in the catalogue exactly when it is a
+ * URL the site offers.
+ *
+ * alternateName is the one field the document has nowhere to put, so it stays
+ * in code, named and visible, rather than keeping twenty-four derived values
+ * literal for the sake of one authored one.
  */
-function services_breadcrumbs(array $service, string $origin): array
+function services_catalog_schema(array $data, string $origin): array
 {
     $origin = rtrim($origin, '/');
+    $items  = [];
+
+    foreach (services_rows_shown(services_all($data)) as $service) {
+        $slug = (string)($service['slug'] ?? '');
+        if ($slug === '') {
+            continue;
+        }
+
+        $name  = (string)($service['name'] ?? '');
+        $type  = (string)($service['schema_type'] ?? '');
+        $entry = [
+            '@type'       => 'Service',
+            'name'        => $name,
+            'serviceType' => $type !== '' ? $type : $name,
+            'url'         => $origin . '/pages/services/' . $slug . '/',
+            'description' => (string)($service['schema_description'] ?? ''),
+        ];
+
+        if (isset(SERVICES_ALTERNATE_NAMES[$slug])) {
+            /* After name, before serviceType, which is the order the hand-written
+               block used and the order schema.org's examples read in. */
+            $entry = array_slice($entry, 0, 2, true)
+                   + ['alternateName' => SERVICES_ALTERNATE_NAMES[$slug]]
+                   + array_slice($entry, 2, null, true);
+        }
+
+        $items[] = $entry;
+    }
 
     return [
-        '@context' => 'https://schema.org',
-        '@type'    => 'BreadcrumbList',
-        'itemListElement' => [
-            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home',
-             'item' => $origin . '/'],
-            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Services',
-             'item' => $origin . '/pages/services/'],
-            ['@type' => 'ListItem', 'position' => 3, 'name' => $service['name'],
-             'item' => $origin . '/pages/services/' . $service['slug'] . '/'],
+        '@context'        => 'https://schema.org',
+        '@type'           => 'OfferCatalog',
+        'name'            => seo_site()['name'] . ' Services',
+        'url'             => $origin . '/pages/services/',
+        'provider'        => [
+            '@type' => 'Organization',
+            'name'  => seo_site()['name'],
+            'url'   => $origin . '/',
         ],
+        'itemListElement' => $items,
     ];
 }
 
@@ -755,21 +820,17 @@ function services_breadcrumbs(array $service, string $origin): array
  * blocks would otherwise arrive full of backslashes -- that pair is what the
  * home and about pages already use.
  *
- * JSON_HEX_TAG IS ADDED TO IT, and is the one deliberate difference. A stored
- * value holding "</script>" would otherwise close the block it sits inside,
- * and every string in these blocks is editable from the admin. It costs
- * nothing today: no value in the document contains a < or a > , so the output
- * is byte for byte what the six pages already carried. The home and about
- * pages take the same input and do not set it; that is worth fixing there too,
- * and is not this change's business.
+ * JSON_HEX_TAG is why this function existed separately, and it no longer needs
+ * to: the flag is in HEAD_JSON_FLAGS now, so every JSON-LD block on the site
+ * gets it rather than these six pages alone. The note that used to sit here —
+ * "the home and about pages take the same input and do not set it; that is
+ * worth fixing there too, and is not this change's business" — was true for a
+ * release and is what a sweep found. The reasoning behind the flag is on the
+ * constant.
  */
 function services_json_ld(array $data): string
 {
-    return (string)json_encode(
-        $data,
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-            | JSON_HEX_TAG
-    );
+    return (string)json_encode($data, HEAD_JSON_FLAGS);
 }
 
 /* ------------------------------------------------------------- the sprite */

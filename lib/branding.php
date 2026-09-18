@@ -121,3 +121,133 @@ function branding_glyph(string $name): string
     return '<svg class="icon icon--sm" aria-hidden="true" focusable="false">'
          . '<use href="#' . h($name) . '"></use></svg>';
 }
+
+/* --------------------------------------------------------- structured data */
+
+/**
+ * The CollectionPage graph for /pages/branding-and-advertisement/.
+ *
+ * This page is a press kit: named marks, each with files somebody may download
+ * and terms on what they may do with them. That is an ordinary, well-mapped
+ * thing -- a collection of MediaObjects with contentUrl, encodingFormat and
+ * dimensions -- and the page had no structured data at all, so a crawler had
+ * nothing to say about it beyond the WebPage node every page carries.
+ *
+ * The DOWNLOAD is the entity, not the preview. Each asset's image is what the
+ * page draws; each file under it is what a person actually takes away, and they
+ * are different bytes at different sizes. So an asset becomes an ImageObject
+ * with one encoding per shown file, which is what encodingFormat and contentUrl
+ * are for.
+ *
+ * SHOWN BANDS, SHOWN ASSETS, SHOWN FILES -- three levels, because the editor
+ * offers a switch at all three and the markup honours every one of them.
+ */
+function branding_page_schema(array $data): array
+{
+    $graph = [
+        '@context'    => 'https://schema.org',
+        '@type'       => 'CollectionPage',
+        'url'         => seo_url('/pages/branding-and-advertisement/'),
+        'name'        => (string)($data['hero']['title'] ?? ''),
+        'description' => rt_plain((string)($data['meta']['description'] ?? '')),
+        'about'       => ['@id' => SEO_ORIGIN . '/#organization'],
+    ];
+
+    if (!branding_band_shown($data, 'assets')) {
+        return $graph;
+    }
+
+    $marks = [];
+    foreach (branding_rows_shown($data['assets']['items'] ?? []) as $asset) {
+        $title = trim((string)($asset['title'] ?? ''));
+        if ($title === '') {
+            continue;
+        }
+
+        $mark = [
+            '@type'   => 'ImageObject',
+            'name'    => $title,
+            'caption' => rt_plain((string)($asset['text'] ?? '')),
+        ];
+
+        $alt = trim((string)($asset['alt'] ?? ''));
+        if ($alt !== '') {
+            $mark['description'] = $alt;
+        }
+
+        $encodings = [];
+        foreach (branding_rows_shown($asset['files'] ?? []) as $file) {
+            $src = trim((string)($file['file']['src'] ?? ''));
+            if ($src === '') {
+                continue;
+            }
+
+            $encoding = [
+                '@type'      => 'MediaObject',
+                'name'       => trim((string)($file['label'] ?? '')),
+                'contentUrl' => seo_url($src),
+            ];
+
+            $type = branding_media_type($src);
+            if ($type !== '') {
+                $encoding['encodingFormat'] = $type;
+            }
+            if ((int)($file['file']['width'] ?? 0) > 0) {
+                $encoding['width']  = (int)$file['file']['width'];
+                $encoding['height'] = (int)$file['file']['height'];
+            }
+
+            $encodings[] = $encoding;
+        }
+
+        if ($encodings) {
+            $mark['encoding'] = $encodings;
+            /* The largest rendition doubles as the mark's own contentUrl, so a
+               consumer that reads no further than ImageObject still gets a
+               usable file rather than nothing. */
+            $mark['contentUrl'] = $encodings[0]['contentUrl'];
+        }
+
+        $marks[] = $mark;
+    }
+
+    if ($marks) {
+        $graph['mainEntity'] = [
+            '@type'           => 'ItemList',
+            'name'            => (string)($data['assets']['title'] ?? ''),
+            'numberOfItems'   => count($marks),
+            'itemListElement' => array_map(
+                static fn(int $i, array $m): array => [
+                    '@type'    => 'ListItem',
+                    'position' => $i + 1,
+                    'item'     => $m,
+                ],
+                array_keys($marks),
+                $marks
+            ),
+        ];
+    }
+
+    return $graph;
+}
+
+
+/**
+ * The media type of a downloadable file, from its extension.
+ *
+ * A short map rather than a guess: these are the formats this page offers, and
+ * an encodingFormat naming a type the file is not is worse than none. Anything
+ * else returns '' and the encoding simply carries no type.
+ */
+function branding_media_type(string $src): string
+{
+    return match (strtolower(pathinfo($src, PATHINFO_EXTENSION))) {
+        'png'  => 'image/png',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'svg'  => 'image/svg+xml',
+        'pdf'  => 'application/pdf',
+        'zip'  => 'application/zip',
+        default => '',
+    };
+}

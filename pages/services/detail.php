@@ -84,7 +84,7 @@ if (str_contains($_SERVER['REQUEST_URI'] ?? '', 'detail.php')) {
 <?php seo_jsonld('/pages/services/' . $slug . '/', $service['meta'], $data['updated']); ?>
 
 <script type="application/ld+json">
-<?= services_json_ld(services_schema($service, 'https://tech4time.bd')) ?>
+<?= services_json_ld(services_schema($service, SEO_ORIGIN)) ?>
 </script>
 </head>
 

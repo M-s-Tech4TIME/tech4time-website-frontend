@@ -106,3 +106,91 @@ function certifications_icons_used(array $data): array
         static fn($n): bool => trim((string)$n) !== ''
     ));
 }
+
+/* --------------------------------------------------------- structured data */
+
+/**
+ * The CollectionPage graph for /pages/resource-certifications/.
+ *
+ * This page had none, and it is the one page on the site whose body is already
+ * a list of named things a vocabulary exists for: schema.org's
+ * EducationalOccupationalCredential is a qualification a PERSON holds, which is
+ * exactly what this page lists and exactly what the About page's accreditations
+ * band is not -- that one is what the COMPANY holds, and carries Certification.
+ * The two pages use the word "certification" for two different things, and
+ * these are the two types that keep them apart.
+ *
+ * SHOWN GROUPS AND SHOWN ROWS ONLY. The page hides a group or a single
+ * qualification with the same switch every band has, and a graph listing what
+ * the markup does not carry is a page saying two different things about itself.
+ * milestones_page_schema() states the rule; this follows it.
+ *
+ * Flat rather than nested, because the grouping is how the page is READ -- four
+ * accordions by specialism -- while the credential is the thing being claimed.
+ * A crawler wants the claims. occupationalCategory carries the roles the group
+ * names, which is the part of the grouping that is a fact about the credential
+ * rather than about the layout.
+ */
+function certifications_page_schema(array $data): array
+{
+    $graph = [
+        '@context'    => 'https://schema.org',
+        '@type'       => 'CollectionPage',
+        'url'         => seo_url('/pages/resource-certifications/'),
+        'name'        => (string)($data['hero']['title'] ?? ''),
+        /* The SAME filled description the <head> carries. The stored text holds
+           {certifications} and {groups-word}, and a graph repeating the tokens
+           raw would describe the page differently from its own meta tag. */
+        'description' => rt_plain(certifications_fill(
+            (string)($data['meta']['description'] ?? ''),
+            certifications_counts($data))),
+        'about'       => ['@id' => SEO_ORIGIN . '/#organization'],
+    ];
+
+    $held = [];
+    foreach (certifications_rows_shown(certifications_groups($data)) as $group) {
+        $roles = [];
+        foreach (certifications_rows_shown($group['roles'] ?? []) as $role) {
+            $name = trim((string)($role['name'] ?? ''));
+            if ($name !== '') {
+                $roles[] = $name;
+            }
+        }
+
+        foreach (certifications_rows_shown($group['items'] ?? []) as $row) {
+            $name = trim((string)($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $credential = [
+                '@type'              => 'EducationalOccupationalCredential',
+                'name'               => $name,
+                'credentialCategory' => 'certification',
+            ];
+            if ($roles !== []) {
+                $credential['occupationalCategory'] = $roles;
+            }
+            $held[] = $credential;
+        }
+    }
+
+    if ($held) {
+        $graph['mainEntity'] = [
+            '@type'           => 'ItemList',
+            'name'            => (string)($data['certs']['title'] ?? ''),
+            'numberOfItems'   => count($held),
+            'itemListElement' => array_map(
+                static fn(int $i, array $c): array => [
+                    '@type'    => 'ListItem',
+                    'position' => $i + 1,
+                    'item'     => $c,
+                ],
+                array_keys($held),
+                $held
+            ),
+        ];
+    }
+
+    return $graph;
+}

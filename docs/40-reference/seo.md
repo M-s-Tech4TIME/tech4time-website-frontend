@@ -55,7 +55,7 @@ went unpublished.
 | **The CSP, the favicon list, the font preload, the stylesheet order** | Code. An editor able to break the Content Security Policy is a hazard, not a feature |
 | **`Allow: /` and the `Sitemap:` line in `robots.txt`** | Written by `robots.php`. Only extra `Disallow` paths are editable, and a rule that would block the whole site is refused |
 | **The manifest's icon list** | It names files that must exist. A manifest pointing at an icon that is not there is an install prompt that fails silently on a stranger's phone |
-| **The page-specific schemas** — `Service`, `OfferCatalog`, `JobPosting`, `ContactPage`, `AboutPage`, `CollectionPage` | Already generated from the same documents the page bodies render from, so they cannot drift from the visible page. Two of them are handed exactly the rows their page renders rather than reading the document themselves: the company profile shows a five-year window onto the timeline and the milestones page shows all of it, and a graph listing entries the markup does not carry is a page saying two different things about itself |
+| **The page-specific schemas** — `Service`, `OfferCatalog`, `JobPosting`, `ContactPage`, `AboutPage`, `CollectionPage`, `CreativeWork` | Already generated from the same documents the page bodies render from, so they cannot drift from the visible page. **All sixteen indexable pages carry one**; `404.php` is the only page without, and it is `noindex`. Two of them are handed exactly the rows their page renders rather than reading the document themselves: the company profile shows a five-year window onto the timeline and the milestones page shows all of it, and a graph listing entries the markup does not carry is a page saying two different things about itself. Every list inside one obeys the same rule — a hidden band, a hidden group or a hidden row reaches the graph no more than it reaches the page |
 
 ---
 
@@ -105,6 +105,13 @@ render its body. No second read, no second source.
 
 Two pages get no `BreadcrumbList`, both deliberately: the home page, because a one-item trail says
 nothing a crawler cannot read off the URL, and the 404, because it has no address to be a place in.
+
+**`legalName` is the registered name, and it is not the same field as `name`.**
+`identity.legal_name` is required and validated on `?s=seo&site=identity`, and until 2026-09-18 it
+was published and read by **nothing** — a field an editor was obliged to fill that went nowhere.
+`seo_graph()` now emits it on the Organization node, beside `name`, and **omits the key when the
+value is empty** rather than shipping `"legalName": ""`: an empty string is a claim that the company
+has no registered name, which is worse than not answering.
 
 ### What a `LocalBusiness` node carries, and the two things it does not
 
