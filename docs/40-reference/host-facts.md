@@ -31,7 +31,8 @@ re-checked directly on the host that day.
 | | |
 |---|---|
 | Required | 8.1 or newer — the code uses the `never` return type |
-| Developed against | 8.3 |
+| Developed against | 8.3 — what a developer's machine runs |
+| **Tested against** | **8.2**, pinned in CI by `.github/actions/php` in both repositories |
 | On the host | **8.2.33** |
 | argon2id | **available** — this is what is used; bcrypt is not needed |
 | One hash costs | **80 ms** — the deliberate expense that makes an offline attack slow |
@@ -45,6 +46,25 @@ re-checked directly on the host that day.
 
 Mail was proven end to end: the contact form delivers to `info@tech4time.bd` with JavaScript on
 and off.
+
+### CI runs the version the host runs, and that is new
+
+Until 2026-09-18 **nothing anywhere ran 8.2**: a developer's machine was 8.3, `ubuntu-24.04` ships
+8.3, and only the server was 8.2. Anything 8.3 accepts and 8.2 does not would have passed every
+check in both repositories and failed on the day it shipped. `.github/actions/php` installs 8.2 from
+Ondřej Surý's PPA in **every job that runs PHP** — including the deploy job, because
+`build_deploy_set.py` lints every shipped file and a syntax lint is exactly where a version
+difference shows — and **fails the run** if it ends up on anything else, rather than falling back
+quietly.
+
+It installs `gd`, `dom` and `curl`, which are what the uploader, the SVG sanitiser and the publish
+client need. **Not `mbstring`**, deliberately: this code does not use `mb_*` anywhere and says so
+where it chose `strlen` over `mb_strlen`. Installing it would retire that property silently — the
+code would be free to start depending on mbstring and nothing would notice.
+
+A composite action rather than the steps inline, because every job needs them and the fourth copy is
+the one that gets forgotten and quietly tests 8.3. It is a local path, so it adds no dependency:
+`actions/checkout` is still the only external action in either repository.
 
 ### If the deploy fails on the host key
 

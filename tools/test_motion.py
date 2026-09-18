@@ -1140,6 +1140,29 @@ def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
     time.sleep(0.4)
 
 
+def steadiest(take, times=3):
+    """The middle of several samples, because one sample is not a measurement.
+
+    A GitHub runner's speed varies run to run by about six milliseconds on
+    IDENTICAL code -- measured, not supposed: the same commit came back 35ms on
+    one push and 29ms on the next, and the only difference between those two
+    trees was where a few property writes sat. A single 1800ms sample of that is
+    a coin toss whenever the number lands near the gate, and a check that cries
+    wolf is one people learn to re-run without reading it.
+
+    Three samples and the middle one. It does not move the gate, does not weaken
+    what is asserted, and does not touch the code being measured -- it just
+    stops one unlucky sample deciding the run. A real regression shows up in all
+    three.
+
+    Used by BOTH frame budgets here. They were written to the same shape and
+    would flake the same way; the sphere's is simply the one that got close
+    enough to the gate to prove it.
+    """
+    got = sorted((take() for _ in range(times)), key=lambda d: d["median"])
+    return got[len(got) // 2]
+
+
 def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
     """
     The sphere has to turn smoothly, under the hand and on its own.
@@ -1154,13 +1177,13 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
 
     b.go(origin + "/pages/about/")
     time.sleep(0.8)
-    base = b.js_async(FRAME_SAMPLER, [1800])
+    base = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     b.go(origin + "/pages/company-profile/")
     b.js("document.querySelector('[data-tech-sphere]')"
          ".scrollIntoView({block: 'center', behavior: 'instant'});")
     time.sleep(1.0)
-    idle = b.js_async(FRAME_SAMPLER, [1800])
+    idle = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     eid = rq("POST", b.s + "/element",
              {"using": "css selector",
@@ -1170,9 +1193,12 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
         "parameters": {"pointerType": "mouse"},
         "actions": [{"type": "pointerMove", "duration": 0,
                      "origin": {W3C: eid}, "x": 150, "y": 100}]}]})
-    hover = b.js_async(FRAME_SAMPLER, [1800])
+    hover = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
-    drag = b.js_async(DRAG_SAMPLER)
+    # The drag sampler drives its own drag, so each repeat is a fresh one --
+    # and the before/after the vacuous-pass check reads below come from
+    # whichever sample was the middle, which is a real drag either way.
+    drag = steadiest(lambda: b.js_async(DRAG_SAMPLER))
 
     print(f"    a page with no sphere: {base['median']}ms median, "
           f"{base['p95']}ms p95, {base['worst']}ms worst")
@@ -1197,7 +1223,36 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
     # actually matters — the sphere must not cost a visitor half their frame
     # rate — and the tight figure is printed beside it as something to watch
     # rather than something to trip over.
-    gate = max(base["median"] * 2, 33.0)
+    # RE-SET ON 2026-09-18, FOR TWO CHANGES TO WHAT IS BEING MEASURED. Both are
+    # deliberate, and neither is the sphere getting worse at its job.
+    #
+    #   The sphere is bigger. It was a fixed 560px; sized to the room it has
+    #   it is 777px on a runner, 1.9x the pixel area, and a software
+    #   rasteriser pays for every one of them. That is the feature doing what
+    #   it was asked to -- hold the plates at full size by GROWING rather than
+    #   packing them in -- so the number moved for a reason, and the answer is
+    #   to say so here rather than shrink the sphere into an old threshold.
+    #
+    #   The measurement is stricter. steadiest() samples three times without
+    #   reloading, so this reads the SUSTAINED state rather than the first 1.8
+    #   seconds, which included the sphere easing up to speed. More faithful to
+    #   what a hand on the sphere feels, and higher.
+    #
+    # x3 rather than x2: on a runner whose empty page is vsync-capped at 17ms
+    # that is 51ms, against 37ms measured on a machine that varies by about
+    # six. Fourteen milliseconds of headroom, so this reports regressions
+    # rather than weather.
+    #
+    # WHAT IT STILL CATCHES is a step change in per-frame cost -- the one write
+    # per logo per frame this module exists to avoid, or anything of that order.
+    # What it never could catch is work done while the sphere is OFF screen:
+    # that is tools/check_style_budget.py, which measures a page at rest and
+    # reads 36ms/s against a 100ms/s ceiling.
+    #
+    # AND WHAT IT MUST NOT BECOME is a number nudged up whenever something
+    # fails. It was raised once, for the two reasons named above, with the
+    # figures written down. A third raise wants the same standard.
+    gate = max(base["median"] * 3, 45.0)
 
     # Printed, never asserted on — so it must not be able to fail the run.
     try:
@@ -1208,7 +1263,10 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
         renderer = f"{renderer} (WebGL could not say)"
     print(f"    drawn by {renderer} — software everywhere, so these are CPU "
           f"numbers on any machine")
-    print(f"    gate {gate:.0f}ms a frame (about 30fps); watching for "
+    # The frame rate is DERIVED from the gate, not typed beside it. It read
+    # "about 30fps" while the gate moved to 51ms, which is 20 -- a line that
+    # describes a number is one more thing that can quietly stop being true.
+    print(f"    gate {gate:.0f}ms a frame (about {1000 / gate:.0f}fps); watching for "
           f"{base['median'] + 3.0:.0f}ms")
 
     for name, d in (("drifting on its own", idle),
@@ -2144,7 +2202,7 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
 
     b.go(origin + "/pages/careers/")
     time.sleep(1.0)
-    base = b.js_async(FRAME_SAMPLER, [1800])
+    base = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     # THE BASELINE NEEDS A CEILING OF ITS OWN, AND THIS IS WHY
     # Both frame budgets in this file — this one and sphere_smoothness — gate on
@@ -2165,7 +2223,7 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     # Long enough for terminal.js to finish typing, so this measures the mesh
     # rather than the one-off animation running beside it.
     time.sleep(4.0)
-    mesh = b.js_async(FRAME_SAMPLER, [1800])
+    mesh = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
     moving = b.js_async(CANVAS_MOVED)
 
     print(f"    a page with no mesh: {base['median']}ms median, "
@@ -2173,8 +2231,16 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     print(f"       the home page:    {mesh['median']}ms median, "
           f"{mesh['p95']}ms p95, {mesh['worst']}ms worst")
 
+    # STILL x2, AND DELIBERATELY NOT THE SPHERE'S x3. The two budgets were
+    # written to the same shape and the sphere's was re-set on 2026-09-18
+    # because the thing it measures got bigger by design. The hero mesh did
+    # not change, so its threshold still means what it meant, and loosening it
+    # to match would be borrowing a reason that belongs to another check.
     gate = max(base["median"] * 2, 33.0)
-    print(f"    gate {gate:.0f}ms a frame (about 30fps); watching for "
+    # The frame rate is DERIVED from the gate, not typed beside it. It read
+    # "about 30fps" while the gate moved to 51ms, which is 20 -- a line that
+    # describes a number is one more thing that can quietly stop being true.
+    print(f"    gate {gate:.0f}ms a frame (about {1000 / gate:.0f}fps); watching for "
           f"{base['median'] + 3.0:.0f}ms")
 
     r.check("the mesh keeps the frame rate up",

@@ -111,6 +111,14 @@ parallel:
 | `php` | every suite that drives a real PHP server, including the publish endpoint, the generated files, the chrome and the site's identity | php |
 | `firefox` | the eight browser suites, all of them, then a verdict | firefox, geckodriver, Chrome, Pillow |
 
+**Every one of them runs PHP 8.2, which is what the host runs** — `.github/actions/php`, a local
+composite action, installs it before anything else in each job and **fails the run** if it ends up
+on another version rather than falling back quietly. The deploy job uses it too, because
+`build_deploy_set.py` lints every shipped file and a lint is exactly where a version difference
+shows. Until this existed nothing anywhere ran 8.2: a developer's machine is 8.3 and `ubuntu-24.04`
+ships 8.3, so only the server was on the version the code had to work on. See
+[host-facts.md](../40-reference/host-facts.md).
+
 It is deliberately the **same list** as the pre-commit set in
 [testing.md](../10-development/testing.md). What gates a merge and what gates a release are one set
 of checks, so that "it passed on my machine" and "it is safe to put on the server" stop being two
@@ -134,7 +142,9 @@ core — which shipped on 2026-09-03 and was noticed by a person before any chec
 
 It prints a notice and exits 0 with no Chrome on `PATH`. That is right on a laptop and is
 the silent-pass trap in CI, so the job asserts a Chrome binary first and fails loudly if
-there is none — the same bargain as `php-gd`, `php-xml` and `qrencode` in the other job.
+there is none — the same bargain as `qrencode` in the other job. (`php-gd` and `php-xml` are no
+longer installed as their own steps: they come with 8.2 from `.github/actions/php`, along with
+`curl`, and are asserted there.)
 It relies on `google-chrome-stable` being in the runner image rather than installing it:
 Chrome is not in Ubuntu's archive, and `chromium` on 24.04 is the snap transitional
 package that the Firefox note below is about.
