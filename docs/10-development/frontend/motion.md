@@ -178,6 +178,20 @@ it returns; `--on` is untouched, so the arrangement stays exactly where the read
 That is the same failure mode as the hero circuit's in 2026-09, found the same way, and it is the
 reason that check now watches this page at all.
 
+**The frame gate was re-set for the bigger sphere**, once, on 2026-09-18, and the reason is written
+beside it in `sphere_smoothness`. It was `baseline × 2`, set when the sphere was a fixed 560px;
+sized to its room it is 777px on a CI runner, which is **1.9× the pixel area**, and a software
+rasteriser pays for every one of them. That is the feature doing what it was asked to — hold the
+plates at full size by *growing* rather than packing them in — so the number moved for a reason.
+`steadiest()` made the measurement stricter at the same time, reading the sustained state rather
+than the first 1.8 seconds while the sphere was still easing up to speed.
+
+`baseline × 3` now: 51ms on a runner whose empty page is vsync-capped at 17ms, against 37ms
+measured on a machine that varies by about six. **It must not become a number nudged up whenever
+something fails** — it was raised once, for those two reasons, with the figures recorded, and a
+third raise wants the same standard. The hero mesh's budget is deliberately still `× 2`: its mesh
+did not change, so its threshold still means what it meant.
+
 **Which is also why that check can no longer see the sphere's own cost.** It measures a page at
 rest, and at rest the sphere is paused — the page reads 32ms/s with the fade and 31ms/s without it,
 because neither is running while it is being measured. The number that matters for anything done

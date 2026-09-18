@@ -1223,7 +1223,36 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
     # actually matters — the sphere must not cost a visitor half their frame
     # rate — and the tight figure is printed beside it as something to watch
     # rather than something to trip over.
-    gate = max(base["median"] * 2, 33.0)
+    # RE-SET ON 2026-09-18, FOR TWO CHANGES TO WHAT IS BEING MEASURED. Both are
+    # deliberate, and neither is the sphere getting worse at its job.
+    #
+    #   The sphere is bigger. It was a fixed 560px; sized to the room it has
+    #   it is 777px on a runner, 1.9x the pixel area, and a software
+    #   rasteriser pays for every one of them. That is the feature doing what
+    #   it was asked to -- hold the plates at full size by GROWING rather than
+    #   packing them in -- so the number moved for a reason, and the answer is
+    #   to say so here rather than shrink the sphere into an old threshold.
+    #
+    #   The measurement is stricter. steadiest() samples three times without
+    #   reloading, so this reads the SUSTAINED state rather than the first 1.8
+    #   seconds, which included the sphere easing up to speed. More faithful to
+    #   what a hand on the sphere feels, and higher.
+    #
+    # x3 rather than x2: on a runner whose empty page is vsync-capped at 17ms
+    # that is 51ms, against 37ms measured on a machine that varies by about
+    # six. Fourteen milliseconds of headroom, so this reports regressions
+    # rather than weather.
+    #
+    # WHAT IT STILL CATCHES is a step change in per-frame cost -- the one write
+    # per logo per frame this module exists to avoid, or anything of that order.
+    # What it never could catch is work done while the sphere is OFF screen:
+    # that is tools/check_style_budget.py, which measures a page at rest and
+    # reads 36ms/s against a 100ms/s ceiling.
+    #
+    # AND WHAT IT MUST NOT BECOME is a number nudged up whenever something
+    # fails. It was raised once, for the two reasons named above, with the
+    # figures written down. A third raise wants the same standard.
+    gate = max(base["median"] * 3, 45.0)
 
     # Printed, never asserted on — so it must not be able to fail the run.
     try:
@@ -1234,7 +1263,10 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
         renderer = f"{renderer} (WebGL could not say)"
     print(f"    drawn by {renderer} — software everywhere, so these are CPU "
           f"numbers on any machine")
-    print(f"    gate {gate:.0f}ms a frame (about 30fps); watching for "
+    # The frame rate is DERIVED from the gate, not typed beside it. It read
+    # "about 30fps" while the gate moved to 51ms, which is 20 -- a line that
+    # describes a number is one more thing that can quietly stop being true.
+    print(f"    gate {gate:.0f}ms a frame (about {1000 / gate:.0f}fps); watching for "
           f"{base['median'] + 3.0:.0f}ms")
 
     for name, d in (("drifting on its own", idle),
@@ -2199,8 +2231,16 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     print(f"       the home page:    {mesh['median']}ms median, "
           f"{mesh['p95']}ms p95, {mesh['worst']}ms worst")
 
+    # STILL x2, AND DELIBERATELY NOT THE SPHERE'S x3. The two budgets were
+    # written to the same shape and the sphere's was re-set on 2026-09-18
+    # because the thing it measures got bigger by design. The hero mesh did
+    # not change, so its threshold still means what it meant, and loosening it
+    # to match would be borrowing a reason that belongs to another check.
     gate = max(base["median"] * 2, 33.0)
-    print(f"    gate {gate:.0f}ms a frame (about 30fps); watching for "
+    # The frame rate is DERIVED from the gate, not typed beside it. It read
+    # "about 30fps" while the gate moved to 51ms, which is 20 -- a line that
+    # describes a number is one more thing that can quietly stop being true.
+    print(f"    gate {gate:.0f}ms a frame (about {1000 / gate:.0f}fps); watching for "
           f"{base['median'] + 3.0:.0f}ms")
 
     r.check("the mesh keeps the frame rate up",
