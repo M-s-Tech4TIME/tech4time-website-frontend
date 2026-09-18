@@ -52,52 +52,87 @@ jobs:
           python3 -V
           php -v | head -1
 
-      - run: python3 tools/check_contrast.py
-      - run: python3 tools/check_css.py
-      - run: python3 tools/check_shared_markup.py
-      - run: python3 tools/check_content_model.py
-      - run: python3 tools/check_secrets.py
-      - run: python3 tools/check_docs.py
+      # EVERY CHECK, THEN A VERDICT — not one step per check. A step-per-check
+      # job stops at the first failure, so the fifteen checks behind it never
+      # run and each fix reveals the next one a round trip at a time. The
+      # browser job learned this after test_motion failed on its third check
+      # and hid five whole suites; the server job learned it too. This was the
+      # last place in this repository that had not.
+      #
+      # Grouped so the log stays readable, with the failing names repeated at
+      # the end where nobody has to scroll for them.
+      - name: static checks
+        run: |
+          set -uo pipefail
+          failed=""
+          run () {
+            name="$1"; shift
+            echo "::group::$name"
+            if python3 "tools/$name.py" "$@"; then
+              echo "-- $name passed"
+            else
+              echo "-- $name FAILED"
+              failed="$failed $name"
+            fi
+            echo "::endgroup::"
+          }
 
-      # An icon name the sprite does not carry paints NOTHING, with no error and
-      # no console line, so a blank box ships and reads as a design choice. That
-      # is how the admin's Settings row and its Overview tile were empty for a
-      # release: ADMIN_SECTIONS named 'cog' and the sprite had only 'cogs'.
-      - run: python3 tools/check_icons.py
-      - run: python3 tools/audit_pages.py
-      - run: python3 tools/inject_icons.py --check
-      - run: python3 tools/build_deploy_set.py --check
+          run check_contrast
+          run check_css
+          run check_shared_markup
+          run check_content_model
+          run check_secrets
+          run check_docs
 
-      # The hero circuit is generated from the artwork in references/, and this
-      # is the half of that which needs no browser: it redraws the template from
-      # the committed geometry and refuses if what is on disk differs. Catches a
-      # coordinate edited by hand, and a geometry re-resolved and never rebuilt.
-      - run: python3 tools/build_hero_circuit.py --check
+          # An icon name the sprite does not carry paints NOTHING, with no error
+          # and no console line, so a blank box ships and reads as a design
+          # choice. That is how the admin's Settings row and its Overview tile
+          # were empty for a release: ADMIN_SECTIONS named 'cog' and the sprite
+          # had only 'cogs'.
+          run check_icons
+          run audit_pages
+          run inject_icons --check
+          run build_deploy_set --check
 
-      # Filenames here are not content-hashed and .htaccess caches CSS, JS and
-      # fonts for a year, so a changed asset behind an unchanged URL reaches
-      # new visitors only. The rule is a version query bumped by hand, this is
-      # the mechanism that checks it, and it has caught the miss twice. It was
-      # in the pre-commit list and not here, which made it a rule kept by
-      # remembering again for anything that arrived by pull request.
-      - run: python3 tools/check_cache_bust.py
-      # The five files both repositories hold identically, compared against a
-      # digest committed HERE. Hygiene, not a guarantee -- the guarantee is
-      # CONTRACT_VERSION, checked at run time by api/publish.php against what
-      # it was actually sent.
-      - run: python3 tools/check_shared_lib.py
-      # A fact stated in two documents at once -- the offices, the email and the
-      # telephone are authored in BOTH the privacy policy and the contact page,
-      # on purpose. This asks whether they still agree. It can only see the
-      # committed seed: content edited in the admin never passes through git.
-      - run: python3 tools/check_shared_facts.py
-      - run: python3 tools/check_form_dom.py
+          # The hero circuit is generated from the artwork in references/, and
+          # this is the half of that which needs no browser: it redraws the
+          # template from the committed geometry and refuses if what is on disk
+          # differs. Catches a coordinate edited by hand, and a geometry
+          # re-resolved and never rebuilt.
+          run build_hero_circuit --check
 
-      # And the thing the line above structurally cannot see: whether the OTHER
-      # half still holds the same bytes. A per-repo digest passes happily while
-      # the two sanitisers differ. This clones the sibling and compares them.
-      # It is the only place that check happens anywhere.
-      - run: python3 tools/check_shared_repos.py --clone
+          # Filenames here are not content-hashed and .htaccess caches CSS, JS
+          # and fonts for a year, so a changed asset behind an unchanged URL
+          # reaches new visitors only. The rule is a version query bumped by
+          # hand, this is the mechanism that checks it, and it has caught the
+          # miss twice.
+          run check_cache_bust
+
+          # The eight files both repositories hold identically, compared against
+          # a digest committed HERE. Hygiene, not a guarantee -- the guarantee
+          # is CONTRACT_VERSION, checked at run time by api/publish.php against
+          # what it was actually sent.
+          run check_shared_lib
+
+          # A fact stated in two documents at once -- the offices, the email and
+          # the telephone are authored in BOTH the privacy policy and the
+          # contact page, on purpose. This asks whether they still agree. It can
+          # only see the committed seed: content edited in the admin never
+          # passes through git.
+          run check_shared_facts
+          run check_form_dom
+
+          # And the thing the line above structurally cannot see: whether the
+          # OTHER half still holds the same bytes. A per-repo digest passes
+          # happily while the two sanitisers differ. This clones the sibling and
+          # compares them. It is the only place that check happens anywhere.
+          run check_shared_repos --clone
+
+          if [ -n "$failed" ]; then
+            echo "::error::failing checks:$failed"
+            exit 1
+          fi
+          echo "all sixteen static checks passed"
 
   server:
     name: php
@@ -110,39 +145,67 @@ jobs:
       # checkout the same way it lands beside the document root on the host.
       - run: php -v | head -1
 
-      - run: python3 tools/test_svg.py
-      - run: python3 tools/test_store.py
-      - run: python3 tools/test_contact_handler.py
-      # The one endpoint on this site that writes anything: the happy path,
-      # and every way past it that does not involve holding the key.
-      - run: python3 tools/test_publish.py
-      - run: python3 tools/test_publish_asset.py
-      # The three files that are generated rather than stored: the sitemap, the
-      # robots file and the web manifest. Each is served at an address that
-      # looks like a static file and none of them is one any more, so a PHP
-      # error in any of the three ships as a 500 at a URL no page links to and
-      # nobody visits — /sitemap.xml is fetched by Google, not by people.
-      - run: python3 tools/test_sitemap.py
-      # The header, footer and dock every page carries. They stopped being
-      # markup in seventeen files and became one document rendered by
-      # lib/body.php, so a fault in them is a fault on every page at once —
-      # including the case a fresh clone is in, where content/chrome.json does
-      # not exist yet and the defaults have to carry the whole site.
-      - run: python3 tools/test_chrome.py
-      # The site's identity: the mark, the icons, the colours and where the
-      # enquiry form sends. One document that nine places read, which is the
-      # point of it -- so the failure this catches is one of the nine drifting
-      # away from the other eight, which is the defect it was built to end.
-      # Includes the case a fresh clone is in, where the document is missing
-      # and the site still has a logo.
-      - run: python3 tools/test_settings.py
-      # Every renderer that draws an uploaded picture, and the ladder of widths
-      # behind it. A width in CONTRACT_IMAGE_SLOTS is measured rather than
-      # estimated, and a srcset shipped without a sizes= beside it is a
-      # REGRESSION rather than a missing improvement: without it the browser
-      # assumes the picture fills the viewport and takes the widest rung on
-      # every screen.
-      - run: python3 tools/test_pictures.py
+      # All nine, then a verdict, for the reason the static job above and the
+      # browser job below both do it: a step-per-suite stops at the first
+      # failure and hides every suite after it.
+      - name: php suites
+        run: |
+          set -uo pipefail
+          failed=""
+          run () {
+            echo "::group::$1"
+            if python3 "tools/$1.py"; then
+              echo "-- $1 passed"
+            else
+              echo "-- $1 FAILED"
+              failed="$failed $1"
+            fi
+            echo "::endgroup::"
+          }
+
+          run test_svg
+          run test_store
+          run test_contact_handler
+
+          # The one endpoint on this site that writes anything: the happy path,
+          # and every way past it that does not involve holding the key.
+          run test_publish
+          run test_publish_asset
+
+          # The three files that are generated rather than stored: the sitemap,
+          # the robots file and the web manifest. Each is served at an address
+          # that looks like a static file and none of them is one any more, so a
+          # PHP error in any of the three ships as a 500 at a URL no page links
+          # to and nobody visits — /sitemap.xml is fetched by Google, not people.
+          run test_sitemap
+
+          # The header, footer and dock every page carries. They stopped being
+          # markup in seventeen files and became one document rendered by
+          # lib/body.php, so a fault in them is a fault on every page at once —
+          # including the case a fresh clone is in, where content/chrome.json
+          # does not exist yet and the defaults have to carry the whole site.
+          run test_chrome
+
+          # The site's identity: the mark, the icons, the colours and where the
+          # enquiry form sends. One document that nine places read, which is the
+          # point of it -- so the failure this catches is one of the nine
+          # drifting away from the other eight. Includes the case a fresh clone
+          # is in, where the document is missing and the site still has a logo.
+          run test_settings
+
+          # Every renderer that draws an uploaded picture, and the ladder of
+          # widths behind it. A width in CONTRACT_IMAGE_SLOTS is measured rather
+          # than estimated, and a srcset shipped without a sizes= beside it is a
+          # REGRESSION rather than a missing improvement: without it the browser
+          # assumes the picture fills the viewport and takes the widest rung on
+          # every screen.
+          run test_pictures
+
+          if [ -n "$failed" ]; then
+            echo "::error::failing suites:$failed"
+            exit 1
+          fi
+          echo "all nine php suites passed"
 
   browser:
     name: firefox
@@ -223,6 +286,7 @@ jobs:
           failed=""
           for s in test_nav test_theme test_motion \
                    check_hover check_dark_mode check_responsive check_focus \
+                   check_accreditations \
                    check_style_budget; do
             echo "::group::$s"
             if python3 "tools/$s.py"; then

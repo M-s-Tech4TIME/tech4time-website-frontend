@@ -35,9 +35,11 @@ its record before acting.
 6. **Never commit anything from the private store** (`t4t-private/`, `*.key`).
 7. **`content/` is a replica.** It is written by `api/publish.php` and by nothing else — not by
    hand, not on the server, not by a deploy. The next publish overwrites anything you put there.
-8. **`lib/html.php`, `lib/contract.php`, `lib/publish.php` and `lib/svg.php` are
-   byte-identical** with `tech4time-website-backend`. Change one and you change both, in the
-   same breath.
+8. **Eight files are byte-identical** with `tech4time-website-backend`: `lib/html.php`,
+   `lib/contract.php`, `lib/publish.php`, `lib/svg.php`, `lib/store.php`, `lib/throttle.php`,
+   `assets/icons/sprite.svg` and `assets/css/base.css`. Change one and you change both, in the
+   same breath. **The list is `SHARED` in `tools/check_shared_lib.py`, not this sentence** —
+   this one had been short of the real set, so read the map rather than the prose.
 9. **`tools/` is never deployed.**
 10. **Never edit a header, footer or dock in a page file.** There is nothing there to edit: they
     are `content/chrome.json`, emitted by `lib/body.php`, and their words are edited at
@@ -61,7 +63,7 @@ its record before acting.
 | `content/` | the replica the dynamic pages render from |
 | `tools/` | build, audit and test scripts — never deployed |
 | `docs/` | the documentation |
-| `plans/` | parked designs — not deployed, and not yet true. `docs/` is for what is |
+| `plans/` | designs, not deployed. A parked one is **not yet** true; a shipped one is marked **BUILT** at the top and kept only for the research and reasoning behind it. Either way `docs/` is what is true — never cite `plans/` for the state of the site |
 | `../t4t-private/` | **outside the repo** — `secret.key`, `throttle.json`, `publish.key`. Never committed |
 
 There is no `admin/`, no `lib/auth.php` and no password hash on this host. The private store has no
@@ -227,6 +229,14 @@ four channels **in pixels**, because boxes cannot see whether the ink stops.
 Touched CSS, markup or motion? Also `test_motion.py`, `test_nav.py`, `test_theme.py`,
 `check_hover.py`, `check_dark_mode.py`, `check_responsive.py`, `check_focus.py` — these need
 Firefox and geckodriver, and leave processes behind if interrupted (`pkill firefox geckodriver`).
+
+Touched the About page's **Accreditations** band, `about.css`, or `about_picture()`? Also
+**`python3 tools/check_accreditations.py`**. It is the only check that has ever seen that band:
+`content/about.json` ships with no `accreditations` key, so all four crawlers above walk the About
+page and never render it. This one supplies its own document — a very wide badge, a very tall one, a
+long caption and a tile with no badge at all — measures the grid, the squareness of the plates, the
+320px behaviour and the painted colours in both themes, and puts `content/` back. It **fails rather
+than passes** if it measured nothing, because a band that did not render prints `0/0` otherwise.
 
 Changed how much of the page **moves**? Also **`python3 tools/check_style_budget.py`** (needs
 Chrome). None of the suites above can see a page burning a CPU core while holding 60fps — that

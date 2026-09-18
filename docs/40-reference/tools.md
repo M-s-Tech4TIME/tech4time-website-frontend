@@ -53,8 +53,9 @@ browser tests speak to geckodriver over its wire protocol — there is no Seleni
 | `check_hover.py` | every kind of interactive element visibly responds to a real pointer |
 | `check_responsive.py` | no page scrolls sideways, no control is wider than the screen, and no tap target is under 24px, at seven widths from 320px up — then again with the navigation as full as the picker allows, and again with an uploaded logo of every shape from portrait to 24:1 |
 | `check_focus.py` | tabbing every page: the focus ring can be seen, and nothing covers it |
+| `check_accreditations.py` | the About page's **Accreditations** band, which no other check has ever seen. `content/about.json` ships with no `accreditations` key at all, so the four crawlers above walk that page and go straight past the band — it is built, styled, published, protected from the upload sweep and given a measured 289px picture slot, and then never rendered. This supplies its own document, measures the band and puts `content/` back: the grid really laying out 2 / 3 / 4 across its two breakpoints, read as painted x-positions rather than out of the CSSOM; every plate square, because `aspect-ratio: 1` is a request a tall mark or a wrapped caption can defeat; a very wide, a very tall and a badge-less tile all contained; no sideways scroll at 320px; `--artwork-plate` resolving to the **same** colour in both themes, which is the entire reason it is not a themed surface; and the caption clearing WCAG AA against the ground it actually sits on. Nothing shipped changes and the live band stays hidden |
 
-Both skip with a notice and exit 0 when Firefox or geckodriver is missing.
+All of them skip with a notice and exit 0 when Firefox or geckodriver is missing — except that `check_accreditations.py` fails rather than passing if it measured nothing at all, because a band that did not render would otherwise print `0/0` and exit 0.
 
 ---
 

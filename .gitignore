@@ -45,6 +45,12 @@ t4t-private/
 t4t-private-admin/
 .dev-private/
 *.key
+# The backend's password-hash file, by name as well as by directory. There is
+# no admins.json on this host and there never should be -- t4t_private_path()
+# throws on a key it does not know and tools/check_secrets.py asserts it -- so
+# this line is here to make a stray copy carried across from the other half
+# impossible to commit by accident. Both repositories carry it.
+admins.json
 setup-token.txt
 
 # The upload set, assembled by tools/build_deploy_set.py on demand.

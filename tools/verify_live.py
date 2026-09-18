@@ -68,9 +68,16 @@ RETRY_AFTER = 20
 # its business. Pinning one would make this fail on a host that chose the other.
 EXPECT = [
     ("/",                         (200,),      "the home page"),
-    ("/pages/about/",             (200,),      "a static page"),
-    ("/pages/careers/",           (200,),      "PHP renders, and content/ is readable from disk"),
-    ("/pages/contact/",           (200,),      "the other PHP page"),
+    # NONE OF THESE IS "a static page" ANY MORE, and two of the labels here said
+    # so until 2026-09-18 -- left over from a site where four things needed PHP.
+    # Every page renders from a document now, so what each one below proves is
+    # a different failure of the deploy, not a different kind of page.
+    ("/pages/about/",             (200,),      "a page renders from content/ at all"),
+    ("/pages/careers/",           (200,),      "and content/ is readable from disk by the server"),
+    ("/pages/contact/",           (200,),      "a page with a form still renders"),
+    # THE NEWEST ROUTE, because a route added since the last deploy is the one
+    # an incomplete upload leaves as a 404 -- and nothing else here would see it.
+    ("/pages/milestones/",        (200,),      "the newest route was actually uploaded"),
     ("/assets/css/base.css",      (200,),      "assets are served"),
     ("/robots.txt",               (200,),      "crawlers are told what to do"),
     ("/sitemap.xml",              (200,),      "and where to go"),

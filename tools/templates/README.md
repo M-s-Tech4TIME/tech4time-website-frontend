@@ -66,7 +66,7 @@ what they did with them.
 |---|---|
 | `hero-circuit.html` | The hero's circuit artwork. Identical on every page that has one. Decoration: aria-hidden, no text, path coordinates — nothing anybody should be offered a form for, which is why it did not become a document with the rest. **Generated**, so do not edit it: `python3 tools/build_hero_circuit.py` draws it from the geometry below, and `--check` refuses a version edited by hand. |
 | `hero-circuit.geometry.json` | What that is drawn from: the traces, pads and vias of the company's own banner artwork in `references/`, resolved out of it and clipped. Committed so the template can be rebuilt, and `--check` run, without a browser. Re-read the artwork with `build_hero_circuit.py --resolve`, which needs Chrome. |
-| `scripts.html` | Deferred script tags, in dependency order. Identical on every page. |
+| `scripts.html` | Deferred script tags, in dependency order. **Not identical on every page, and not meant to be** — it is the full set, read by `assemble_page.py` when a page is *created*, and each page then drops the modules it cannot use. The home page carries `neural.js` and `terminal.js` that no other page can bind; `tech-sphere.js` belongs to the company profile; only pages with a form need `forms.js`. A module left in that a page can never bind is a wasted request a visitor pays for on every visit — `/pages/milestones/` carried three of them, 11.9 KB gzipped, from the day it shipped. |
 
 ## Editing rules
 

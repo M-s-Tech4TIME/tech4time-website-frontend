@@ -25,7 +25,7 @@ tech4time-website/
 ├── .gitattributes          line endings and diff behaviour
 ├── .gitignore              includes the private store, as a backstop
 │
-├── pages/                  the other fourteen pages, all of them .php
+├── pages/                  the other fifteen pages, all of them .php
 │   └── services/detail.php a renderer, not a page: it serves any service
 │                           that has no directory of its own
 ├── assets/                 css, js, fonts, icons, images — all self-hosted
