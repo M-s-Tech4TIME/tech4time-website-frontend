@@ -1140,6 +1140,29 @@ def sphere_breakpoint(b: Browser, origin: str, r: Results) -> None:
     time.sleep(0.4)
 
 
+def steadiest(take, times=3):
+    """The middle of several samples, because one sample is not a measurement.
+
+    A GitHub runner's speed varies run to run by about six milliseconds on
+    IDENTICAL code -- measured, not supposed: the same commit came back 35ms on
+    one push and 29ms on the next, and the only difference between those two
+    trees was where a few property writes sat. A single 1800ms sample of that is
+    a coin toss whenever the number lands near the gate, and a check that cries
+    wolf is one people learn to re-run without reading it.
+
+    Three samples and the middle one. It does not move the gate, does not weaken
+    what is asserted, and does not touch the code being measured -- it just
+    stops one unlucky sample deciding the run. A real regression shows up in all
+    three.
+
+    Used by BOTH frame budgets here. They were written to the same shape and
+    would flake the same way; the sphere's is simply the one that got close
+    enough to the gate to prove it.
+    """
+    got = sorted((take() for _ in range(times)), key=lambda d: d["median"])
+    return got[len(got) // 2]
+
+
 def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
     """
     The sphere has to turn smoothly, under the hand and on its own.
@@ -1154,13 +1177,13 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
 
     b.go(origin + "/pages/about/")
     time.sleep(0.8)
-    base = b.js_async(FRAME_SAMPLER, [1800])
+    base = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     b.go(origin + "/pages/company-profile/")
     b.js("document.querySelector('[data-tech-sphere]')"
          ".scrollIntoView({block: 'center', behavior: 'instant'});")
     time.sleep(1.0)
-    idle = b.js_async(FRAME_SAMPLER, [1800])
+    idle = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     eid = rq("POST", b.s + "/element",
              {"using": "css selector",
@@ -1170,9 +1193,12 @@ def sphere_smoothness(b: Browser, origin: str, r: Results) -> None:
         "parameters": {"pointerType": "mouse"},
         "actions": [{"type": "pointerMove", "duration": 0,
                      "origin": {W3C: eid}, "x": 150, "y": 100}]}]})
-    hover = b.js_async(FRAME_SAMPLER, [1800])
+    hover = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
-    drag = b.js_async(DRAG_SAMPLER)
+    # The drag sampler drives its own drag, so each repeat is a fresh one --
+    # and the before/after the vacuous-pass check reads below come from
+    # whichever sample was the middle, which is a real drag either way.
+    drag = steadiest(lambda: b.js_async(DRAG_SAMPLER))
 
     print(f"    a page with no sphere: {base['median']}ms median, "
           f"{base['p95']}ms p95, {base['worst']}ms worst")
@@ -2144,7 +2170,7 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
 
     b.go(origin + "/pages/careers/")
     time.sleep(1.0)
-    base = b.js_async(FRAME_SAMPLER, [1800])
+    base = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
 
     # THE BASELINE NEEDS A CEILING OF ITS OWN, AND THIS IS WHY
     # Both frame budgets in this file — this one and sphere_smoothness — gate on
@@ -2165,7 +2191,7 @@ def hero_frame_budget(b: Browser, origin: str, r: Results) -> None:
     # Long enough for terminal.js to finish typing, so this measures the mesh
     # rather than the one-off animation running beside it.
     time.sleep(4.0)
-    mesh = b.js_async(FRAME_SAMPLER, [1800])
+    mesh = steadiest(lambda: b.js_async(FRAME_SAMPLER, [1800]))
     moving = b.js_async(CANVAS_MOVED)
 
     print(f"    a page with no mesh: {base['median']}ms median, "
