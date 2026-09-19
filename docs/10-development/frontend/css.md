@@ -138,6 +138,27 @@ the two apart.
 
 **No hex outside `theme.css`.**
 
+**A size the browser has not worked out yet is not a size.** Three shipped faults have now come
+from asking for one, and they all look the same afterwards:
+
+- `max-height: 100%` on `.dock__nav`, against a `.dock__panel` that is absolutely positioned with no
+  `top` and no `height`. A percentage resolved against a content-sized parent is **not a length**, so
+  it resolved to nothing: the menu never became a scroll container, and in landscape about a hundred
+  pixels of it could not be reached. The fix is a flex column, which gives the child a real height to
+  bound against.
+- `aspect-ratio` on `.accreditation__plate` and its logo, defeated by a grid item's **automatic
+  minimum size** — which is its content, so the box refused to be smaller than the picture inside it.
+  The fix is `min-height: 0` / `min-width: 0`.
+- A cluster's width derived from `aspect-ratio` x its row height, in an `auto` grid column. **A grid
+  sizes its columns before its rows**, so the row was not known when the column asked. Firefox and
+  Chrome come back to it; Safari does not, and an iPhone drew four oversized corner fans with the
+  band squeezed out of the middle. The fix is `container-type: size` on `.hero-circuit` and a width
+  stated in `cqh`, so nothing is derived from a number still being decided.
+
+The pattern to watch for: **a percentage, an `aspect-ratio` or an `auto` track whose answer depends
+on a box further along in the same layout pass.** It usually works in the browser you tested, which
+is what makes it expensive.
+
 **Anything an operator can upload gets a bound.** The header sizes the logo by its HEIGHT, so the
 width it occupies is height x aspect ratio, and `.site-header__brand` is `flex-shrink: 0` — nothing
 downstream can take that width back. That was safe while the mark was three committed files at

@@ -310,6 +310,19 @@ step at one pixel of viewport, and the reason a person said they could not see t
 - **The rows are `1fr`**, so a band and a cluster are each `(banner − gap) / 2` tall. That is what
   makes the vertical channels match the horizontal ones, and `hero_circuit()` asserts the two
   heights are equal so a failure says so where it happens rather than three checks away.
+- **The clusters state their own size, and do not derive it.** A grid sizes its **columns before its
+  rows**, and the two outer columns are `auto` — so the grid asks a cluster how wide it wants to be
+  at a moment when its row has not been sized. Firefox and Chrome come back to the question and
+  arrive at the row height x 200/215, to within a tenth of a pixel. Nothing in the specification
+  promises that, and Safari does not: an iPhone drew the clusters at roughly twice their width,
+  reaching into the middle of the banner and clipped by the hero's overflow, with the `1fr` band
+  column squeezed to nothing — four oversized corner fans and no band. `container-type: size` on
+  `.hero-circuit` makes the banner's height readable as a length, and each cluster then states its
+  own `height` and `width` in `cqh`. Measured before and after in both engines: identical to within
+  0.02px at every viewport. It is declared on the **children**, because a container query unit used
+  in the container's own declarations resolves against *its* container, one level further out. It
+  sits before the `min-width: 80rem` block, which still wins above 1280px where the cluster is sized
+  by the viewport and was never circular.
 - **`--hc-gap` must be a LENGTH, never a percentage.** `row-gap: %` resolves against the container's
   **height** and `column-gap: %` against its **width** — a percentage gap is unequal in pixels by
   definition, which is the exact fault this exists to prevent. Falsified: setting it to `8%` fails
