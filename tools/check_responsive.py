@@ -442,6 +442,122 @@ class Browser:
             pass
 
 
+# TURNED OVER, WHICH IS A SHAPE NOTHING ABOVE MEASURES
+# Every width in WIDTHS is measured in a frame 900px tall, so the whole list is
+# portrait. The dock's menu is capped at min(70vh, 32rem) -- around 600px on a
+# phone held upright, which six rows fit inside, and around 280px once it is
+# turned over, which they do not. The list was clipped with no way to scroll
+# it: .dock__nav asked for max-height: 100% of a panel whose own height came
+# from its content, and a percentage against a content-sized parent resolves to
+# nothing at all. Reported from a phone; invisible at all seven widths here.
+#
+# These are real phone landscape viewports rather than round numbers, because
+# the fault is about HEIGHT and 70vh of a made-up number proves nothing.
+LANDSCAPE = [(844, 390), (740, 360), (667, 375)]
+
+# One page is enough: the dock is emitted once by lib/body.php for every page
+# (ADR 0023), so this is the same markup everywhere and a second page would
+# measure the same element twice.
+DOCK_PAGE = "/pages/about/"
+
+DOCK_PROBE = r"""
+var w = %W%, h = %H%, url = %URL%;
+
+var frame = document.getElementById('dock-probe');
+if (!frame) {
+  frame = document.createElement('iframe');
+  frame.id = 'dock-probe';
+  frame.style.border = '0';
+  document.body.appendChild(frame);
+}
+frame.style.width = w + 'px';
+frame.style.height = h + 'px';
+
+var want = url + '#' + w + 'x' + h;
+if (frame.getAttribute('data-showing') !== want) {
+  frame.setAttribute('data-showing', want);
+  frame.src = url;
+  return {loading: true};
+}
+
+var doc = frame.contentDocument;
+if (!doc || doc.readyState !== 'complete' || !doc.body) return {loading: true};
+
+var panel = doc.querySelector('.dock__panel');
+var nav = doc.querySelector('.dock__nav');
+var toggle = doc.querySelector('[data-nav-toggle]');
+if (!panel || !nav || !toggle) return {loading: false, found: false};
+
+/* Opened the way a person opens it, so this measures the state the menu is
+   actually used in rather than one this probe invented. */
+toggle.click();
+if (panel.getAttribute('data-open') !== 'true') {
+  panel.setAttribute('data-open', 'true');
+}
+
+var items = doc.querySelectorAll('.dock__item');
+var last = items.length ? items[items.length - 1] : null;
+
+return {
+  loading: false,
+  found: true,
+  viewport: frame.contentWindow.innerHeight,
+  items: items.length,
+  panelClientH: panel.clientHeight,
+  navScrollH: nav.scrollHeight,
+  navClientH: nav.clientHeight,
+  /* The question a finger asks: is there more list than box, and if so can it
+     be scrolled to? scrollHeight > clientHeight is what makes a box scroll. */
+  overflowing: nav.scrollHeight > nav.clientHeight + 1,
+  /* And the one that says the fault is gone: nothing is cut off with no way
+     to reach it. Either it all fits, or the list scrolls. */
+  unreachable: Math.max(0, nav.scrollHeight - panel.clientHeight),
+  overflowY: frame.contentWindow.getComputedStyle(nav).overflowY
+};
+"""
+
+
+def dock_reachable(b: Browser, origin: str, r: Results) -> None:
+    """Every row of the dock's menu can be reached with the phone turned over."""
+    print("\n\nand the dock's menu with the phone turned over")
+
+    for w, h in LANDSCAPE:
+        at = f"{w}x{h}"
+        d = {"loading": True}
+        for _ in range(40):
+            d = b.js(DOCK_PROBE.replace("%W%", str(w)).replace("%H%", str(h))
+                     .replace("%URL%", json.dumps(origin + DOCK_PAGE)))
+            if not d.get("loading"):
+                break
+            time.sleep(0.25)
+
+        if not d.get("found"):
+            r.check(f"{at} — the dock has a menu", False,
+                    "no .dock__panel, .dock__nav or [data-nav-toggle] in the page")
+            continue
+
+        # The frame is the viewport, so this says what 70vh was really taken of.
+        r.check(f"{at} — the frame really is {h}px tall",
+                d["viewport"] == h,
+                f"measured {d['viewport']}px; every figure below is of that, "
+                "not of the height asked for")
+
+        print(f"    {at:>9}  {d['items']} rows, list {d['navScrollH']}px "
+              f"in a {d['panelClientH']}px card, "
+              f"{'scrolls' if d['overflowing'] else 'fits'}")
+
+        # THE ASSERTION, AND IT IS NOT "THE LIST SCROLLS"
+        # A card tall enough to hold every row should NOT scroll, and demanding
+        # that it does would fail on a taller phone for no reason. What must
+        # never happen is rows that are cut off with no way to get to them.
+        r.check(f"{at} — no row of the menu is out of reach",
+                d["unreachable"] <= 1 or d["overflowing"],
+                f"{d['unreachable']}px of the list is past the bottom of the "
+                f"card and .dock__nav is not scrollable "
+                f"(scrollHeight {d['navScrollH']}, clientHeight {d['navClientH']}, "
+                f"overflow-y {d['overflowY']!r})")
+
+
 def run(b: Browser, origin: str, r: Results) -> None:
     # Held here as well as in main(): the passes below put the documents back
     # BETWEEN themselves, so the stress logo is not measured against the widest
@@ -481,6 +597,8 @@ def run(b: Browser, origin: str, r: Results) -> None:
         SETTINGS.write_text(logo_document(stem, top, height))
         measure_pages(b, origin, r, LOGO_PAGES, LOGO_WIDTHS,
                       note=f"  ({top}x{height}, {ratio}:1 — {what})")
+
+    dock_reachable(b, origin, r)
 
 
 def measure_pages(b: Browser, origin: str, r: Results, pages: list[str],

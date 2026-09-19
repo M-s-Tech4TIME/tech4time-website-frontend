@@ -872,7 +872,24 @@ textarea.field__control {
   margin-inline: auto;
   /* The panel clips; the list inside it is what scrolls. Scrolling the panel
      itself would carry the circuit graphic up and out of view with the list,
-     since the graphic is positioned against the panel. */
+     since the graphic is positioned against the panel.
+
+     AND A COLUMN IS WHAT GIVES THE LIST A HEIGHT TO SCROLL INSIDE.
+     This box is absolutely positioned with inset-inline and bottom but no top
+     and no height, so its height comes from its content and is only capped by
+     max-height. A percentage resolved against a content-sized parent is not a
+     length, so .dock__nav's max-height: 100% resolved to NOTHING: the list was
+     never clamped, never became a scroll container, and overflow: hidden here
+     simply cut it off. In portrait 70vh is around 600px and six rows fit, so
+     it was invisible; in landscape it is nearer 280px and a hundred pixels of
+     the menu could not be reached at all.
+
+     A flex column makes the nav a flex item, which the panel's own resolved
+     height bounds -- no percentage, nothing to resolve. The two circuit
+     graphics are absolutely positioned, so they are out of flow and this does
+     not move them. */
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   pointer-events: auto;
   background-color: var(--bg-elevated);
@@ -898,7 +915,12 @@ textarea.field__control {
 .dock__nav {
   position: relative;
   z-index: 1;
-  max-height: 100%;
+  /* A flex item's automatic minimum size is its content, which would keep this
+     as tall as the whole list and defeat the overflow below -- the same trap
+     that defeated aspect-ratio on .accreditation__plate. What stood here was
+     max-height: 100%, which resolved to nothing and read as though it did the
+     work. */
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }

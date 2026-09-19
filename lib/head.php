@@ -76,7 +76,7 @@ const HEAD_STYLES = [
        revision, which contract_next_revision() already makes monotonic. */
     'brand.css',
     'layout.css?v=8',
-    'components.css',
+    'components.css?v=1',
     'animations.css',
 ];
 
