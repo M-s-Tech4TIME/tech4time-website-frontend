@@ -75,7 +75,7 @@ const HEAD_STYLES = [
        anything -- so head_styles() appends the settings document's own
        revision, which contract_next_revision() already makes monotonic. */
     'brand.css',
-    'layout.css?v=9',
+    'layout.css?v=10',
     'components.css?v=1',
     'animations.css',
 ];
@@ -386,7 +386,7 @@ function seo_head(string $route, array $meta, array $styles = [],
     $out[] = '';
     $out[] = "<!-- Colour mode, applied before first paint to avoid a flash of the wrong\n"
            . "     theme. Deliberately NOT deferred; see the comment in the file itself. -->";
-    $out[] = '<script src="/assets/js/theme-init.js"></script>';
+    $out[] = '<script src="/assets/js/theme-init.js?v=2"></script>';
 
     /* MEASUREMENT, AND ONLY IF ASKED FOR. Two tags rather than the one Google
        documents, because the second half of their snippet is an inline script

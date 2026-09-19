@@ -202,7 +202,8 @@ needs no browser; only `--resolve`, which re-reads the SVG, wants Chrome. The ge
 stylesheet are one drawing — `circuit.js` reads both the ink and the pen out of `layout.css` — so
 changing a viewBox means changing `LAYERS` there too.
 
-**One composition, on every device, and every channel through it the same width.** `.hero-circuit`
+**One composition, on every device, and every channel through it the same width — except WebKit
+below 1280px.** `.hero-circuit`
 is a **grid** — cluster / band / cluster across, two rows down, one `gap`. That gap is A, B, C and D
 at once, equal by construction rather than by four numbers kept in step; the rows are `1fr`, so a
 band and a cluster are each `(banner − gap) / 2` tall, which is what makes the vertical channels
@@ -221,6 +222,12 @@ without it charges paint straight through the channels.
 specks on a wide screen — 2.5% of the width at 3840 otherwise, against the artwork's 11.15%. They
 then reach past their row and close **D** alone; A, B and C are untouched. The ceiling is the
 banner's height: two clusters stacked down one edge must still fit, which caps them near 154px.
+
+**Below 1280px WebKit takes over its own sizing.** The `cqh` composition above holds in Blink and
+Gecko and fails in WebKit (iOS 26 passes the gate and still draws the old breakage), so a stamped
+WebKit gets definite `clamp()` cluster widths with `height: auto` instead — set pre-paint by
+`theme-init.js` as `data-engine="webkit"`. The band keeps the remainder; D opens by about a quarter
+of the gap. Matched on engine, never on browser or version.
 
 `hero_circuit()` measures eight viewports (its probe takes a **height** as well as a width — a media
 query inside an iframe reads the iframe), and `hero_gaps()` photographs the banner and measures all

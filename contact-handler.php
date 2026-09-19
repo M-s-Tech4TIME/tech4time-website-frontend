@@ -171,7 +171,7 @@ function respond(bool $ok, string $message, int $status = 200): void
 <link rel="stylesheet" href="/assets/css/theme.css">
 <link rel="stylesheet" href="/assets/css/layout.css">
 <link rel="stylesheet" href="/assets/css/components.css">
-<script src="/assets/js/theme-init.js"></script>
+<script src="/assets/js/theme-init.js?v=2"></script>
 </head>
 <body class="page">
 <main class="page__main" id="main">

@@ -227,7 +227,7 @@ def main() -> None:
     head = ROOT / "lib" / "head.php"
     if not head.is_file():
         problems.append("lib/head.php: missing, so no page has a <head> at all")
-    elif '<script src="/assets/js/theme-init.js"></script>' not in head.read_text():
+    elif '<script src="/assets/js/theme-init.js?v=2"></script>' not in head.read_text():
         problems.append("lib/head.php: does not emit theme-init.js, so every page "
                         "flashes the wrong theme before first paint")
     else:
