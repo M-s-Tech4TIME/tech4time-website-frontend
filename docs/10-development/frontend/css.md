@@ -153,12 +153,7 @@ from asking for one, and they all look the same afterwards:
   sizes its columns before its rows**, so the row was not known when the column asked. Firefox and
   Chrome come back to it; Safari does not, and an iPhone drew four oversized corner fans with the
   band squeezed out of the middle. The fix is `container-type: size` on `.hero-circuit` and a width
-  stated in `cqh`, so nothing is derived from a number still being decided. That fix holds in Blink
-  and Gecko — and modern WebKit passes its gate and still draws the old failure (iOS 26, Chrome 153
-  and Safari alike: every iOS browser is WebKit). So below 1280px a WebKit engine, stamped as
-  `data-engine="webkit"` pre-paint by `theme-init.js`, takes fully definite cluster sizing instead
-  (`width: clamp()`, `height: auto`): the `auto` column is handed a real number on every engine, and
-  the band keeps the remainder.
+  stated in `cqh`, so nothing is derived from a number still being decided.
 
 The pattern to watch for: **a percentage, an `aspect-ratio` or an `auto` track whose answer depends
 on a box further along in the same layout pass.** It usually works in the browser you tested, which

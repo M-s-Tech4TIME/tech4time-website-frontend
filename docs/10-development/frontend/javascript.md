@@ -58,7 +58,7 @@ link it in the pages that need it (via `tools/templates/scripts.html` and every 
 
 ```html
 <head>
-  <script src="/assets/js/theme-init.js?v=2"></script>   <!-- SYNCHRONOUS. The only one. -->
+  <script src="/assets/js/theme-init.js"></script>   <!-- SYNCHRONOUS. The only one. -->
 </head>
 <body>
   …page…
@@ -69,14 +69,12 @@ link it in the pages that need it (via `tools/templates/scripts.html` and every 
 </body>
 ```
 
-**`theme-init.js` is the only synchronous script**, and it earns that because it carries three
+**`theme-init.js` is the only synchronous script**, and it earns that because it carries two
 decisions that must be made before the first frame is painted:
 
 1. which theme to paint — otherwise a dark-mode visitor sees a white flash
 2. whether the scroll reveal is armed — otherwise content is hidden by CSS that may never be
    undone
-3. which engine renders — WebKit gets `data-engine="webkit"` on `<html>`, so the hero circuit's
-   WebKit-only sizing lands before first paint instead of flashing the broken grid for a frame
 
 Everything else is deferred, at the end of `<body>`.
 
@@ -86,7 +84,7 @@ Everything else is deferred, at the end of `<body>`.
 
 | File | Does |
 |---|---|
-| `theme-init.js` | paints the theme before first paint; arms the reveal; registers the watchdog; stamps the rendering engine for the circuit's WebKit sizing |
+| `theme-init.js` | paints the theme before first paint; arms the reveal; registers the watchdog |
 | `theme-toggle.js` | the light/dark control |
 | `nav.js` | navigation, the mobile menu, focus management |
 | `animations.js` | scroll reveal, counting figures, client logo entrances |

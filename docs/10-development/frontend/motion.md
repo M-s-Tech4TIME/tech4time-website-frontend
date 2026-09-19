@@ -319,15 +319,7 @@ step at one pixel of viewport, and the reason a person said they could not see t
   column squeezed to nothing — four oversized corner fans and no band. `container-type: size` on
   `.hero-circuit` makes the banner's height readable as a length, and each cluster then states its
   own `height` and `width` in `cqh`. Measured before and after in both engines: identical to within
-  0.02px at every viewport. That holds in Blink and Gecko; modern WebKit (iOS 26, iPhone Chrome 153
-  and Safari — every iOS browser is WebKit by mandate) passes the `@supports` gate and still draws
-  the old failure, so below 1280px a WebKit engine takes fully definite sizing instead: `width:
-  clamp(3.5rem, 26vw, 8rem)`, `height: auto` through the same `aspect-ratio`, hugging its row's
-  edge. The `auto` column is handed a real number and the `1fr` band keeps the remainder — the
-  vertical channel down each edge opens past the gap by about a quarter of it, the same deliberate
-  trade the viewport-sized block makes with D. The engine is stamped as `data-engine="webkit"` on
-  `<html>` pre-paint by `theme-init.js`, matched on engine and never on browser or version. It is
-  declared on the **children**, because a container query unit used
+  0.02px at every viewport. It is declared on the **children**, because a container query unit used
   in the container's own declarations resolves against *its* container, one level further out. It
   sits before the `min-width: 80rem` block, which still wins above 1280px where the cluster is sized
   by the viewport and was never circular.

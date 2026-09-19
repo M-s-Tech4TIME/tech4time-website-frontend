@@ -738,7 +738,7 @@
    Gated on @supports, and placed BEFORE the wide-screen block below so that
    block still wins above 1280px, where the cluster is sized by the viewport
    and was never circular. A browser without container queries gets exactly
-   what it got before. WebKit is the exception with its own block beneath. */
+   what it got before. */
 @supports (container-type: size) {
   .hero-circuit {
     container-type: size;
@@ -750,58 +750,6 @@
   .hero-circuit__layer--corner-br {
     height: calc((100cqh - var(--hc-gap)) / 2);
     width: calc((100cqh - var(--hc-gap)) / 2 * 200 / 215);
-  }
-}
-
-/* WEBKIT GETS DEFINITE SIZES INSTEAD, BELOW 1280px
-   The cqh block above holds in Blink and Gecko -- measured identical to
-   0.02px -- and does not hold in WebKit. Reported from a modern iPhone
-   (iOS 26, Chrome 153, Safari alike: every iOS browser is WebKit by Apple
-   mandate): the old failure back again, four oversized corner fans and no
-   band, with a gate that passes and units that are supported. The grid's
-   auto column is evidently not reading the cqh number there, and remote
-   debugging an iPhone from this repository is not possible -- no harness
-   here can drive it -- so the circularity is removed for that engine
-   instead of being tuned for it.
-
-   These boxes are definite the way the wide-screen ones below are: a fixed
-   width, height: auto derived through the aspect-ratio above, hugging their
-   row's edge. The auto column therefore takes a real number on every
-   engine, and the 1fr band keeps the remainder -- narrow on the smallest
-   phones (about 90px at 320px), but never nothing.
-
-   The width is viewport-relative with a floor and a ceiling, because the
-   row height it stands in for is itself viewport-dependent: at 390px the
-   row is about 134px and 26vw lands near 101px against it; at 768px the
-   cap binds at 128px. The vertical channel down each edge consequently
-   opens past the gap by roughly a quarter of it -- the same deliberate
-   trade the wide-screen block makes with D, and for the same reason: a
-   cluster that cannot be wrongly sized matters more than a channel that
-   is exactly the gap.
-
-   Scoped to WebKit by data-engine, stamped pre-paint by theme-init.js, so
-   Blink and Gecko never see it and stay pixel-identical. Scoped below
-   80rem by this query so the viewport-sized block beneath still wins on
-   desktop, where it was never circular and needs no override. Without
-   JavaScript there is no stamp and WebKit keeps the shared path: the
-   banner is aria-hidden texture, and the page reads the same either way. */
-@media (max-width: 79.999rem) {
-  html[data-engine="webkit"] .hero-circuit__layer--corner-tl,
-  html[data-engine="webkit"] .hero-circuit__layer--corner-tr,
-  html[data-engine="webkit"] .hero-circuit__layer--corner-bl,
-  html[data-engine="webkit"] .hero-circuit__layer--corner-br {
-    width: clamp(3.5rem, 26vw, 8rem);
-    height: auto;
-  }
-
-  html[data-engine="webkit"] .hero-circuit__layer--corner-tl,
-  html[data-engine="webkit"] .hero-circuit__layer--corner-tr {
-    align-self: start;
-  }
-
-  html[data-engine="webkit"] .hero-circuit__layer--corner-bl,
-  html[data-engine="webkit"] .hero-circuit__layer--corner-br {
-    align-self: end;
   }
 }
 
