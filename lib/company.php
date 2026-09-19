@@ -124,8 +124,19 @@ const COMPANY_TECHNOLOGY_WALL = 18;
  * already all of it is a control that does nothing.
  *
  * EVERY ROW STAYS IN THE MARKUP either way. The tail is inside a closed
- * <details>, which is present in the DOM, found by Ctrl+F, and read by a
- * crawler. This bounds how tall the page IS, not what it says.
+ * <details>, so it is present in the DOM and read by a crawler. This bounds
+ * how tall the page IS, not what it says.
+ *
+ * IT DID NOT BOUND ANYTHING UNTIL 2026-09-19. The closed tail was rendered at
+ * full height in Firefox and in Chrome -- measured at 1311px and 1355px on the
+ * company profile at 390px -- so the control swapped its own label and nothing
+ * collapsed. assets/css/pages/company-profile.css now hides it explicitly.
+ * That is what this sentence always claimed and is now true.
+ *
+ * The cost of hiding it for real: a closed tail is no longer found by Ctrl+F.
+ * The crawler half is untouched, because that reads the HTML and the HTML has
+ * not changed -- and what Ctrl+F was finding was a visually-hidden name beside
+ * a logo, which is the weaker half of the two.
  */
 function company_wall(array $rows, int $cap): array
 {

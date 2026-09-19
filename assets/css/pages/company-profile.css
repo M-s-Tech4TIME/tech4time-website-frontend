@@ -256,12 +256,61 @@
   display: inline-block;
 }
 
-/* The summary comes FIRST in the markup and the tail second, so the button
-   sits between the two halves of the wall while it is closed and above the
-   tail once it is open. The margin is what keeps the second grid from butting
-   against the control. */
-.wall-more__rest {
-  margin-block-start: var(--space-sm);
+/* A CLOSED <details> DOES NOT HIDE THIS TAIL, AND IT NEVER HAS
+   A browser hides the content of a closed <details> with a UA rule on that
+   content. An author rule beats a UA rule, and .wall-more__rest is also
+   .clients or .tech-sphere__list, both of which declare display: grid -- so
+   the tail has been laid out and painted the whole time, in EVERY browser.
+   Measured on the company profile at 390px: closed, the tail was 1311px tall
+   in Firefox and 1355px in Chrome, with an offsetParent, 32 children and
+   visibility: visible.
+
+   So pressing the control only ever swapped its own label. Nothing collapsed
+   and nothing expanded, which is why it was reported as a button that "stays
+   in the same position" -- it was sitting in a grid that was always open.
+
+   This is the rule the UA stylesheet meant to apply, written where it wins.
+   Note that tools/apply_reveals.py:55 reasons from "a closed <details> has no
+   layout box" and that premise was false here; the conclusion it drew -- keep
+   data-reveal out of the tail -- is still right, so nothing there changes. */
+.wall-more:not([open]) .wall-more__rest {
+  display: none;
+}
+
+/* THE CONTROL BELONGS BELOW WHAT IT COLLAPSES, AND <details> PUTS IT ABOVE
+   A <summary> always renders before its content -- that is the element, not a
+   choice. Closed, that is right: the button sits at the end of the wall. Open,
+   it left "Show fewer" marooned above nine more rows of logos, which is a
+   control you have to hunt for. It was reported from a phone, where this is
+   the only place the control appears at all: the sphere is off at that width,
+   and .tech-sphere--on hides it everywhere else.
+
+   So the order is reversed visually, in CSS, with the markup untouched -- the
+   <details> keeps working with JavaScript off.
+
+   ONLY WHILE OPEN. Scoped this way the element stays display: block whenever
+   the tail is meant to be hidden, so the rule above is the only thing deciding
+   that, and no browser's <details> handling has to cope with a flex container
+   it did not expect. order has nothing to do on a tail that is not rendered.
+
+   Nothing in the tail is focusable -- it is <li> of pictures and
+   visually-hidden names, measured at zero links, buttons and tabindex -- so
+   reordering it visually does not put the focus ring out of step with the
+   page. check_focus.py is what keeps that true. */
+.wall-more[open] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wall-more[open] .wall-more__rest {
+  order: 1;
+  /* The gap above is the flex gap now, and a margin as well would double it. */
+  margin-block-start: 0;
+}
+
+.wall-more[open] .wall-more__summary {
+  order: 2;
 }
 
 /* --------------------------------------------------------------------------

@@ -709,6 +709,50 @@
   mask-image: radial-gradient(130% 130% at 0% 0%, #000 40%, transparent 96%);
 }
 
+/* AND THE ROW IS NOT KNOWN WHEN THE COLUMN IS MEASURED
+   A grid sizes its COLUMNS before its rows. The two outer columns are auto, so
+   the grid must ask a cluster how wide it wants to be -- and the only answer
+   above is "as wide as my row is tall, times my ratio", which is a row that
+   has not been sized yet. Firefox and Chrome come back to it and get 96.9px on
+   a 390px phone, to within a tenth of a pixel of the row height times 200/215.
+   Nothing in the specification promises that.
+
+   Safari does not. Reported from an iPhone: the clusters came out about twice
+   their intended width, reaching into the middle of the banner and clipped by
+   the hero's own overflow, and the 1fr band column between them was squeezed
+   to nothing -- so the banner showed four oversized corner fans and no band at
+   all. Two browser harnesses in this repository, both of them the ones that
+   guess the way the design wants.
+
+   So the guess is removed. The container's height is definite -- this box is
+   inset: 0 against the banner -- and container-type: size makes it readable as
+   a length, so a cluster states its own width and height outright and the auto
+   column has a real number to take. Nothing is derived from anything that is
+   still being decided.
+
+   IT IS DECLARED ON THE CHILDREN AND NOT HERE. A container query unit used in
+   the container's own declarations resolves against ITS container, one level
+   further out -- so --hc-gap can live on .hero-circuit and this arithmetic
+   cannot.
+
+   Gated on @supports, and placed BEFORE the wide-screen block below so that
+   block still wins above 1280px, where the cluster is sized by the viewport
+   and was never circular. A browser without container queries gets exactly
+   what it got before. */
+@supports (container-type: size) {
+  .hero-circuit {
+    container-type: size;
+  }
+
+  .hero-circuit__layer--corner-tl,
+  .hero-circuit__layer--corner-tr,
+  .hero-circuit__layer--corner-bl,
+  .hero-circuit__layer--corner-br {
+    height: calc((100cqh - var(--hc-gap)) / 2);
+    width: calc((100cqh - var(--hc-gap)) / 2 * 200 / 215);
+  }
+}
+
 /* THE CLUSTERS GROW ON A LARGE SCREEN, AND D IS WHAT PAYS FOR IT
    Sizing a cluster by the row is what makes the vertical channels equal the
    horizontal ones, and on a wide banner it also makes the cluster small: its
