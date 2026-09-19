@@ -46,7 +46,7 @@ $recent     = milestones_recent($timeline);
 <html lang="<?= h(seo_lang()) ?>">
 <head>
 <?php seo_head('/pages/company-profile/', $data['meta'],
-                 ['pages/milestones.css', 'pages/company-profile.css?v=2'],
+                 ['pages/milestones.css', 'pages/company-profile.css?v=3'],
                  $data['updated']); ?>
 <?php seo_jsonld('/pages/company-profile/', $data['meta'], $data['updated']); ?>
 
