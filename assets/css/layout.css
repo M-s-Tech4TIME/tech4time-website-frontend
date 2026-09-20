@@ -844,26 +844,6 @@
 .hero-circuit__layer--corner-bl { grid-area: 2 / 1; transform: scaleY(-1); }
 .hero-circuit__layer--corner-br { grid-area: 2 / 3; transform: scale(-1, -1); }
 
-/* TEMPORARY DIAGNOSTIC PANEL (?debug=circuit). See circuit.js -- dormant
-   unless the query string names it, deleted with it. Tokens only: check_css
-   forbids hex outside theme.css. pointer-events none so it can never cover
-   a focus ring check_focus.py measures. */
-.hero-circuit-debug {
-  position: fixed;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  z-index: 9999;
-  max-height: 45vh;
-  overflow: auto;
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  font-size: 0.75rem;
-  white-space: pre-wrap;
-  pointer-events: none;
-}
-
 
 /* --- the three static layers --------------------------------------------- */
 
