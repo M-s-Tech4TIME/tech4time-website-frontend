@@ -659,6 +659,22 @@
 .hero-circuit__layer--band-top,
 .hero-circuit__layer--band-bottom {
   grid-column: 2;
+  /* THE HEIGHT IS THE ROW'S, AND NOTHING ELSE'S.
+     The base rule gives every layer height: 100% -- and a grid item's
+     percentage resolves against its grid AREA in Blink but the whole grid
+     CONTAINER in WebKit. Measured on an iPhone over LAN: the band's box
+     came back 156x239 in a 414x239 hero, the row being 103 -- so slice
+     magnified a 75-unit sliver of the center tile 2.1x and the bands
+     rendered as sparse verticals with dots where Android renders the
+     dense run. height: auto is NOT the answer either: an <svg> is a
+     replaced element, so auto height falls back to width x intrinsic
+     ratio and the band collapses to a 1px rule on every engine
+     (test_motion caught it at 1-3px against a 103px cluster). The row is
+     (banner - gap) / 2 and the container's height is definite, so -- like
+     the clusters above -- the bands state it outright in cqh, inside the
+     same gate. The width stays 100% of the middle column, an axis whose
+     percentages no engine disputes. */
+  /* (height set in the @supports block below, beside the clusters) */
   /* THE FADE IS NEARLY GONE, AND THE CHANNEL IS WHY
      It used to begin at 72%, to keep the title clear of a band that ran close
      to it. The grid's row gap does that now -- the title sits in a channel the
@@ -750,6 +766,19 @@
   .hero-circuit__layer--corner-br {
     height: calc((100cqh - var(--hc-gap)) / 2);
     width: calc((100cqh - var(--hc-gap)) / 2 * 200 / 215);
+  }
+
+  /* THE BANDS STATE THE SAME ROW HEIGHT, FOR THE SAME WEBKIT REASON.
+     Corners prove cqh resolves on WebKit (95.8x102.9 measured on an
+     iPhone, exact to the tenth); the bands' height: 100% is what does
+     not, resolving against the container instead of the row. So they get
+     the same outright number -- which on Blink and Gecko equals the row
+     to the pixel, keeping hero_gaps() identical, and on WebKit replaces
+     a 239px box with the 103px row. Pre-cqh browsers keep height: 100%,
+     exactly what they had before this gate existed. */
+  .hero-circuit__layer--band-top,
+  .hero-circuit__layer--band-bottom {
+    height: calc((100cqh - var(--hc-gap)) / 2);
   }
 }
 

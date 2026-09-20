@@ -323,6 +323,16 @@ step at one pixel of viewport, and the reason a person said they could not see t
   in the container's own declarations resolves against *its* container, one level further out. It
   sits before the `min-width: 80rem` block, which still wins above 1280px where the cluster is sized
   by the viewport and was never circular.
+- **The bands state the same row height, for a second WebKit reason.** A grid item's `height: 100%`
+  resolves against the grid **area** in Blink but the whole grid **container** in WebKit: an iPhone
+  over LAN measured the band's box at 156x239 in a 414x239 hero, the row being 103 — so `slice`
+  magnified a 75-unit sliver of the center tile 2.1x and the bands rendered as sparse verticals
+  with dots where Android renders the dense run. `height: auto` is not the fix: an `<svg>` is a
+  replaced element, so `auto` falls back to width x intrinsic ratio and the band collapses to a
+  1px rule on every engine (`test_motion` caught it at 1–3px against a 103px cluster). The bands
+  therefore state the same outright `(100cqh − gap) / 2` the clusters do — equal to the row to the
+  pixel on Blink and Gecko, the 103px row on WebKit. Photographed proof on a real iPhone both
+  before (156x239, scale 2.0965) and after (156x103, scale 0.903).
 - **`--hc-gap` must be a LENGTH, never a percentage.** `row-gap: %` resolves against the container's
   **height** and `column-gap: %` against its **width** — a percentage gap is unequal in pixels by
   definition, which is the exact fault this exists to prevent. Falsified: setting it to `8%` fails

@@ -138,7 +138,7 @@ the two apart.
 
 **No hex outside `theme.css`.**
 
-**A size the browser has not worked out yet is not a size.** Three shipped faults have now come
+**A size the browser has not worked out yet is not a size.** Four shipped faults have now come
 from asking for one, and they all look the same afterwards:
 
 - `max-height: 100%` on `.dock__nav`, against a `.dock__panel` that is absolutely positioned with no
@@ -154,6 +154,14 @@ from asking for one, and they all look the same afterwards:
   Chrome come back to it; Safari does not, and an iPhone drew four oversized corner fans with the
   band squeezed out of the middle. The fix is `container-type: size` on `.hero-circuit` and a width
   stated in `cqh`, so nothing is derived from a number still being decided.
+- A band's height as `height: 100%` on a grid item. That percentage resolves against the grid
+  **area** in Blink but the whole grid **container** in WebKit: an iPhone measured the band's box
+  at 156x239 in a 414x239 hero, the row being 103, so `slice` magnified a 75-unit sliver 2.1x and
+  the bands rendered as sparse verticals with dots where Android renders the dense run. `height:
+  auto` is not the fix either — an `<svg>` is a replaced element, so `auto` falls back to width x
+  intrinsic ratio and the band collapses to a 1px rule (`test_motion` caught it). The fix is the
+  same outright `(100cqh − gap) / 2` the clusters state, which equals the row to the pixel on
+  Blink and Gecko and replaces the 239px box with the 103px row on WebKit.
 
 The pattern to watch for: **a percentage, an `aspect-ratio` or an `auto` track whose answer depends
 on a box further along in the same layout pass.** It usually works in the browser you tested, which
