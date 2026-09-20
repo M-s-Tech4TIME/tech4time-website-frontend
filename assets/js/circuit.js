@@ -702,6 +702,65 @@
         calm.addListener(sync);
       }
       sync();
+
+      /* TEMPORARY DIAGNOSTIC (?debug=circuit). NOT A FEATURE.
+         Paints a text panel with each layer's measured box, the scale each
+         fit computes from it, viewport, DPR and UA, so a phone no harness
+         here can drive can still report numbers via a photograph over LAN.
+         Dormant unless the query string names it exactly; audit_pages and
+         every suite render without it. Deleted once the iPhone bands are
+         diagnosed -- do not build on it. */
+      if (global.location && /[?&]debug=circuit(?:&|$)/.test(global.location.search)) {
+        circuitDebug(root);
+      }
     }
   };
+
+  /* See the TEMPORARY note above. Reads boxes only; changes nothing. Text
+     via textContent (never markup), styled by .hero-circuit-debug in
+     layout.css (tokens only -- check_css forbids hex outside theme.css). */
+  function circuitDebug(root) {
+    function box(el) {
+      if (!el) { return "missing"; }
+      var r = el.getBoundingClientRect();
+      return Math.round(r.width * 10) / 10 + "x" +
+             Math.round(r.height * 10) / 10 +
+             " @(" + Math.round(r.left) + "," + Math.round(r.top) + ")";
+    }
+    var lines = [];
+    lines.push("CIRCUIT DEBUG -- photograph this whole panel");
+    lines.push("ua: " + (global.navigator && global.navigator.userAgent || "?"));
+    lines.push("viewport: " + global.innerWidth + "x" + global.innerHeight +
+               " dpr: " + (global.devicePixelRatio || 1));
+    lines.push("hero: " + box(root));
+    var specs = {
+      "band-top": [21600, 114, "slice"],
+      "band-bottom": [21600, 114, "slice"],
+      "corner-tl": [200, 215, "meet"],
+      "corner-tr": [200, 215, "meet"],
+      "corner-bl": [200, 215, "meet"],
+      "corner-br": [200, 215, "meet"]
+    };
+    Object.keys(specs).forEach(function (name) {
+      var el = root.querySelector(".hero-circuit__layer--" + name);
+      var r = el && el.getBoundingClientRect();
+      var uses = el ? el.querySelectorAll("use").length : 0;
+      var scale = "?";
+      if (r && r.width && r.height) {
+        var vw = specs[name][0], vh = specs[name][1];
+        scale = specs[name][2] === "slice"
+          ? Math.max(r.width / vw, r.height / vh)
+          : Math.min(r.width / vw, r.height / vh);
+        scale = Math.round(scale * 10000) / 10000;
+      }
+      lines.push(name + ": box " + box(el) +
+                 " scale " + scale + " uses " + uses);
+    });
+    lines.push("canvas: " + (root.classList.contains("hero-circuit--canvas") ? "on" : "off"));
+    var pre = doc.createElement("pre");
+    pre.className = "hero-circuit-debug";
+    pre.setAttribute("aria-hidden", "true");
+    pre.textContent = lines.join("\n");
+    doc.body.appendChild(pre);
+  }
 })(window);

@@ -733,7 +733,7 @@ $recent     = milestones_recent($timeline);
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
      silently skips every module added since — no error, no console line,
      just a feature that is not there. -->
-<script src="/assets/js/circuit.js?v=5" defer></script>
+<script src="/assets/js/circuit.js?v=6" defer></script>
 <script src="/assets/js/main.js?v=3" defer></script>
 </body>
 </html>

@@ -372,7 +372,7 @@ $data = milestones_load();
      pages, .terminal__line only by lib/home.php, and the .hero element
      neural.js needs exists only on the home page. Not "has no hook today":
      no document this page can be given would give it one. -->
-<script src="/assets/js/circuit.js?v=5" defer></script>
+<script src="/assets/js/circuit.js?v=6" defer></script>
 <!-- Versioned for the same reason the stylesheets are, and with a sharper
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
      silently skips every module added since — no error, no console line,
