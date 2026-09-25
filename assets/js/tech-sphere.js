@@ -216,6 +216,45 @@
   };
 
   /**
+   * Load eagerly while the sphere owns the plates, lazily when it does not.
+   *
+   * Every logo ships loading="lazy" (lib/company.php), which is right for the
+   * grid: a phone gets eighteen plates and a button, not fifty downloads. On
+   * the sphere it is wrong in WebKit, which tracks lazy visibility against an
+   * image's LAYOUT position -- and every plate here shares one (top/left 50%),
+   * reaching its place on the ball purely by 3D transforms. WebKit loads the
+   * few deemed visible at first paint and never re-triggers as rotation
+   * carries new plates into view: white discs, a few logos, the rest blank
+   * forever. Photographed on an iPhone in landscape (the sphere only enables
+   * at 48em, so portrait's plain grid never shows it).
+   *
+   * So enable() calls this with true after adopting the tail: eager loading
+   * fetches what was never requested, and decode() is kicked so the raster
+   * exists before the plate turns to face the viewer. disable() calls it
+   * with false, handing the grid back its laziness. DOM properties, not
+   * markup -- nothing here is served, so there is nothing for the CSP to
+   * refuse; and img.loading is read by no form check, only written.
+   */
+  Sphere.prototype.eager = function (on) {
+    this.items.forEach(function (item) {
+      Array.prototype.forEach.call(item.querySelectorAll("img"), function (img) {
+        img.loading = on ? "eager" : "lazy";
+        if (on && typeof img.decode === "function") {
+          try {
+            var pending = img.decode();
+            if (pending && typeof pending.catch === "function") {
+              pending.catch(function () {});
+            }
+          } catch (error) {
+            /* No decode API, or nothing decoded yet: the raster arrives
+               with the load instead, which eager loading has requested. */
+          }
+        }
+      });
+    });
+  };
+
+  /**
    * Size the sphere to the room it has, and lay the logos out on it.
    *
    * THE ROOM IS THE COLUMN AND THE SCREEN, and nothing else. Both bounds are
@@ -584,6 +623,9 @@
        has run. */
     this.adopt(true);
     this.measure();
+    /* The sphere owns the plates from here on, so their images load eagerly;
+       see eager() for why laziness cannot survive the 3D arrangement. */
+    this.eager(true);
 
     if (this.running) {
       return;
@@ -605,6 +647,9 @@
        that is exactly the case where the tail has to stay where the markup put
        it. adopt() is a no-op when nothing has moved. */
     this.adopt(false);
+    /* The grid gets its laziness back with its plates: a narrow phone should
+       download eighteen logos and a button, not fifty. */
+    this.eager(false);
 
     if (!this.running) {
       return;

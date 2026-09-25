@@ -166,6 +166,14 @@ A rejected alternative, because it was tried: a radial mask on the container. It
 `preserve-3d` and changes no sizes, but it fades by *screen position* rather than depth — it dims
 logos that are nowhere near anything while the actual pile-ups sit mid-frame.
 
+**Its images load eagerly while it owns them.** Every logo ships `loading="lazy"`, which is right
+for the grid and wrong on the sphere in WebKit: lazy visibility is tracked against layout
+position, and every plate shares one layout point, reaching the ball purely by 3D transforms — so
+WebKit loads the few visible at first paint and never again, white discs the rest of the way
+round. Photographed on an iPhone in landscape. `enable()` therefore sets each image eager and
+kicks `decode()`; `disable()` hands the grid back its laziness, so a narrow phone still downloads
+eighteen logos and not fifty.
+
 **It turns only while it is on screen**, and that is a correctness matter rather than a nicety. The
 loop's per-frame work invalidates the transform of every logo under it — so fifty elements had their
 styles recalculated every frame of every second the page was open, including while the sphere was
