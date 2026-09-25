@@ -363,7 +363,7 @@ $data = milestones_load();
 <script src="/assets/js/animations.js?v=2" defer></script>
 <script src="/assets/js/forms.js?v=2" defer></script>
 <script src="/assets/js/dashboard.js" defer></script>
-<script src="/assets/js/tech-sphere.js?v=2" defer></script>
+<script src="/assets/js/tech-sphere.js?v=3" defer></script>
 <!-- slider.js, terminal.js and neural.js are NOT here, and that is measured
      rather than assumed. This page was born with the full block copied in and
      carried all three for its whole life: 34 KB raw, 11.9 KB gzipped, three

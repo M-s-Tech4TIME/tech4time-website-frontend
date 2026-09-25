@@ -546,7 +546,7 @@ $data = about_load();
 <script src="/assets/js/animations.js?v=2" defer></script>
 <script src="/assets/js/forms.js?v=2" defer></script>
 <script src="/assets/js/dashboard.js" defer></script>
-<script src="/assets/js/tech-sphere.js?v=2" defer></script>
+<script src="/assets/js/tech-sphere.js?v=3" defer></script>
 <script src="/assets/js/slider.js" defer></script>
 <!-- Versioned for the same reason the stylesheets are, and with a sharper
      edge: MODULES in this file is a hardcoded allow list, so a stale copy
