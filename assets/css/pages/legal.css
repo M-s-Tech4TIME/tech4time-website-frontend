@@ -173,3 +173,27 @@
 .legal__body em {
   font-style: italic;
 }
+
+/* Alignment the Markdown dialect can ask for. The only classes the renderer
+   ever writes are ta-left/ta-center/ta-right (from :---: delimiters and the
+   :::center container) and legal__notice -- fixed values from the delimiter,
+   never author input, so there is nothing to sanitise. Scoped to the legal
+   body and its tables, the way .job__body scopes the same four. */
+.legal__body .ta-left,
+.legal__table .ta-left {
+  text-align: left;
+}
+
+.legal__body .ta-center,
+.legal__table .ta-center {
+  text-align: center;
+}
+
+.legal__body .ta-right,
+.legal__table .ta-right {
+  text-align: right;
+}
+
+.legal__body .ta-justify {
+  text-align: justify;
+}

@@ -165,6 +165,7 @@ jobs:
 
           run test_svg
           run test_store
+          run test_markdown
           run test_contact_handler
 
           # The one endpoint on this site that writes anything: the happy path,
@@ -205,7 +206,7 @@ jobs:
             echo "::error::failing suites:$failed"
             exit 1
           fi
-          echo "all nine php suites passed"
+          echo "all ten php suites passed"
 
   browser:
     name: firefox

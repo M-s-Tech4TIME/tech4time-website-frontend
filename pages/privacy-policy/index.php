@@ -46,7 +46,7 @@ $data = privacy_load();
 <!DOCTYPE html>
 <html lang="<?= h(seo_lang()) ?>">
 <head>
-<?php seo_head('/pages/privacy-policy/', $data['meta'], ['pages/legal.css'], $data['updated']); ?>
+<?php seo_head('/pages/privacy-policy/', $data['meta'], ['pages/legal.css?v=1'], $data['updated']); ?>
 <?php seo_jsonld('/pages/privacy-policy/', $data['meta'], $data['updated']); ?>
 
 <!-- The policy as a document, which is a different thing from the page that

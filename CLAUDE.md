@@ -35,8 +35,9 @@ its record before acting.
 6. **Never commit anything from the private store** (`t4t-private/`, `*.key`).
 7. **`content/` is a replica.** It is written by `api/publish.php` and by nothing else — not by
    hand, not on the server, not by a deploy. The next publish overwrites anything you put there.
-8. **Eight files are byte-identical** with `tech4time-website-backend`: `lib/html.php`,
-   `lib/contract.php`, `lib/publish.php`, `lib/svg.php`, `lib/store.php`, `lib/throttle.php`,
+8. **Nine files are byte-identical** with `tech4time-website-backend`: `lib/html.php`,
+   `lib/contract.php`, `lib/publish.php`, `lib/svg.php`, `lib/markdown.php`, `lib/store.php`,
+   `lib/throttle.php`,
    `assets/icons/sprite.svg` and `assets/css/base.css`. Change one and you change both, in the
    same breath. **The list is `SHARED` in `tools/check_shared_lib.py`, not this sentence** —
    this one had been short of the real set, so read the map rather than the prose.
