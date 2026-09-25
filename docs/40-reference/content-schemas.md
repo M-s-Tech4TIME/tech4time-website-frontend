@@ -596,12 +596,13 @@ trail.
 
 ## `content/privacy.json`
 
-The privacy policy: twelve headed sections, a summary callout, a retention table and an address
-block. The last page on the site to stop being hand-written. Edited at `/?s=privacy`.
+The privacy policy: headed sections with Markdown bodies, a summary callout and a closing band.
+Edited at `/?s=privacy`, listed on the legal hub at `?s=legal` with its shown/hidden switch.
 
 ```
 meta    { … }
 hero    { title, subtitle }
+status  shown | hidden — the whole page; hidden answers 404
 policy  { label, effective, callout{…}, sections[] }
 cta     { status, title, text, items[] }
 ```
@@ -610,6 +611,7 @@ cta     { status, title, text, items[] }
 |---|---|---|
 | `policy.label` | string | the visually-hidden `<h2>` that names the region for a screen reader, bound to it by `aria-labelledby` |
 | `policy.effective` | string | the whole line at the top — *"Effective 21 August 2026"*. The wording is authored: *"Effective"* and *"Last updated"* do not mean the same thing |
+| `status` | `shown` \| `hidden` | the whole page. Hidden answers 404, leaves the sitemap and the pills, and keeps every word |
 
 One `policy.sections[]` row is a headed part of the policy:
 
@@ -618,40 +620,21 @@ One `policy.sections[]` row is a headed part of the policy:
 | `id` | string | **the anchor**, minted from the heading and then frozen for good |
 | `heading` | string | the `<h2>` |
 | `status` | `shown` \| `hidden` | |
-| `blocks[]` | list | in the order they render |
-
-One `blocks[]` row is one shape, and `kind` decides which:
-
-| `kind` | Carries | Renders |
-|---|---|---|
-| `paragraph` | `text` | `<p>` |
-| `note` | `text` | `<p class="legal__notice">` |
-| `address` | `text` | `<address class="legal__address">` |
-| `subheading` | `text` *(plain)* | `<h3 class="legal__subheading">` |
-| `list` | `rows[]` of `{ id, text, status }` | `<ul class="legal__list">` |
-| `table` | `caption`, `columns[2]`, `rows[]` of `{ id, label, value, status }` | `.legal__table-wrap > table` |
+| `body` | string | Markdown source in the frozen dialect, rendered by `lib/markdown.php` |
 
 `policy.callout` is `{ status, title, items[], note }` — the *"short version"* box, whose `items[]`
-are `{ id, text, status }`.
+are `{ id, text, status }` with Markdown `text`, and whose `note` is a Markdown field.
 
-### Structure is a kind, not markup
+### Bodies are Markdown, not blocks
 
-`rt_sanitise_html()` allows nine tags — `p br strong em u ul ol li a` — and no heading, no
-`<address>` and no `<table>` among them. A person typing `<h3>` into a rich field would watch it
-disappear on save with no way to tell that from a bug. So every block declares what it **is**, and
-the renderer owns the markup for that kind. A seventh shape costs a row in `PRIVACY_BLOCK_KINDS`
-and an arm in `privacy_block_defaults()`.
-
-A block is also **narrowed** to the fields its kind uses. A block that was a `list` and is now a
-`paragraph` does not keep its `rows[]` — invisible on the page, carried in the document and
-published every time.
-
-### Every rich field here is inline-only
-
-`paragraph`, `note`, `address`, a list row and a callout point all go through
-`rt_sanitise_inline()`, not `rt_sanitise_html()`. Each renders *inside* an element the renderer
-supplies, so a `<p>` arriving from the editor is not emphasis somebody added — it is a paragraph
-inside a paragraph, and pressing Enter in a textarea is how it would arrive.
+Sections used to hold typed blocks (paragraph, list, table, address, note, subheading), because
+`rt_sanitise_html()` allows no heading, no `<address>` and no `<table>` and structure therefore
+could not live in a rich field. The Markdown renderer owns all markup instead, so a section
+needs no kinds: `body` holds prose, lists, tables and notes in the frozen dialect
+(`tech4time-website-frontend/plans/legal-markdown-syntax.md`), and raw HTML in it is escaped,
+never passed through. Markdown source must never meet `rt_sanitise_*()` — it would
+entity-mangle it — so `privacy_sanitise()` is an explicit pass-through, and safety lives in
+the renderer, proven by `tools/test_markdown.py` in both repositories.
 
 ### An anchor is a promise
 
@@ -666,11 +649,13 @@ fragment and silently rename the incumbent. Nine of the twelve shipped ids are h
 `updated` records when the document was last published. `policy.effective` is a claim about when the
 **policy** changed, and fixing a typo is not a new policy — so nothing writes it but a person.
 
-### The policy band cannot be hidden
+### The policy band cannot be hidden, but the page can
 
-`PRIVACY_BANDS` holds only `cta`. Hiding the policy would leave a page headed *"Privacy Policy"*
-with no policy on it, still linked from the footer of every other page and still in the sitemap.
-The callout, any section, any block and any row can each be hidden.
+`PRIVACY_BANDS` holds only `cta`: hiding the *band* would leave a page headed *"Privacy Policy"*
+with no policy on it, still linked and listed — a compliance incident with a switch. Hiding the
+*page* is the opposite: the `status` on the document, edited on the legal hub, answers 404,
+leaves the sitemap and the pills, and keeps every word. One hides the words while keeping the
+address; the other removes the address. The callout and any section can each be hidden.
 
 ### What it repeats from the contact page is compared, never enforced
 

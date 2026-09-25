@@ -281,6 +281,42 @@ function seo_route_meta(string $key): array
     }
 }
 
+/** Whether a route's document hides the whole page, whatever robots says.
+ *
+ * Reads like seo_route_meta() and fails the same way: a missing or
+ * unreadable document answers shown, because absence has always meant shown
+ * and a sitemap must not lose a page over a read error. Only a document
+ * that explicitly carries status hidden is gone.
+ */
+function seo_route_hidden(string $key): bool
+{
+    if (!isset(SEO_ROUTES[$key])) {
+        return false;
+    }
+
+    [, , $document] = SEO_ROUTES[$key];
+    if ($document === '') {
+        return false;
+    }
+
+    try {
+        $raw = store_read(contract_path($document));
+    } catch (Throwable) {
+        return false;
+    }
+    if (!is_array($raw)) {
+        return false;
+    }
+
+    try {
+        $data = contract_normalise($document, $raw);
+    } catch (Throwable) {
+        return false;
+    }
+
+    return ($data['status'] ?? 'shown') === 'hidden';
+}
+
 /* ---------------------------------------------------------- the sitemap */
 
 /**
@@ -306,6 +342,15 @@ function seo_sitemap_entries(): array
 
         $meta = seo_route_meta($key);
         if (($meta['robots'] ?? 'index') === 'noindex') {
+            continue;
+        }
+
+        /* A hidden page is gone, not merely unindexed: no address in the
+           sitemap for an address that answers 404. noindex keeps a live page
+           out of search; hidden removes the page, so it wins without a word.
+           Documents without a status are shown -- the field is new, and
+           absence must mean what it always did. */
+        if (seo_route_hidden($key)) {
             continue;
         }
 

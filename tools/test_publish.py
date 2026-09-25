@@ -146,7 +146,7 @@ def sign(key: bytes, body: bytes, timestamp: int) -> str:
     return f"{fingerprint(key)}:{mac}"
 
 
-def envelope(document: str, data: dict, version: int = 1) -> dict:
+def envelope(document: str, data: dict, version: int = 2) -> dict:
     return {
         "contract_version": version,
         "document": document,
@@ -210,7 +210,7 @@ def post(base: str, body: bytes, headers: dict) -> tuple[int, dict]:
 
 
 def publish(base: str, key: bytes, document: str, data: dict,
-            version: int = 1, at: int | None = None,
+            version: int = 2, at: int | None = None,
             tamper: bytes | None = None) -> tuple[int, dict]:
     body = json.dumps(envelope(document, data, version),
                       separators=(",", ":"), ensure_ascii=False).encode()
@@ -355,7 +355,7 @@ def run(base: str, key: bytes, r: Results) -> None:
 
     print("\nthe shape has to match")
 
-    status, answer = publish(base, key, "careers", job(6), version=2)
+    status, answer = publish(base, key, "careers", job(6), version=3)
     r.check("a document in a shape this side does not implement is refused",
             status == 422 and answer.get("code") == "contract-mismatch",
             f"{status} {answer}")
@@ -369,7 +369,7 @@ def run(base: str, key: bytes, r: Results) -> None:
 
     mismatched = job(7)
     body = json.dumps(
-        {"contract_version": 1, "document": "careers", "revision": 99,
+        {"contract_version": 2, "document": "careers", "revision": 99,
          "published": "2026-08-26T00:00:00+00:00", "data": mismatched},
         separators=(",", ":")).encode()
     stamp = int(time.time())
@@ -1909,22 +1909,23 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
     """Every field the privacy model declares, set and read off the page.
 
     THIS IS WHAT check_content_model.py POINTS AT, for the reason the branding
-    one is: both halves walk their lists in loops, so a regex over the renderer
-    finds $section and $block rather than a field name. Put a distinguishable
+    one is: the editor names its inputs "sections[<?= $s ?>][body]" and the
+    page renders them by calling md_render() in a loop, so a regex over the
+    renderer finds $section rather than a field name. Put a distinguishable
     value in every field, publish it, and look for it in the HTML a visitor
     would get.
 
-    THE SIX KINDS ARE THE POINT. A block declares what it is and the renderer
-    owns the markup for it, so what is checked is not that the words arrived —
-    it is that a subheading became an <h3>, a table became a <table> with
-    scoped headers, an address became an <address>, and a note became the
-    tinted paragraph and not an ordinary one. A renderer that drew all six the
-    same would pass a check that only looked for the text.
+    THE DIALECT IS THE POINT. A section body is Markdown source and the shared
+    renderer owns all markup, so what is checked is not that the words arrived
+    -- it is that emphasis became <em>, a table became a <table> with scoped
+    headers, a note became the tinted box and not an ordinary paragraph, and
+    hostile source arrived escaped. A renderer that drew everything the same
+    would pass a check that only looked for the text.
 
     AND THE STRUCTURE IS CHECKED FOR STAYING FLAT. assets/css/pages/legal.css
     zeroes the top margin of the first heading with a child combinator, so a
     per-section wrapper would silently stop it matching. Nothing here may nest
-    the blocks inside anything.
+    the sections inside anything but the body.
     """
     print("\nthe privacy policy travels the same road")
 
@@ -1932,6 +1933,7 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
 
     data = json.loads(PRIVACY.read_text())
     data["revision"] = 70
+    data["status"] = "shown"
 
     data["meta"]["title"] = f"{MARK}-tab"
     data["meta"]["share_title"] = f"{MARK}-share"
@@ -1949,45 +1951,35 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
         "title": f"{MARK}-callouttitle",
         "note": f"{MARK}-calloutnote",
         "items": [
-            {"id": "c1", "text": f"{MARK}-point1 <strong>{MARK}-pointbold</strong>",
+            {"id": "c1", "text": f"{MARK}-point1 **{MARK}-pointbold**",
              "status": "shown"},
             {"id": "c2", "text": f"{MARK}-pointhidden", "status": "hidden"},
         ],
     }
 
     data["policy"]["sections"] = [
-        {"id": "first-one", "heading": f"{MARK}-head1", "status": "shown", "blocks": [
-            {"id": "p1", "kind": "paragraph", "status": "shown",
-             "text": f'{MARK}-para1 <em>{MARK}-em</em> '
-                     f'<a href="#second-one">{MARK}-fraglink</a>'},
-            {"id": "s1", "kind": "subheading", "status": "shown",
-             "text": f"{MARK}-subhead"},
-            {"id": "n1", "kind": "note", "status": "shown",
-             "text": f"{MARK}-notetext"},
-            {"id": "a1", "kind": "address", "status": "shown",
-             "text": f"<strong>{MARK}-addrname</strong><br>{MARK}-addrline<br>"
-                     f'<a href="mailto:x@y.z">{MARK}-addrmail</a>'},
-            {"id": "l1", "kind": "list", "status": "shown", "rows": [
-                {"id": "i1", "text": f"{MARK}-bullet1", "status": "shown"},
-                {"id": "i2", "text": f"{MARK}-bullethidden", "status": "hidden"},
-            ]},
-            {"id": "t1", "kind": "table", "status": "shown",
-             "caption": f"{MARK}-caption", "columns": [f"{MARK}-col1", f"{MARK}-col2"],
-             "rows": [
-                 {"id": "r1", "label": f"{MARK}-rowlabel", "value": f"{MARK}-rowvalue",
-                  "status": "shown"},
-                 {"id": "r2", "label": f"{MARK}-rowhidden", "value": "x",
-                  "status": "hidden"},
-             ]},
-            {"id": "h1", "kind": "paragraph", "status": "hidden",
-             "text": f"{MARK}-blockhidden"},
-        ]},
+        {"id": "first-one", "heading": f"{MARK}-head1", "status": "shown",
+         "body": (
+             f"{MARK}-para1 *{MARK}-em* ++{MARK}-ul++ "
+             f"[{MARK}-fraglink](#second-one)\n"
+             f"\n"
+             f"- {MARK}-bullet1\n"
+             f"- {MARK}-bullet2\n"
+             f"\n"
+             f":::note\n{MARK}-notetext\n:::\n"
+             f"\n"
+             f":::center\n{MARK}-centered\n:::\n"
+         )},
         {"id": "second-one", "heading": f"{MARK}-head2", "status": "shown",
-         "blocks": [{"id": "p2", "kind": "paragraph", "status": "shown",
-                     "text": f"{MARK}-para2"}]},
+         "body": (
+             f"**{MARK}-captionline**\n"
+             f"\n"
+             f"| {MARK}-col1 | {MARK}-col2 |\n"
+             f"| --- | --- |\n"
+             f"| {MARK}-rowlabel | {MARK}-rowvalue |\n"
+         )},
         {"id": "gone", "heading": f"{MARK}-headhidden", "status": "hidden",
-         "blocks": [{"id": "p3", "kind": "paragraph", "status": "shown",
-                     "text": f"{MARK}-sectionhidden"}]},
+         "body": f"{MARK}-sectionhidden"},
     ]
 
     data["cta"]["items"] = [
@@ -2006,9 +1998,9 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
 
     for field in ("tab", "share", "hero", "sub", "label", "effective",
                   "callouttitle", "calloutnote", "point1", "pointbold",
-                  "head1", "para1", "em", "subhead", "notetext", "addrname",
-                  "addrline", "addrmail", "bullet1", "caption", "col1", "col2",
-                  "rowlabel", "rowvalue", "head2", "para2", "ctatitle",
+                  "head1", "para1", "em", "ul", "fraglink", "bullet1",
+                  "bullet2", "notetext", "centered", "head2", "captionline",
+                  "col1", "col2", "rowlabel", "rowvalue", "ctatitle",
                   "ctatext", "btn"):
         r.check(f"{field} reaches the visitor", f"{MARK}-{field}" in page)
 
@@ -2021,43 +2013,60 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
             f"the trail ends {trail[-1:] or ['(no BreadcrumbList)']}, "
             f"not [{MARK}-crumb]")
 
+    print("\nthe hub furniture is there")
+
+    r.check("the eyebrow names the segment",
+            '<p class="legal__eyebrow">Legal</p>' in page)
+    r.check("the effective line is printed",
+            f"{MARK}-effective" in page)
+    r.check("one document means no pills",
+            "legal__tabs" not in page,
+            "a switch with a single position")
+    r.check("the rail lists the shown sections, numbered",
+            '<nav class="legal__toc"' in page
+            and 'href="#first-one"' in page
+            and 'class="legal__toc-num">01<' in page,
+            "numbered anchors missing")
+    r.check("and never the hidden one",
+            'href="#gone"' not in page)
+
     print("\nwhat is hidden is not there at all")
 
-    for gone in ("pointhidden", "bullethidden", "rowhidden", "blockhidden",
-                 "headhidden", "sectionhidden", "btnhidden"):
+    for gone in ("pointhidden", "headhidden", "sectionhidden", "btnhidden"):
         r.check(f"{gone} is absent", f"{MARK}-{gone}" not in page)
 
-    print("\neach of the six kinds is drawn as the kind it is")
+    print("\neach dialect construct is drawn as itself")
 
-    r.check("a paragraph is a bare <p>", f"<p>{MARK}-para1" in page)
-    r.check("and exactly one <p>, not a paragraph inside a paragraph",
-            f"<p>{MARK}-para1" in page and f"<p><p>{MARK}" not in page,
-            "the field carried its own <p> and the renderer added another")
-    r.check("a subheading is an h3 with the class the stylesheet knows",
-            f'<h3 class="legal__subheading">{MARK}-subhead</h3>' in page)
-    r.check("a note is the tinted paragraph and not an ordinary one",
-            f'<p class="legal__notice">{MARK}-notetext</p>' in page,
-            "the note lost its class, or gained a paragraph inside a paragraph")
-    r.check("an address is an <address>",
-            f'<address class="legal__address">' in page
-            and f"{MARK}-addrname" in page)
+    r.check("emphasis is emphasis", f"<em>{MARK}-em</em>" in page)
+    r.check("underline is underline", f"<u>{MARK}-ul</u>" in page)
+    r.check("a fragment link KEEPS ITS HREF",
+            'href="#second-one"' in page,
+            "the link would still look like a link and do nothing")
     r.check("a list is a <ul> of <li>",
-            f'<ul class="legal__list">' in page and f"<li>{MARK}-bullet1</li>" in page)
+            "<ul>" in page and f"<li>{MARK}-bullet1</li>" in page)
+    r.check("a note is the tinted box and not an ordinary paragraph",
+            f'<div class="legal__notice">\n<p>{MARK}-notetext</p>' in page,
+            "the note lost its box")
+    r.check("a centred block carries the class",
+            f'<div class="ta-center">\n<p>{MARK}-centered</p>' in page)
     r.check("a table is a table, in its scroller",
             '<div class="legal__table-wrap"><table class="legal__table">' in page)
-    r.check("its caption is there for a screen reader and nobody else",
-            f'<caption class="visually-hidden">{MARK}-caption</caption>' in page)
     r.check("its column headings are scoped to their column",
             f'<th scope="col">{MARK}-col1</th>' in page)
-    r.check("and each row is headed by its own first cell",
-            f'<th scope="row">{MARK}-rowlabel</th><td>{MARK}-rowvalue</td>' in page)
+    r.check("and its cells are cells",
+            f"<td>{MARK}-rowlabel</td><td>{MARK}-rowvalue</td>" in page)
+    r.check("the caption line is a bold lead-in, not a table caption",
+            f"<strong>{MARK}-captionline</strong>" in page
+            and "<caption" not in page)
 
     print("\nthe things that make the stylesheet work")
 
     r.check("the sections are FLAT children of the body, with no wrapper",
-            re.search(r'<div class="legal__body">\s*<p class="legal__updated">', page)
+            re.search(r'<div class="legal__body">\s*<div class="legal__callout">', page)
+            is not None
+            or re.search(r'<div class="legal__body">\s*<h2 class="legal__heading"', page)
             is not None,
-            "something was inserted between the body and its first child")
+            "something was inserted between the body and its content")
     r.check("the first heading is a direct child, so :first-of-type still matches",
             re.search(r'</div>\s*<h2 class="legal__heading" id="first-one">', page)
             is not None,
@@ -2067,32 +2076,46 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
                       r'<h2 class="legal__callout-title">', page) is not None,
             "a flattened callout would steal :first-of-type from the first section")
 
-    print("\nan anchor is a promise, and a fragment link is one kept")
+    print("\nan anchor is a promise")
 
     r.check("each section carries its stored id as its anchor",
             '<h2 class="legal__heading" id="second-one">' in page)
-    r.check("a link into the page KEEPS ITS HREF",
-            'href="#second-one"' in page,
-            "rt_safe_href() dropped the fragment — the link would still look "
-            "like a link and do nothing")
 
-    print("\nrich text is printed, and script is not")
+    print("\nMarkdown source is stored, and script in it is text")
 
-    data["policy"]["sections"][1]["blocks"][0]["text"] = (
-        f'{MARK}-clean<script>alert(1)</script>'
-        f'<h2>{MARK}-structure</h2><p>{MARK}-nested</p>')
+    data["policy"]["sections"][1]["body"] = (
+        f'{MARK}-clean<script>alert(1)</script>\n'
+        f'\n'
+        f'# {MARK}-octothorpe\n'
+        f'\n'
+        f'[x](javascript:alert(1))')
     data["revision"] = 71
     publish(base, key, "privacy", data)
     _status, page = get(base, page_url)
 
     r.check("the words survive", f"{MARK}-clean" in page)
-    r.check("the script does not", "alert(1)" not in page and "<script>alert" not in page)
-    r.check("and a heading typed into a paragraph is stripped, "
-            "because structure is not the rich field's job",
-            f"<h2>{MARK}-structure</h2>" not in page)
-    r.check("nor can a paragraph be typed into a paragraph",
-            f"<p>{MARK}-nested</p>" not in page and f"{MARK}-nested" in page,
-            "the <p> survived into a field the renderer already wraps")
+    r.check("the script does not -- escaped text is not markup",
+            "<script>alert" not in page and f"{MARK}-clean&lt;script&gt;" in page)
+    r.check("a hash is a hash, because headings are fields",
+            f"# {MARK}-octothorpe" in page)
+    r.check("and a bad-scheme link stays literal",
+            "[x](javascript:alert(1))" in page)
+
+    print("\na hidden page is gone, not merely unindexed")
+
+    data["status"] = "hidden"
+    data["revision"] = 72
+    publish(base, key, "privacy", data)
+    status, _page = get(base, page_url)
+    r.check("it answers 404", status == 404, f"status {status}")
+
+    data["status"] = "shown"
+    data["revision"] = 73
+    status, answer = publish(base, key, "privacy", data)
+    r.check("and showing it again restores the page",
+            status == 200 and answer.get("ok") is True, f"{status} {answer}")
+    status, _page = get(base, page_url)
+    r.check("back to 200", status == 200, f"status {status}")
 
 
 def seo_round_trip(base: str, key: bytes, r: Results) -> None:

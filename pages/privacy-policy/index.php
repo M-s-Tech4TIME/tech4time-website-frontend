@@ -12,15 +12,16 @@
  * correction at short notice, and every correction used to need a developer
  * and a deploy.
  *
- * Everything editable goes through h() EXCEPT the rich blocks — a paragraph,
- * a note, an address and a list row — which are printed bare, sanitised on the
- * way in by contract_sanitise() and again on receipt, because a signature
- * proves where a document came from and not what is inside it.
+ * Everything editable goes through h() EXCEPT section bodies and callout
+ * points, which go through the shared Markdown renderer instead: it escapes
+ * every text run itself and emits only a fixed tag vocabulary, proven by
+ * tools/test_markdown.py in both repositories. There is no stored markup to
+ * print bare any more.
  *
- * The blocks are emitted as FLAT SIBLINGS of .legal__body, with no per-section
+ * The sections are emitted as FLAT SIBLINGS of .legal__body, with no per-section
  * wrapper. assets/css/pages/legal.css zeroes the top margin of the first
  * heading with a child combinator, and a wrapper would silently stop it
- * matching. See privacy_block().
+ * matching. See privacy_section_html().
  *
  * The header, footer and dock are emitted by lib/body.php from
  * content/chrome.json. The hero circuit is still literal markup, being
@@ -40,8 +41,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../lib/head.php';
 require_once __DIR__ . '/../../lib/body.php';
 require_once __DIR__ . '/../../lib/privacy.php';
+require_once __DIR__ . '/../../lib/legal.php';
 
 $data = privacy_load();
+
+/* Hidden answers 404, the way a hidden service does: no pills, no sitemap,
+   no page. The words stay in the document for re-showing. */
+if (($data['status'] ?? 'shown') === 'hidden') {
+    http_response_code(404);
+    require __DIR__ . '/../../404.php';
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= h(seo_lang()) ?>">
@@ -324,9 +334,15 @@ $data = privacy_load();
     <div class="container">
       <h2 class="visually-hidden" id="policy-heading"><?= h($data['policy']['label']) ?></h2>
 
-      <div class="legal__body">
+      <p class="legal__eyebrow">Legal</p>
+      <p class="legal__updated"><?= h($data['policy']['effective']) ?></p>
 
-        <p class="legal__updated"><?= h($data['policy']['effective']) ?></p>
+      <?= legal_tabs('/pages/privacy-policy/') ?>
+
+      <div class="legal__layout">
+        <?= legal_toc($data['policy']['sections']) ?>
+
+        <div class="legal__body">
 
 <?php $callout = $data['policy']['callout']; ?>
 <?php if (privacy_rows_shown([$callout])): ?>
@@ -334,20 +350,18 @@ $data = privacy_load();
           <h2 class="legal__callout-title"><?= h($callout['title']) ?></h2>
           <ul class="legal__list">
 <?php foreach (privacy_rows_shown($callout['items']) as $item): ?>
-            <li><?= $item['text'] ?></li>
+            <li><?= md_inline((string)($item['text'] ?? ''), 0) ?></li>
 <?php endforeach; ?>
           </ul>
-          <p class="legal__callout-note"><?= $callout['note'] ?></p>
+          <?= md_render((string)($callout['note'] ?? '')) ?>
         </div>
 <?php endif; ?>
 
 <?php foreach (privacy_rows_shown($data['policy']['sections']) as $section): ?>
-        <h2 class="legal__heading" id="<?= h($section['id']) ?>"><?= h($section['heading']) ?></h2>
-<?php   foreach (privacy_rows_shown($section['blocks']) as $block): ?>
-        <?= privacy_block($block) ?>
+        <?= privacy_section_html($section) ?>
 
-<?php   endforeach; ?>
 <?php endforeach; ?>
+        </div>
       </div>
     </div>
   </section>

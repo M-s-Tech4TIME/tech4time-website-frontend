@@ -32,6 +32,7 @@ store they read from is outside the document root entirely.
 | [`sprite.php`](#spritephp) *(frontend)* | the icon block a renderer writes for itself | — |
 | [`head.php`](#headphp) *(frontend)* | the `<head>` every page emits, and its structured data | `seo` |
 | [`body.php`](#bodyphp) *(frontend)* | the header, footer and dock every page emits | `chrome` |
+| [`legal.php`](#legalphp) *(frontend)* | the tab pills and page rail the legal pages share | `contract`, `store` |
 | [`svg.php`](#svgphp) **shared** | what a publishable vector file is |
 | [`markdown.php`](#markdownphp) **shared** | the legal-Markdown renderer | `html` |
 | [`publish.php`](#publishphp) **shared** | how a document is signed and checked on the wire | `private`, `contract` |
@@ -980,6 +981,16 @@ a `<symbol>` has to exist before the `<use>` that draws it.
 
 [shared-markup.md](../frontend/shared-markup.md) ·
 [ADR 0023](../../90-decisions/0023-the-header-and-footer-are-emitted-once.md)
+
+### `legal.php`
+
+**Frontend only.** `legal_tabs()` · `legal_toc()` · `legal_pages_shown()`
+
+What the legal pages share the way pages share a header: the tab pills switching between them
+and the numbered "On this page" rail. Rendered from the documents and the current route on every
+request, never pasted — a pasted copy would drift the day a second document hid itself. One pill
+is not a switch, so the pills render only at two or more shown documents; the rail numbers
+position, never content.
 
 ---
 

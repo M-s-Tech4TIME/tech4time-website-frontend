@@ -144,7 +144,7 @@ def sign(key: bytes, body: bytes, timestamp: int) -> str:
     return f"{fingerprint(key)}:{mac}"
 
 
-def envelope(document: str, data: dict, version: int = 1) -> dict:
+def envelope(document: str, data: dict, version: int = 2) -> dict:
     return {
         "contract_version": version,
         "document": document,
@@ -172,7 +172,7 @@ def post(base: str, body: bytes, headers: dict,
 
 
 def publish(base: str, key: bytes, document: str, data: dict,
-            version: int = 1, at: int | None = None,
+            version: int = 2, at: int | None = None,
             tamper: bytes | None = None) -> tuple[int, dict]:
     body = json.dumps(envelope(document, data, version),
                       separators=(",", ":"), ensure_ascii=False).encode()

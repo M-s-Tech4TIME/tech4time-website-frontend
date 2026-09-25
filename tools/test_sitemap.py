@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SEO = ROOT / "content" / "seo.json"
 BRANDING = ROOT / "content" / "branding.json"
 SERVICES = ROOT / "content" / "services.json"
+PRIVACY = ROOT / "content" / "privacy.json"
 MILESTONES = ROOT / "content" / "milestones.json"
 
 SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
@@ -197,6 +198,17 @@ def run(base: str, r: Results) -> None:
     _s, _h, after = fetch(base, "/sitemap.xml")
     r.check("a hidden service is absent",
             f"https://tech4time.bd/pages/services/{services[0]['slug']}/" not in locs(after))
+
+    print("\nand a hidden legal page -- gone, not merely unindexed")
+
+    edit(PRIVACY, lambda d: d.__setitem__("status", "hidden"))
+    _s, _h, after = fetch(base, "/sitemap.xml")
+    r.check("a hidden privacy policy is absent",
+            "https://tech4time.bd/pages/privacy-policy/" not in locs(after))
+    edit(PRIVACY, lambda d: d.__setitem__("status", "shown"))
+    _s, _h, back = fetch(base, "/sitemap.xml")
+    r.check("and it returns when shown again",
+            "https://tech4time.bd/pages/privacy-policy/" in locs(back))
 
     print("\nwhat it claims about dates")
 

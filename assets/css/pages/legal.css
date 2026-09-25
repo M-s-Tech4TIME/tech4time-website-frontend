@@ -197,3 +197,107 @@
 .legal__body .ta-justify {
   text-align: justify;
 }
+
+/* The legal hub furniture: eyebrow chip, tab pills, and the page rail.
+   Tokens only. The rail sits LEFT of the prose (the reference layout), is
+   sticky where it fits, and stacks above the body below 64em with no script
+   involved -- it is links, not behaviour. */
+.legal__eyebrow {
+  display: inline-block;
+  margin-block-end: var(--space-md);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+.legal__tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-xl);
+  padding: 0;
+  list-style: none;
+}
+
+.legal__tab {
+  display: inline-block;
+  padding: var(--space-2xs) var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+a.legal__tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.legal__tab--current {
+  color: var(--text-primary);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+.legal__layout {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 64em) {
+  .legal__layout {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.legal__toc {
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 64em) {
+  .legal__toc {
+    position: sticky;
+    top: var(--space-xl);
+    max-height: calc(100vh - var(--space-xl) * 2);
+    overflow: auto;
+  }
+}
+
+.legal__toc-title {
+  margin-block-end: var(--space-2xs);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.legal__toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal__toc li {
+  border-inline-start: 2px solid transparent;
+}
+
+.legal__toc a {
+  display: block;
+  padding-block: var(--space-2xs);
+  color: var(--text-secondary);
+}
+
+.legal__toc a:hover {
+  color: var(--text-primary);
+}
+
+.legal__toc-num {
+  color: var(--text-muted);
+}
