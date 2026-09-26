@@ -596,45 +596,37 @@ trail.
 
 ## `content/privacy.json`
 
-The privacy policy: headed sections with Markdown bodies, a summary callout and a closing band.
+The privacy policy: one Markdown body, a summary callout and a closing band.
 Edited at `/?s=privacy`, listed on the legal hub at `?s=legal` with its shown/hidden switch.
 
 ```
 meta    { … }
 hero    { title, subtitle }
 status  shown | hidden — the whole page; hidden answers 404
-policy  { label, effective, callout{…}, sections[] }
+policy  { label, effective, callout{…}, body }
 cta     { status, title, text, items[] }
 ```
 
 | Field | Type | Notes |
 |---|---|---|
 | `policy.label` | string | the visually-hidden `<h2>` that names the region for a screen reader, bound to it by `aria-labelledby` |
-| `policy.effective` | string | the whole line at the top — *"Effective 21 August 2026"*. The wording is authored: *"Effective"* and *"Last updated"* do not mean the same thing |
+| `policy.effective` | `YYYY-MM-DD` | picked from a calendar, printed as *"Effective 21 August 2026"*. A date, not a sentence: anything else is refused |
+| `policy.body` | string | the whole policy in the frozen Markdown dialect, rendered by `lib/markdown.php` |
 | `status` | `shown` \| `hidden` | the whole page. Hidden answers 404, leaves the sitemap and the pills, and keeps every word |
 
-One `policy.sections[]` row is a headed part of the policy:
+`policy.callout` is `{ status, title, note }` — the *"short version"* box, whose note holds
+bullets as a Markdown list. One field, nothing to add, remove or reorder.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | string | **the anchor**, minted from the heading and then frozen for good |
-| `heading` | string | the `<h2>` |
-| `status` | `shown` \| `hidden` | |
-| `body` | string | Markdown source in the frozen dialect, rendered by `lib/markdown.php` |
+### Bodies are Markdown, headings carry anchors
 
-`policy.callout` is `{ status, title, items[], note }` — the *"short version"* box, whose `items[]`
-are `{ id, text, status }` with Markdown `text`, and whose `note` is a Markdown field.
-
-### Bodies are Markdown, not blocks
-
-Sections used to hold typed blocks (paragraph, list, table, address, note, subheading), because
-`rt_sanitise_html()` allows no heading, no `<address>` and no `<table>` and structure therefore
-could not live in a rich field. The Markdown renderer owns all markup instead, so a section
-needs no kinds: `body` holds prose, lists, tables and notes in the frozen dialect
-(`tech4time-website-frontend/plans/legal-markdown-syntax.md`), and raw HTML in it is escaped,
-never passed through. Markdown source must never meet `rt_sanitise_*()` — it would
-entity-mangle it — so `privacy_sanitise()` is an explicit pass-through, and safety lives in
-the renderer, proven by `tools/test_markdown.py` in both repositories.
+`body` holds prose, lists, tables, notes and `##`–`######` headings in the frozen dialect
+(`tech4time-website-frontend/plans/legal-markdown-syntax.md`); H1 stays the page-title field.
+A heading may pin its anchor (`## Who {#who-we-are}`), otherwise it slugs from its text;
+`md_headings()` resolves the same ids for the rail, so a rail link pointing at a missing
+anchor is structurally impossible. Raw HTML in source is escaped, never passed through.
+Markdown source must never meet `rt_sanitise_*()` — it would entity-mangle it — so
+`privacy_sanitise()` is an explicit pass-through, and safety lives in the renderer, proven
+by `tools/test_markdown.py` in both repositories.
 
 ### An anchor is a promise
 

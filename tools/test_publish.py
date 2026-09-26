@@ -1942,7 +1942,7 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
     data["hero"]["title"] = f"{MARK}-hero"
     data["hero"]["subtitle"] = f"{MARK}-sub"
     data["policy"]["label"] = f"{MARK}-label"
-    data["policy"]["effective"] = f"{MARK}-effective"
+    data["policy"]["effective"] = "2026-08-21"
     data["cta"]["title"] = f"{MARK}-ctatitle"
     data["cta"]["text"] = f"{MARK}-ctatext"
 
@@ -1950,37 +1950,37 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
         "status": "shown",
         "title": f"{MARK}-callouttitle",
         "note": f"{MARK}-calloutnote",
-        "items": [
-            {"id": "c1", "text": f"{MARK}-point1 **{MARK}-pointbold**",
-             "status": "shown"},
-            {"id": "c2", "text": f"{MARK}-pointhidden", "status": "hidden"},
-        ],
     }
 
-    data["policy"]["sections"] = [
-        {"id": "first-one", "heading": f"{MARK}-head1", "status": "shown",
-         "body": (
-             f"{MARK}-para1 *{MARK}-em* ++{MARK}-ul++ "
-             f"[{MARK}-fraglink](#second-one)\n"
-             f"\n"
-             f"- {MARK}-bullet1\n"
-             f"- {MARK}-bullet2\n"
-             f"\n"
-             f":::note\n{MARK}-notetext\n:::\n"
-             f"\n"
-             f":::center\n{MARK}-centered\n:::\n"
-         )},
-        {"id": "second-one", "heading": f"{MARK}-head2", "status": "shown",
-         "body": (
-             f"**{MARK}-captionline**\n"
-             f"\n"
-             f"| {MARK}-col1 | {MARK}-col2 |\n"
-             f"| --- | --- |\n"
-             f"| {MARK}-rowlabel | {MARK}-rowvalue |\n"
-         )},
-        {"id": "gone", "heading": f"{MARK}-headhidden", "status": "hidden",
-         "body": f"{MARK}-sectionhidden"},
-    ]
+    data["policy"]["body"] = (
+        "## First head {#first-one}\n"
+        "\n"
+        f"{MARK}-para1 *{MARK}-em* ++{MARK}-ul++ "
+        f"[{MARK}-fraglink](#second-one)\n"
+        "\n"
+        f"- {MARK}-bullet1\n"
+        f"- {MARK}-bullet2\n"
+        "\n"
+        ":::note\n"
+        f"{MARK}-notetext\n"
+        ":::\n"
+        "\n"
+        ":::center\n"
+        f"{MARK}-centered\n"
+        ":::\n"
+        "\n"
+        "## Second head\n"
+        "\n"
+        f"**{MARK}-captionline**\n"
+        "\n"
+        f"| {MARK}-col1 | {MARK}-col2 |\n"
+        "| --- | --- |\n"
+        f"| {MARK}-rowlabel | {MARK}-rowvalue |\n"
+        "\n"
+        "### Sub head {#sub-head}\n"
+        "\n"
+        f"{MARK}-subbody\n"
+    )
 
     data["cta"]["items"] = [
         {"id": "b1", "label": f"{MARK}-btn", "href": "/pages/contact/",
@@ -1996,13 +1996,17 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
     status, page = get(base, page_url)
     r.check("the page is served", status == 200, f"status {status}")
 
-    for field in ("tab", "share", "hero", "sub", "label", "effective",
-                  "callouttitle", "calloutnote", "point1", "pointbold",
-                  "head1", "para1", "em", "ul", "fraglink", "bullet1",
-                  "bullet2", "notetext", "centered", "head2", "captionline",
+    for field in ("tab", "share", "hero", "sub", "label",
+                  "callouttitle", "calloutnote",
+                  "para1", "em", "ul", "fraglink", "bullet1",
+                  "bullet2", "notetext", "centered",
+                  "captionline",
                   "col1", "col2", "rowlabel", "rowvalue", "ctatitle",
                   "ctatext", "btn"):
         r.check(f"{field} reaches the visitor", f"{MARK}-{field}" in page)
+
+    for head in ("First head", "Second head", "Sub head"):
+        r.check(f"{head} renders as a heading", head in page)
 
     r.check("the tab title is the tab title", f"<title>{MARK}-tab</title>" in page)
     r.check("and the share title is separate",
@@ -2017,23 +2021,22 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
 
     r.check("the eyebrow names the segment",
             '<p class="legal__eyebrow">Legal</p>' in page)
-    r.check("the effective line is printed",
-            f"{MARK}-effective" in page)
+    r.check("the effective line is printed as a date, not the stored ISO",
+            "Effective 21 August 2026" in page)
     r.check("one document means no pills",
             "legal__tabs" not in page,
             "a switch with a single position")
-    r.check("the rail lists the shown sections, numbered",
+    r.check("the rail lists the headings, numbered",
             '<nav class="legal__toc"' in page
             and 'href="#first-one"' in page
-            and 'class="legal__toc-num">01<' in page,
+            and 'href="#second-one"' in page
+            and 'class="legal__toc-num">01<' in page
+            and 'class="legal__toc-num">02<' in page,
             "numbered anchors missing")
-    r.check("and never the hidden one",
-            'href="#gone"' not in page)
 
     print("\nwhat is hidden is not there at all")
 
-    for gone in ("pointhidden", "headhidden", "sectionhidden", "btnhidden"):
-        r.check(f"{gone} is absent", f"{MARK}-{gone}" not in page)
+    r.check("a hidden button is absent", f"{MARK}-btnhidden" not in page)
 
     print("\neach dialect construct is drawn as itself")
 
@@ -2078,13 +2081,15 @@ def privacy_round_trip(base: str, key: bytes, r: Results) -> None:
 
     print("\nan anchor is a promise")
 
-    r.check("each section carries its stored id as its anchor",
-            '<h2 class="legal__heading" id="second-one">' in page)
+    r.check("a stated id survives rendering",
+            '<h2 class="legal__heading" id="first-one">First head</h2>' in page)
+    r.check("and the rail points at the same address",
+            '<a href="#first-one">' in page)
 
     print("\nMarkdown source is stored, and script in it is text")
 
-    data["policy"]["sections"][1]["body"] = (
-        f'{MARK}-clean<script>alert(1)</script>\n'
+    data["policy"]["body"] += (
+        f'\n\n{MARK}-clean<script>alert(1)</script>\n'
         f'\n'
         f'# {MARK}-octothorpe\n'
         f'\n'

@@ -17,6 +17,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/contract.php';
 require_once __DIR__ . '/store.php';
 require_once __DIR__ . '/html.php';
+require_once __DIR__ . '/markdown.php';
 
 /**
  * Every legal page: route, name, and the document that says if it is shown.
@@ -76,18 +77,20 @@ function legal_tabs(string $current): string
 }
 
 /**
- * The "On this page" rail: numbered links to the shown sections.
+ * The "On this page" rail: numbered links to the body's h2 headings.
  *
- * Numbers are position, not content: 01, 02, … in render order, zero-padded
- * to two. The anchor is the section's stored id, which never changes even
- * when the heading above it does.
+ * Read from md_headings(), never from the HTML: same lines, same resolution,
+ * same dedupe order as the renderer, so a rail link pointing at a missing
+ * anchor is structurally impossible. Numbers are position, never content:
+ * 01, 02, … in render order. h3 and below stay out of the rail, the way
+ * subsections never had TOC entries when sections were rows.
  */
-function legal_toc(array $sections): string
+function legal_toc(string $body): string
 {
     $shown = array_values(array_filter(
-        is_array($sections) ? $sections : [],
-        static fn($s): bool => is_array($s) && ($s['status'] ?? 'shown') !== 'hidden'
-            && trim((string)($s['heading'] ?? '')) !== ''
+        md_headings($body),
+        static fn(array $h): bool => (int)$h['level'] === 2
+            && trim((string)$h['text']) !== ''
     ));
     if ($shown === []) {
         return '';
@@ -95,10 +98,10 @@ function legal_toc(array $sections): string
 
     $out = '<nav class="legal__toc" aria-label="On this page">'
          . '<p class="legal__toc-title">On this page</p><ol>';
-    foreach ($shown as $i => $section) {
-        $out .= '<li><a href="#' . h((string)($section['id'] ?? '')) . '">'
+    foreach ($shown as $i => $heading) {
+        $out .= '<li><a href="#' . h((string)$heading['id']) . '">'
               . '<span class="legal__toc-num">' . sprintf('%02d', $i + 1) . '</span> '
-              . h((string)($section['heading'] ?? '')) . '</a></li>';
+              . h((string)$heading['text']) . '</a></li>';
     }
     return $out . '</ol></nav>';
 }

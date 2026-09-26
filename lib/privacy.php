@@ -51,30 +51,41 @@ function privacy_load(): array
 }
 
 /**
- * One section, as flat siblings of .legal__body.
+ * "2026-08-21" as "Effective 21 August 2026", or '' when it will not read.
  *
- * DELIBERATELY FLAT: nothing wraps a section in a container.
- * assets/css/pages/legal.css zeroes the top margin of the first heading with
- * `.legal__body > .legal__heading:first-of-type`, and a wrapper would make
- * that child combinator match nothing. The heading and the rendered body are
- * emitted at the same depth the hand-written page emitted them.
- *
- * The heading goes through h(); the body goes through the shared Markdown
- * renderer, which escapes every text run and emits only its fixed tag
- * vocabulary. Nothing here prints stored markup bare -- there is no stored
- * markup any more.
+ * The field is a date picker, so what arrives is ISO or refusal -- but a
+ * document written before the picker, or by hand, can hold anything, and a
+ * chip that prints a sentence fragment is worse than no chip. Defensive the
+ * same way privacy_effective_date() is.
  */
-function privacy_section_html(array $section): string
+function privacy_effective_line(string $iso): string
 {
-    return '<h2 class="legal__heading" id="' . h((string)($section['id'] ?? '')) . '">'
-         . h((string)($section['heading'] ?? '')) . '</h2>' . "\n"
-         . md_render((string)($section['body'] ?? ''));
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', trim($iso), $m)
+        || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])
+    ) {
+        return '';
+    }
+    $stamp = strtotime($m[1] . '-' . $m[2] . '-' . $m[3] . ' UTC');
+    if ($stamp === false) {
+        return '';
+    }
+    return 'Effective ' . gmdate('j F Y', $stamp);
 }
 
-/** The summary box's bullets, rendered inline: each lives inside an <li>. */
-function privacy_item_html(array $item): string
+/**
+ * The auto stamp as "Last updated 26 September 2026", or ''.
+ *
+ * `updated` moves on every save -- typo fixes included -- which is exactly
+ * what "last updated" means and exactly what "effective" must never follow.
+ * The two chips side by side say what changed and what merely got published.
+ */
+function privacy_updated_line(string $iso): string
 {
-    return md_inline((string)($item['text'] ?? ''), 0);
+    $stamp = strtotime(trim($iso));
+    if ($stamp === false) {
+        return '';
+    }
+    return 'Last updated ' . gmdate('j F Y', $stamp);
 }
 
 /* --------------------------------------------------------- structured data */

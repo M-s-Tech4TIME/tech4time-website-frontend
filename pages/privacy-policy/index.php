@@ -21,7 +21,7 @@
  * The sections are emitted as FLAT SIBLINGS of .legal__body, with no per-section
  * wrapper. assets/css/pages/legal.css zeroes the top margin of the first
  * heading with a child combinator, and a wrapper would silently stop it
- * matching. See privacy_section_html().
+ * matching.
  *
  * The header, footer and dock are emitted by lib/body.php from
  * content/chrome.json. The hero circuit is still literal markup, being
@@ -335,12 +335,15 @@ if (($data['status'] ?? 'shown') === 'hidden') {
       <h2 class="visually-hidden" id="policy-heading"><?= h($data['policy']['label']) ?></h2>
 
       <p class="legal__eyebrow">Legal</p>
-      <p class="legal__updated"><?= h($data['policy']['effective']) ?></p>
+      <p class="legal__dateline">
+        <span><?= h(privacy_effective_line((string)($data['policy']['effective'] ?? ''))) ?></span>
+        <span><?= h(privacy_updated_line((string)($data['updated'] ?? ''))) ?></span>
+      </p>
 
       <?= legal_tabs('/pages/privacy-policy/') ?>
 
       <div class="legal__layout">
-        <?= legal_toc($data['policy']['sections']) ?>
+        <?= legal_toc((string)($data['policy']['body'] ?? '')) ?>
 
         <div class="legal__body">
 
@@ -348,19 +351,11 @@ if (($data['status'] ?? 'shown') === 'hidden') {
 <?php if (privacy_rows_shown([$callout])): ?>
         <div class="legal__callout">
           <h2 class="legal__callout-title"><?= h($callout['title']) ?></h2>
-          <ul class="legal__list">
-<?php foreach (privacy_rows_shown($callout['items']) as $item): ?>
-            <li><?= md_inline((string)($item['text'] ?? ''), 0) ?></li>
-<?php endforeach; ?>
-          </ul>
           <?= md_render((string)($callout['note'] ?? '')) ?>
         </div>
 <?php endif; ?>
 
-<?php foreach (privacy_rows_shown($data['policy']['sections']) as $section): ?>
-        <?= privacy_section_html($section) ?>
-
-<?php endforeach; ?>
+        <?= md_render((string)($data['policy']['body'] ?? '')) ?>
         </div>
       </div>
     </div>
